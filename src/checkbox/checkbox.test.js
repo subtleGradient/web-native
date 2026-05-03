@@ -3,13 +3,15 @@
 import { expect } from "chai"
 import "./define.js"
 
+const html = String.raw
+
 describe("base-checkbox", () => {
   afterEach(() => {
     document.querySelectorAll("[data-test-root]").forEach((element) => element.remove())
   })
 
   it("initializes unchecked checkbox semantics", () => {
-    const checkbox = mountCheckbox(`<base-checkbox>Accept terms</base-checkbox>`)
+    const checkbox = mountCheckbox(html`<base-checkbox>Accept terms</base-checkbox>`)
 
     expect(checkbox.getAttribute("role")).to.equal("checkbox")
     expect(checkbox.getAttribute("tabindex")).to.equal("0")
@@ -22,7 +24,7 @@ describe("base-checkbox", () => {
   })
 
   it("reflects checked, indeterminate, disabled, focusable, and active states", () => {
-    const checkbox = mountCheckbox(`<base-checkbox></base-checkbox>`)
+    const checkbox = mountCheckbox(html`<base-checkbox></base-checkbox>`)
 
     checkbox.checked = true
     expect(checkbox.getAttribute("aria-checked")).to.equal("true")
@@ -45,7 +47,7 @@ describe("base-checkbox", () => {
   })
 
   it("toggles checked state from click and dispatches a cancelable event", () => {
-    const checkbox = mountCheckbox(`<base-checkbox></base-checkbox>`)
+    const checkbox = mountCheckbox(html`<base-checkbox></base-checkbox>`)
     /** @type {{ checked: boolean, indeterminate: boolean, previousChecked: boolean, previousIndeterminate: boolean, reason: string } | undefined} */
     let detail
     let cancelable = false
@@ -77,7 +79,7 @@ describe("base-checkbox", () => {
   })
 
   it("does not commit a canceled checked change", () => {
-    const checkbox = mountCheckbox(`<base-checkbox></base-checkbox>`)
+    const checkbox = mountCheckbox(html`<base-checkbox></base-checkbox>`)
 
     checkbox.addEventListener("base-ui:checked-change", (event) => event.preventDefault())
     checkbox.click()
@@ -87,7 +89,7 @@ describe("base-checkbox", () => {
   })
 
   it("converts indeterminate state to checked on user activation", () => {
-    const checkbox = mountCheckbox(`<base-checkbox indeterminate></base-checkbox>`)
+    const checkbox = mountCheckbox(html`<base-checkbox indeterminate></base-checkbox>`)
     /** @type {{ checked: boolean, indeterminate: boolean, previousChecked: boolean, previousIndeterminate: boolean } | undefined} */
     let detail
 
@@ -109,7 +111,7 @@ describe("base-checkbox", () => {
   })
 
   it("supports Space keyboard activation and ignores Enter", () => {
-    const checkbox = mountCheckbox(`<base-checkbox></base-checkbox>`)
+    const checkbox = mountCheckbox(html`<base-checkbox></base-checkbox>`)
     const space = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: " " })
     const enter = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Enter" })
 
@@ -127,7 +129,7 @@ describe("base-checkbox", () => {
   })
 
   it("ignores pointer and keyboard activation while disabled", () => {
-    const checkbox = mountCheckbox(`<base-checkbox disabled></base-checkbox>`)
+    const checkbox = mountCheckbox(html`<base-checkbox disabled></base-checkbox>`)
     let events = 0
 
     checkbox.addEventListener("base-ui:checked-change", () => {
@@ -144,7 +146,7 @@ describe("base-checkbox", () => {
   })
 
   it("does not duplicate listeners after reconnecting", () => {
-    const root = mount(`<base-checkbox></base-checkbox>`)
+    const root = mount(html`<base-checkbox></base-checkbox>`)
     const checkbox = /** @type {import("./index.js").BaseCheckbox} */ (root.firstElementChild)
     let events = 0
 
@@ -161,7 +163,7 @@ describe("base-checkbox", () => {
   })
 
   it("passes automated accessibility checks", async () => {
-    const root = mount(`
+    const root = mount(html`
       <base-checkbox>Accept terms</base-checkbox>
       <base-checkbox checked>Email updates</base-checkbox>
       <base-checkbox indeterminate>Partially selected</base-checkbox>

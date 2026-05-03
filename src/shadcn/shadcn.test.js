@@ -3,13 +3,15 @@
 import { expect } from "chai"
 import "./define.js"
 
+const html = String.raw
+
 describe("shadcn web components", () => {
   afterEach(() => {
     document.querySelectorAll("[data-test-root]").forEach((element) => element.remove())
   })
 
   it("applies button slots, variant classes, and button-like semantics", () => {
-    const root = mount(`<shadcn-button variant="outline" size="sm">Save</shadcn-button>`)
+    const root = mount(html`<shadcn-button variant="outline" size="sm">Save</shadcn-button>`)
     const button = /** @type {import("./button/index.js").ShadcnButton} */ (root.firstElementChild)
 
     expect(button.getAttribute("data-slot")).to.equal("button")
@@ -21,7 +23,7 @@ describe("shadcn web components", () => {
   })
 
   it("updates button variant and size classes without keeping stale generated classes", () => {
-    const root = mount(`<shadcn-button variant="outline" size="sm">Save</shadcn-button>`)
+    const root = mount(html`<shadcn-button variant="outline" size="sm">Save</shadcn-button>`)
     const button = /** @type {import("./button/index.js").ShadcnButton} */ (root.firstElementChild)
 
     button.variant = "destructive"
@@ -40,7 +42,7 @@ describe("shadcn web components", () => {
   })
 
   it("activates button clicks from Space and Enter but suppresses disabled activation", () => {
-    const root = mount(`<shadcn-button>Save</shadcn-button>`)
+    const root = mount(html`<shadcn-button>Save</shadcn-button>`)
     const button = /** @type {import("./button/index.js").ShadcnButton} */ (root.firstElementChild)
     let clicks = 0
 
@@ -62,7 +64,7 @@ describe("shadcn web components", () => {
   })
 
   it("exposes shadcn toggle events and hides the Base UI event by default", () => {
-    const root = mount(`<shadcn-toggle>Bold</shadcn-toggle>`)
+    const root = mount(html`<shadcn-toggle>Bold</shadcn-toggle>`)
     const toggle = /** @type {import("./toggle/index.js").ShadcnToggle} */ (root.firstElementChild)
     let shadcnEvents = 0
     let baseEvents = 0
@@ -84,7 +86,7 @@ describe("shadcn web components", () => {
   })
 
   it("lets canceled shadcn toggle events block the Base UI state commit", () => {
-    const root = mount(`<shadcn-toggle>Bold</shadcn-toggle>`)
+    const root = mount(html`<shadcn-toggle>Bold</shadcn-toggle>`)
     const toggle = /** @type {import("./toggle/index.js").ShadcnToggle} */ (root.firstElementChild)
 
     toggle.addEventListener("shadcn:pressed-change", (event) => event.preventDefault())
@@ -94,7 +96,7 @@ describe("shadcn web components", () => {
   })
 
   it("updates toggle variant and size classes while preserving Base UI state attributes", () => {
-    const root = mount(`<shadcn-toggle variant="outline" size="sm">Bold</shadcn-toggle>`)
+    const root = mount(html`<shadcn-toggle variant="outline" size="sm">Bold</shadcn-toggle>`)
     const toggle = /** @type {import("./toggle/index.js").ShadcnToggle} */ (root.firstElementChild)
 
     toggle.click()
@@ -112,7 +114,7 @@ describe("shadcn web components", () => {
   })
 
   it("applies checkbox and switch slots, classes, and Base UI semantics", () => {
-    const root = mount(`
+    const root = mount(html`
       <shadcn-checkbox size="sm" indeterminate aria-label="Select all"></shadcn-checkbox>
       <shadcn-switch size="lg" checked aria-label="Enable alerts"></shadcn-switch>
     `)
@@ -133,7 +135,7 @@ describe("shadcn web components", () => {
   })
 
   it("exposes shadcn checked events and hides Base UI checkbox and switch events", () => {
-    const root = mount(`
+    const root = mount(html`
       <shadcn-checkbox aria-label="Accept terms"></shadcn-checkbox>
       <shadcn-switch aria-label="Enable alerts"></shadcn-switch>
     `)
@@ -166,7 +168,7 @@ describe("shadcn web components", () => {
   })
 
   it("lets canceled shadcn checked events block checkbox and switch commits", () => {
-    const root = mount(`
+    const root = mount(html`
       <shadcn-checkbox aria-label="Accept terms"></shadcn-checkbox>
       <shadcn-switch aria-label="Enable alerts"></shadcn-switch>
     `)
@@ -185,7 +187,7 @@ describe("shadcn web components", () => {
   it("styles checkbox and switch focus, active, checked, and disabled states", async () => {
     await ensureShadcnStyles()
 
-    const root = mount(`
+    const root = mount(html`
       <shadcn-checkbox aria-label="Accept terms"></shadcn-checkbox>
       <shadcn-checkbox disabled aria-label="Disabled checkbox"></shadcn-checkbox>
       <shadcn-switch aria-label="Enable alerts"></shadcn-switch>
@@ -220,7 +222,7 @@ describe("shadcn web components", () => {
   it("styles existing button and toggle focus, active, and disabled states", async () => {
     await ensureShadcnStyles()
 
-    const root = mount(`
+    const root = mount(html`
       <shadcn-button>Save</shadcn-button>
       <shadcn-button disabled>Disabled</shadcn-button>
       <shadcn-toggle variant="outline">Bold</shadcn-toggle>
@@ -251,7 +253,7 @@ describe("shadcn web components", () => {
   })
 
   it("uses Base UI tabs behavior under shadcn tab names", async () => {
-    const root = mount(`
+    const root = mount(html`
       <shadcn-tabs value="account">
         <shadcn-tabs-list variant="line" aria-label="Settings">
           <shadcn-tabs-trigger value="account">Account</shadcn-tabs-trigger>
@@ -288,7 +290,7 @@ describe("shadcn web components", () => {
   })
 
   it("hides Base UI tab events and lets canceled shadcn tab events block commits", async () => {
-    const root = mount(`
+    const root = mount(html`
       <shadcn-tabs value="account">
         <shadcn-tabs-list variant="line" aria-label="Settings">
           <shadcn-tabs-trigger value="account">Account</shadcn-tabs-trigger>
@@ -334,7 +336,7 @@ describe("shadcn web components", () => {
     })
 
     root.append(tabs)
-    tabs.innerHTML = `
+    tabs.innerHTML = html`
         <shadcn-tabs-list variant="line" aria-label="Settings">
           <shadcn-tabs-trigger value="account">Account</shadcn-tabs-trigger>
           <shadcn-tabs-trigger value="security">Security</shadcn-tabs-trigger>
@@ -355,7 +357,7 @@ describe("shadcn web components", () => {
   })
 
   it("preserves Base UI manual keyboard activation through shadcn tabs", async () => {
-    const root = mount(`
+    const root = mount(html`
       <shadcn-tabs value="account">
         <shadcn-tabs-list variant="line" aria-label="Settings">
           <shadcn-tabs-trigger value="account">Account</shadcn-tabs-trigger>
@@ -382,7 +384,7 @@ describe("shadcn web components", () => {
   })
 
   it("keeps shadcn tab variants on the list while Base UI updates orientation state", async () => {
-    const root = mount(`
+    const root = mount(html`
       <shadcn-tabs value="account" orientation="vertical">
         <shadcn-tabs-list variant="line" aria-label="Settings">
           <shadcn-tabs-trigger value="account">Account</shadcn-tabs-trigger>
@@ -408,7 +410,7 @@ describe("shadcn web components", () => {
   })
 
   it("applies slots and classes to presentational components", () => {
-    const root = mount(`
+    const root = mount(html`
       <shadcn-card>
         <shadcn-card-header>
           <shadcn-card-title>Card title</shadcn-card-title>
@@ -430,7 +432,7 @@ describe("shadcn web components", () => {
   })
 
   it("updates presentational variants and generated classes", () => {
-    const root = mount(`
+    const root = mount(html`
       <shadcn-card size="sm"></shadcn-card>
       <shadcn-badge variant="outline">Badge</shadcn-badge>
       <shadcn-alert variant="destructive"></shadcn-alert>
@@ -455,7 +457,7 @@ describe("shadcn web components", () => {
   it("loads shadcn CSS without Tailwind and applies usable computed styles", async () => {
     await ensureShadcnStyles()
 
-    const root = mount(`
+    const root = mount(html`
       <shadcn-button>Save</shadcn-button>
       <shadcn-tabs value="one">
         <shadcn-tabs-list aria-label="Sections">
@@ -476,7 +478,7 @@ describe("shadcn web components", () => {
   })
 
   it("passes automated accessibility checks for a representative shadcn UI", async () => {
-    const root = mount(`
+    const root = mount(html`
       <shadcn-alert>
         <shadcn-alert-title>Status</shadcn-alert-title>
         <shadcn-alert-description>Everything is working.</shadcn-alert-description>

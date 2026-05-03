@@ -10,7 +10,8 @@
     "test": "bun run scripts/test.ts",
     "verify:dark": "bun run scripts/verify-dark-mode.ts",
     "verify:demos": "bun run scripts/verify-composite-demos.ts",
-    "verify:github-demo": "bun run scripts/verify-github-demo.ts"
+    "verify:github-demo": "bun run scripts/verify-github-demo.ts",
+    "verify:standalone": "bun run scripts/verify-standalone-demos.ts"
   },
   "dependencies": {},
   "devDependencies": {

@@ -5,6 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
     <title>GitHub import-map shadcn web demo</title>
+    <script>
+      (() => {
+        const root = document.documentElement
+        const media = matchMedia("(prefers-color-scheme: dark)")
+
+        const syncTheme = () => {
+          root.dataset.theme = media.matches ? "dark" : "light"
+        }
+
+        syncTheme()
+        media.addEventListener("change", syncTheme)
+      })()
+    </script>
     <link
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/gh/subtleGradient/web-native@web-native-shadcn-components/src/shadcn/themes/neutral.css"

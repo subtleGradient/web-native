@@ -3,13 +3,15 @@
 import { expect } from "chai"
 import "./define.js"
 
+const html = String.raw
+
 describe("base-tabs", () => {
   afterEach(() => {
     document.querySelectorAll("[data-test-root]").forEach((element) => element.remove())
   })
 
   it("selects the first enabled tab when value is omitted", async () => {
-    const tabs = mountTabs(`
+    const tabs = mountTabs(html`
       <base-tabs>
         <base-tabs-list aria-label="Settings">
           <base-tab value="account">Account</base-tab>
@@ -46,7 +48,7 @@ describe("base-tabs", () => {
     })
 
     root.append(tabs)
-    tabs.innerHTML = `
+    tabs.innerHTML = html`
         <base-tabs-list aria-label="Settings">
           <base-tab value="account">Account</base-tab>
           <base-tab value="security">Security</base-tab>
@@ -67,7 +69,7 @@ describe("base-tabs", () => {
   })
 
   it("connects tab and panel ARIA relationships", async () => {
-    const tabs = mountTabs(`
+    const tabs = mountTabs(html`
       <base-tabs value="account">
         <base-tabs-list aria-label="Settings">
           <base-tab value="account">Account</base-tab>
@@ -88,7 +90,7 @@ describe("base-tabs", () => {
   })
 
   it("preserves author-provided ids in ARIA relationships", async () => {
-    const tabs = mountTabs(`
+    const tabs = mountTabs(html`
       <base-tabs value="account">
         <base-tabs-list aria-label="Settings">
           <base-tab id="account-tab" value="account">Account</base-tab>
@@ -106,7 +108,7 @@ describe("base-tabs", () => {
   })
 
   it("changes value from tab clicks and dispatches a cancelable Base UI event", async () => {
-    const tabs = mountTabs(`
+    const tabs = mountTabs(html`
       <base-tabs value="account">
         <base-tabs-list aria-label="Settings">
           <base-tab value="account">Account</base-tab>
@@ -141,7 +143,7 @@ describe("base-tabs", () => {
   })
 
   it("does not commit a canceled value change", async () => {
-    const tabs = mountTabs(`
+    const tabs = mountTabs(html`
       <base-tabs value="account">
         <base-tabs-list aria-label="Settings">
           <base-tab value="account">Account</base-tab>
@@ -162,7 +164,7 @@ describe("base-tabs", () => {
   })
 
   it("emits a bubbling and composed value-change event", async () => {
-    const root = mount(`
+    const root = mount(html`
       <base-tabs value="account">
         <base-tabs-list aria-label="Settings">
           <base-tab value="account">Account</base-tab>
@@ -189,7 +191,7 @@ describe("base-tabs", () => {
   })
 
   it("supports roving focus and manual keyboard activation", async () => {
-    const tabs = mountTabs(`
+    const tabs = mountTabs(html`
       <base-tabs value="account">
         <base-tabs-list aria-label="Settings">
           <base-tab value="account">Account</base-tab>
@@ -213,7 +215,7 @@ describe("base-tabs", () => {
   })
 
   it("supports activate-on-focus keyboard navigation", async () => {
-    const tabs = mountTabs(`
+    const tabs = mountTabs(html`
       <base-tabs value="account">
         <base-tabs-list aria-label="Settings" activate-on-focus>
           <base-tab value="account">Account</base-tab>
@@ -233,7 +235,7 @@ describe("base-tabs", () => {
   })
 
   it("supports Home, End, and looping roving focus", async () => {
-    const tabs = mountTabs(`
+    const tabs = mountTabs(html`
       <base-tabs value="one">
         <base-tabs-list aria-label="Settings">
           <base-tab value="one">One</base-tab>
@@ -261,7 +263,7 @@ describe("base-tabs", () => {
   })
 
   it("respects loop-focus=false at roving focus boundaries", async () => {
-    const tabs = mountTabs(`
+    const tabs = mountTabs(html`
       <base-tabs value="one">
         <base-tabs-list aria-label="Settings" loop-focus="false">
           <base-tab value="one">One</base-tab>
@@ -281,7 +283,7 @@ describe("base-tabs", () => {
   })
 
   it("uses vertical arrow keys when orientation is vertical", async () => {
-    const tabs = mountTabs(`
+    const tabs = mountTabs(html`
       <base-tabs value="one" orientation="vertical">
         <base-tabs-list aria-label="Settings">
           <base-tab value="one">One</base-tab>
@@ -308,7 +310,7 @@ describe("base-tabs", () => {
   })
 
   it("keeps disabled tabs focusable in roving focus but blocks activation", async () => {
-    const tabs = mountTabs(`
+    const tabs = mountTabs(html`
       <base-tabs value="one">
         <base-tabs-list aria-label="Settings">
           <base-tab value="one">One</base-tab>
@@ -342,7 +344,7 @@ describe("base-tabs", () => {
   })
 
   it("falls back when the current tab becomes disabled", async () => {
-    const tabs = mountTabs(`
+    const tabs = mountTabs(html`
       <base-tabs value="one">
         <base-tabs-list aria-label="Settings">
           <base-tab value="one">One</base-tab>
@@ -376,7 +378,7 @@ describe("base-tabs", () => {
   })
 
   it("falls back when the current tab is removed", async () => {
-    const tabs = mountTabs(`
+    const tabs = mountTabs(html`
       <base-tabs value="two">
         <base-tabs-list aria-label="Settings">
           <base-tab value="one">One</base-tab>
@@ -408,7 +410,7 @@ describe("base-tabs", () => {
   })
 
   it("clears the value when no enabled tabs remain", async () => {
-    const tabs = mountTabs(`
+    const tabs = mountTabs(html`
       <base-tabs value="one">
         <base-tabs-list aria-label="Settings">
           <base-tab value="one">One</base-tab>
@@ -428,7 +430,7 @@ describe("base-tabs", () => {
   })
 
   it("updates ARIA relationships when panels are added dynamically", async () => {
-    const tabs = mountTabs(`
+    const tabs = mountTabs(html`
       <base-tabs value="one">
         <base-tabs-list aria-label="Settings">
           <base-tab value="one">One</base-tab>
@@ -451,7 +453,7 @@ describe("base-tabs", () => {
   })
 
   it("keeps nested tabs isolated from parent tab collections", async () => {
-    const tabs = mountTabs(`
+    const tabs = mountTabs(html`
       <base-tabs value="outer-one">
         <base-tabs-list aria-label="Outer">
           <base-tab value="outer-one">Outer one</base-tab>
@@ -480,7 +482,7 @@ describe("base-tabs", () => {
   })
 
   it("maintains tab invariants through deterministic random keyboard navigation", async () => {
-    const tabs = mountTabs(`
+    const tabs = mountTabs(html`
       <base-tabs value="a">
         <base-tabs-list aria-label="Letters">
           <base-tab value="a">A</base-tab>
@@ -520,7 +522,7 @@ describe("base-tabs", () => {
   })
 
   it("passes automated accessibility checks", async () => {
-    const root = mount(`
+    const root = mount(html`
       <base-tabs value="account">
         <base-tabs-list aria-label="Settings sections">
           <base-tab value="account">Account</base-tab>

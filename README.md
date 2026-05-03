@@ -12,6 +12,7 @@ bun run check
 bun run test
 bun run verify:dark
 bun run verify:demos
+bun run verify:standalone
 bun run dev
 ```
 
@@ -24,6 +25,8 @@ bun run dev
 `bun run verify:dark` launches Chromium and verifies that the shadcn theme follows `prefers-color-scheme: dark` by default while still allowing explicit `.light`, `.dark`, and `data-theme` overrides.
 
 `bun run verify:demos` launches Chromium against the composite demos, interacts with tabs, switches, and checkboxes, verifies focus/active/disabled styles, and runs axe against the page.
+
+`bun run verify:standalone` opens every standalone GitHub-linked demo as a `file://` page, verifies it defines custom elements, and checks automatic light/dark theme sync in both system modes.
 
 Set `PUPPETEER_EXECUTABLE_PATH` or `CHROME_BIN` if Chromium is not installed at a common system path.
 
@@ -74,7 +77,7 @@ Development should follow RGRTDD / demo-first flow:
 
 Each folder includes a `*.demo.html`, `*.test.js`, and `README.md` next to the implementation.
 
-The standalone GitHub import-map demo lives at `examples/standalone/shadcn-github.html`. Composite local demos live in `examples/composite/`.
+The standalone GitHub import-map demo lives at `examples/standalone/shadcn-github.html`. Composite local demos live in `examples/composite/`. Each component/demo folder also has a `*.standalone.html` page that can be opened directly without running a server.
 
 ## Browser Imports
 

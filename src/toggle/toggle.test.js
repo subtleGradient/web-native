@@ -3,13 +3,15 @@
 import { expect } from "chai"
 import "./define.js"
 
+const html = String.raw
+
 describe("base-toggle", () => {
   afterEach(() => {
     document.querySelectorAll("[data-test-root]").forEach((element) => element.remove())
   })
 
   it("initializes the host with button semantics", () => {
-    const toggle = mountToggle("<base-toggle>Bold</base-toggle>")
+    const toggle = mountToggle(html`<base-toggle>Bold</base-toggle>`)
 
     expect(toggle.getAttribute("role")).to.equal("button")
     expect(toggle.getAttribute("tabindex")).to.equal("0")
@@ -18,7 +20,7 @@ describe("base-toggle", () => {
   })
 
   it("toggles pressed state and dispatches a cancelable Base UI event", () => {
-    const toggle = mountToggle("<base-toggle>Bold</base-toggle>")
+    const toggle = mountToggle(html`<base-toggle>Bold</base-toggle>`)
     /** @type {{ pressed: boolean, reason: string } | undefined} */
     let detail
 
@@ -36,7 +38,7 @@ describe("base-toggle", () => {
   })
 
   it("reflects pressed and disabled properties to ARIA and data attributes", () => {
-    const toggle = mountToggle("<base-toggle>Bold</base-toggle>")
+    const toggle = mountToggle(html`<base-toggle>Bold</base-toggle>`)
 
     toggle.pressed = true
     expect(toggle.hasAttribute("pressed")).to.equal(true)
@@ -56,7 +58,7 @@ describe("base-toggle", () => {
   })
 
   it("emits a bubbling and composed pressed-change event", () => {
-    const root = mount(`<base-toggle>Bold</base-toggle>`)
+    const root = mount(html`<base-toggle>Bold</base-toggle>`)
     const toggle = /** @type {import("./toggle.js").BaseToggle} */ (root.firstElementChild)
     let reachedParent = false
 
@@ -73,7 +75,7 @@ describe("base-toggle", () => {
   })
 
   it("does not commit a canceled pressed change", () => {
-    const toggle = mountToggle("<base-toggle>Bold</base-toggle>")
+    const toggle = mountToggle(html`<base-toggle>Bold</base-toggle>`)
 
     toggle.addEventListener("base-ui:pressed-change", (event) => event.preventDefault())
     toggle.click()
@@ -83,7 +85,7 @@ describe("base-toggle", () => {
   })
 
   it("does not commit a canceled keyboard pressed change", () => {
-    const toggle = mountToggle("<base-toggle>Bold</base-toggle>")
+    const toggle = mountToggle(html`<base-toggle>Bold</base-toggle>`)
     const event = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: " " })
 
     toggle.addEventListener("base-ui:pressed-change", (pressedEvent) => pressedEvent.preventDefault())
@@ -94,7 +96,7 @@ describe("base-toggle", () => {
   })
 
   it("ignores pointer and keyboard activation while disabled", () => {
-    const toggle = mountToggle("<base-toggle disabled>Bold</base-toggle>")
+    const toggle = mountToggle(html`<base-toggle disabled>Bold</base-toggle>`)
     let calls = 0
 
     toggle.addEventListener("base-ui:pressed-change", () => {
@@ -111,7 +113,7 @@ describe("base-toggle", () => {
   })
 
   it("supports Space and Enter keyboard activation", () => {
-    const toggle = mountToggle("<base-toggle>Bold</base-toggle>")
+    const toggle = mountToggle(html`<base-toggle>Bold</base-toggle>`)
     const space = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: " " })
     const enter = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Enter" })
 
@@ -125,7 +127,7 @@ describe("base-toggle", () => {
   })
 
   it("ignores non-activation keys", () => {
-    const toggle = mountToggle("<base-toggle>Bold</base-toggle>")
+    const toggle = mountToggle(html`<base-toggle>Bold</base-toggle>`)
     const event = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "ArrowRight" })
 
     toggle.dispatchEvent(event)
@@ -135,7 +137,7 @@ describe("base-toggle", () => {
   })
 
   it("does not duplicate listeners after reconnecting", () => {
-    const root = mount(`<base-toggle>Bold</base-toggle>`)
+    const root = mount(html`<base-toggle>Bold</base-toggle>`)
     const toggle = /** @type {import("./toggle.js").BaseToggle} */ (root.firstElementChild)
     let calls = 0
 
@@ -152,7 +154,7 @@ describe("base-toggle", () => {
   })
 
   it("passes automated accessibility checks", async () => {
-    const root = mount(`
+    const root = mount(html`
       <base-toggle>Bold</base-toggle>
       <base-toggle pressed>Italic</base-toggle>
       <base-toggle disabled>Disabled</base-toggle>

@@ -3,13 +3,15 @@
 import { expect } from "chai"
 import "./define.js"
 
+const html = String.raw
+
 describe("base-separator", () => {
   afterEach(() => {
     document.querySelectorAll("[data-test-root]").forEach((element) => element.remove())
   })
 
   it("renders separator semantics with horizontal orientation by default", () => {
-    const separator = mountSeparator("<base-separator></base-separator>")
+    const separator = mountSeparator(html`<base-separator></base-separator>`)
 
     expect(separator.getAttribute("role")).to.equal("separator")
     expect(separator.getAttribute("aria-orientation")).to.equal("horizontal")
@@ -18,7 +20,7 @@ describe("base-separator", () => {
   })
 
   it("reflects vertical orientation", () => {
-    const separator = mountSeparator('<base-separator orientation="vertical"></base-separator>')
+    const separator = mountSeparator(html`<base-separator orientation="vertical"></base-separator>`)
 
     expect(separator.getAttribute("aria-orientation")).to.equal("vertical")
     expect(separator.getAttribute("data-orientation")).to.equal("vertical")
@@ -29,7 +31,7 @@ describe("base-separator", () => {
   })
 
   it("normalizes invalid orientation values to horizontal semantics", () => {
-    const separator = mountSeparator('<base-separator orientation="diagonal"></base-separator>')
+    const separator = mountSeparator(html`<base-separator orientation="diagonal"></base-separator>`)
 
     expect(separator.orientation).to.equal("horizontal")
     expect(separator.getAttribute("aria-orientation")).to.equal("horizontal")
@@ -37,7 +39,7 @@ describe("base-separator", () => {
   })
 
   it("updates semantics when the orientation attribute changes after connection", () => {
-    const separator = mountSeparator("<base-separator></base-separator>")
+    const separator = mountSeparator(html`<base-separator></base-separator>`)
 
     separator.setAttribute("orientation", "vertical")
     expect(separator.orientation).to.equal("vertical")
@@ -49,7 +51,7 @@ describe("base-separator", () => {
   })
 
   it("passes automated accessibility checks", async () => {
-    const root = mount(`
+    const root = mount(html`
       <p>Before</p>
       <base-separator></base-separator>
       <p>After</p>

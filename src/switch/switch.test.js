@@ -3,13 +3,15 @@
 import { expect } from "chai"
 import "./define.js"
 
+const html = String.raw
+
 describe("base-switch", () => {
   afterEach(() => {
     document.querySelectorAll("[data-test-root]").forEach((element) => element.remove())
   })
 
   it("initializes switch semantics with off state", () => {
-    const toggle = mountSwitch(`<base-switch>Notifications</base-switch>`)
+    const toggle = mountSwitch(html`<base-switch>Notifications</base-switch>`)
 
     expect(toggle.getAttribute("role")).to.equal("switch")
     expect(toggle.getAttribute("tabindex")).to.equal("0")
@@ -20,7 +22,7 @@ describe("base-switch", () => {
   })
 
   it("reflects checked, disabled, focusable, and active states", () => {
-    const toggle = mountSwitch(`<base-switch></base-switch>`)
+    const toggle = mountSwitch(html`<base-switch></base-switch>`)
 
     toggle.checked = true
     expect(toggle.getAttribute("aria-checked")).to.equal("true")
@@ -38,7 +40,7 @@ describe("base-switch", () => {
   })
 
   it("toggles checked state from click and dispatches a cancelable event", () => {
-    const toggle = mountSwitch(`<base-switch></base-switch>`)
+    const toggle = mountSwitch(html`<base-switch></base-switch>`)
     /** @type {{ checked: boolean, previousChecked: boolean, reason: string } | undefined} */
     let detail
     let cancelable = false
@@ -64,7 +66,7 @@ describe("base-switch", () => {
   })
 
   it("does not commit a canceled checked change", () => {
-    const toggle = mountSwitch(`<base-switch></base-switch>`)
+    const toggle = mountSwitch(html`<base-switch></base-switch>`)
 
     toggle.addEventListener("base-ui:checked-change", (event) => event.preventDefault())
     toggle.click()
@@ -74,7 +76,7 @@ describe("base-switch", () => {
   })
 
   it("supports Space and Enter keyboard activation", () => {
-    const toggle = mountSwitch(`<base-switch></base-switch>`)
+    const toggle = mountSwitch(html`<base-switch></base-switch>`)
     const space = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: " " })
     const enter = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Enter" })
 
@@ -92,7 +94,7 @@ describe("base-switch", () => {
   })
 
   it("ignores pointer and keyboard activation while disabled", () => {
-    const toggle = mountSwitch(`<base-switch disabled></base-switch>`)
+    const toggle = mountSwitch(html`<base-switch disabled></base-switch>`)
     let events = 0
 
     toggle.addEventListener("base-ui:checked-change", () => {
@@ -109,7 +111,7 @@ describe("base-switch", () => {
   })
 
   it("does not duplicate listeners after reconnecting", () => {
-    const root = mount(`<base-switch></base-switch>`)
+    const root = mount(html`<base-switch></base-switch>`)
     const toggle = /** @type {import("./index.js").BaseSwitch} */ (root.firstElementChild)
     let events = 0
 
@@ -126,7 +128,7 @@ describe("base-switch", () => {
   })
 
   it("passes automated accessibility checks", async () => {
-    const root = mount(`
+    const root = mount(html`
       <base-switch>Email notifications</base-switch>
       <base-switch checked>Marketing updates</base-switch>
       <base-switch disabled>Disabled option</base-switch>

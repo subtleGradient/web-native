@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>standalone shadcn web components demo</title>
+    <script>
+      (() => {
+        const media = matchMedia("(prefers-color-scheme: dark)")
+        const syncTheme = () => {
+          document.documentElement.dataset.theme = media.matches ? "dark" : "light"
+        }
+
+        syncTheme()
+        media.addEventListener("change", syncTheme)
+      })()
+    </script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/subtleGradient/web-native@web-native-shadcn-components/src/shadcn/themes/neutral.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/subtleGradient/web-native@web-native-shadcn-components/src/shadcn/styles/base-nova.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "web-native/": "https://cdn.jsdelivr.net/gh/subtleGradient/web-native@web-native-shadcn-components/src/"
+        }
+      }
+    </script>
+    <script type="module">
+      import "web-native/shadcn/define.js"
+      await customElements.whenDefined("shadcn-card")
+      Reflect.set(globalThis, "__webNativeStandaloneDemoReady", true)
+    </script>
+    <style>
+      body { margin: 2rem; max-width: 56rem; }
+      main { display: grid; gap: 1.5rem; }
+      .row { align-items: center; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section>
+        <h1>standalone shadcn web components</h1>
+        <p>Open this file directly. CSS and ESM load from the GitHub branch through jsDelivr.</p>
+      </section>
+      <section class="row" aria-label="Actions">
+        <shadcn-button>Save changes</shadcn-button>
+        <shadcn-button variant="outline">Cancel</shadcn-button>
+        <shadcn-badge variant="secondary">Standalone</shadcn-badge>
+      </section>
+      <section class="row" aria-label="Controls">
+        <shadcn-toggle variant="outline" size="sm">Bold</shadcn-toggle>
+        <shadcn-checkbox aria-label="Select row"></shadcn-checkbox>
+        <shadcn-switch checked aria-label="Enable alerts"></shadcn-switch>
+      </section>
+      <shadcn-card>
+        <shadcn-card-header>
+          <shadcn-card-title>Account settings</shadcn-card-title>
+          <shadcn-card-description>Tabs below are Base UI behavior under shadcn tags.</shadcn-card-description>
+        </shadcn-card-header>
+        <shadcn-card-content>
+          <shadcn-tabs value="profile">
+            <shadcn-tabs-list variant="line" aria-label="Account sections">
+              <shadcn-tabs-trigger value="profile">Profile</shadcn-tabs-trigger>
+              <shadcn-tabs-trigger value="security">Security</shadcn-tabs-trigger>
+            </shadcn-tabs-list>
+            <shadcn-tabs-content value="profile">Profile details go here.</shadcn-tabs-content>
+            <shadcn-tabs-content value="security">Security controls go here.</shadcn-tabs-content>
+          </shadcn-tabs>
+        </shadcn-card-content>
+      </shadcn-card>
+    </main>
+  </body>
+</html>
