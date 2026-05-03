@@ -5,43 +5,47 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
     <title>SQLite Wasm CDN example</title>
+    <script>
+      (() => {
+        const media = matchMedia("(prefers-color-scheme: dark)")
+        const syncTheme = () => {
+          document.documentElement.dataset.theme = media.matches ? "dark" : "light"
+        }
+
+        syncTheme()
+        media.onchange = syncTheme
+      })()
+    </script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/subtleGradient/web-native@web-native-shadcn-components/src/shadcn/themes/neutral.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/subtleGradient/web-native@web-native-shadcn-components/src/shadcn/styles/base-nova.css" />
     <script type="importmap">
       {
         "imports": {
-          "@sqlite.org/sqlite-wasm": "https://cdn.jsdelivr.net/npm/@sqlite.org/sqlite-wasm@3.53.0-build1/dist/index.mjs"
+          "@sqlite.org/sqlite-wasm": "https://cdn.jsdelivr.net/npm/@sqlite.org/sqlite-wasm@3.53.0-build1/dist/index.mjs",
+          "web-native/": "https://cdn.jsdelivr.net/gh/subtleGradient/web-native@web-native-shadcn-components/src/"
         }
       }
     </script>
     <style>
-      :root {
-        color-scheme: light dark;
-        font-family:
-          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        line-height: 1.5;
-      }
-
       body {
-        background:
-          radial-gradient(circle at 20% 20%, color-mix(in oklch, CanvasText 8%, transparent), transparent 24rem),
-          Canvas;
-        color: CanvasText;
         margin: 0;
       }
 
       main {
         display: grid;
-        gap: 1.25rem;
+        gap: 1.5rem;
         margin-inline: auto;
-        max-width: 68rem;
+        max-width: 72rem;
         padding: clamp(1rem, 4vw, 3rem);
       }
 
       .hero {
         display: grid;
         gap: 0.75rem;
+        max-width: 58rem;
       }
 
-      h1 {
+      .hero h1 {
         font-size: clamp(2.4rem, 7vw, 5.5rem);
         letter-spacing: -0.07em;
         line-height: 0.9;
@@ -54,96 +58,82 @@
       }
 
       .muted {
-        color: color-mix(in oklch, CanvasText 62%, Canvas 38%);
+        color: var(--muted-foreground);
       }
 
-      .badge {
-        border: 1px solid color-mix(in oklch, CanvasText 20%, transparent);
-        border-radius: 999px;
-        color: color-mix(in oklch, CanvasText 74%, Canvas 26%);
-        display: inline-flex;
-        font-size: 0.8125rem;
-        font-weight: 650;
-        justify-self: start;
-        letter-spacing: 0.02em;
-        padding: 0.25rem 0.625rem;
-      }
-
-      .grid {
+      .layout {
         display: grid;
         gap: 1rem;
-        grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.7fr);
+        grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.55fr);
       }
 
-      .panel {
-        backdrop-filter: blur(18px);
-        background: color-mix(in oklch, Canvas 86%, transparent);
-        border: 1px solid color-mix(in oklch, CanvasText 16%, transparent);
-        border-radius: 1.25rem;
-        box-shadow: 0 1rem 4rem color-mix(in oklch, CanvasText 10%, transparent);
+      .stack,
+      .field,
+      .metric {
         display: grid;
-        gap: 1rem;
-        padding: clamp(1rem, 3vw, 1.5rem);
       }
 
-      .panel h2 {
-        font-size: 1rem;
-        letter-spacing: -0.02em;
-        margin: 0;
+      .stack {
+        gap: 0.875rem;
       }
 
-      form {
-        display: flex;
-        gap: 0.5rem;
-      }
-
-      label {
-        display: grid;
-        flex: 1;
+      .field,
+      .metric {
         gap: 0.375rem;
       }
 
-      input,
-      button {
-        border-radius: 0.75rem;
-        font: inherit;
+      .insert-form {
+        align-items: end;
+        display: grid;
+        gap: 0.75rem;
+        grid-template-columns: minmax(0, 1fr) auto;
       }
 
       input {
-        background: Canvas;
-        border: 1px solid color-mix(in oklch, CanvasText 18%, transparent);
-        color: CanvasText;
+        background: var(--background);
+        border: 1px solid var(--input);
+        border-radius: var(--radius-lg);
+        box-sizing: border-box;
+        color: var(--foreground);
+        font: inherit;
+        min-height: 2rem;
         min-width: 0;
-        padding: 0.725rem 0.875rem;
+        padding: 0.375rem 0.625rem;
+        width: 100%;
       }
 
-      button {
-        background: CanvasText;
-        border: 1px solid CanvasText;
-        color: Canvas;
-        cursor: pointer;
-        font-weight: 700;
-        padding: 0.725rem 1rem;
+      input:focus-visible {
+        border-color: var(--ring);
+        box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 35%, transparent);
+        outline: none;
       }
 
-      button.secondary {
-        background: transparent;
-        color: CanvasText;
-      }
-
-      button:disabled {
-        cursor: wait;
+      input:disabled {
+        cursor: not-allowed;
         opacity: 0.55;
+      }
+
+      .actions,
+      .status-line {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .table-wrap {
+        overflow-x: auto;
       }
 
       table {
         border-collapse: collapse;
+        font-size: 0.875rem;
         width: 100%;
       }
 
       th,
       td {
-        border-bottom: 1px solid color-mix(in oklch, CanvasText 14%, transparent);
+        border-bottom: 1px solid var(--border);
         padding: 0.625rem 0;
         text-align: left;
         vertical-align: top;
@@ -151,6 +141,7 @@
 
       th:last-child,
       td:last-child {
+        color: var(--muted-foreground);
         text-align: right;
       }
 
@@ -160,54 +151,34 @@
       }
 
       code {
-        background: color-mix(in oklch, CanvasText 9%, transparent);
-        border-radius: 0.375rem;
+        background: var(--muted);
+        border-radius: var(--radius-sm);
+        overflow-wrap: anywhere;
         padding: 0.125rem 0.25rem;
       }
 
       pre {
-        background: color-mix(in oklch, CanvasText 8%, transparent);
-        border-radius: 0.875rem;
+        background: var(--muted);
+        border-radius: var(--radius-lg);
         margin: 0;
         overflow-x: auto;
         padding: 1rem;
         white-space: pre-wrap;
       }
 
-      .stack {
-        display: grid;
-        gap: 0.75rem;
+      .runtime-card {
+        align-self: start;
       }
 
-      .status {
-        align-items: center;
-        display: flex;
-        gap: 0.5rem;
-      }
-
-      .dot {
-        background: orange;
-        border-radius: 999px;
-        block-size: 0.625rem;
-        inline-size: 0.625rem;
-      }
-
-      .dot.ready {
-        background: limegreen;
-      }
-
-      .dot.error {
-        background: crimson;
+      .metric strong {
+        font-size: 2rem;
+        letter-spacing: -0.04em;
       }
 
       @media (max-width: 760px) {
-        .grid,
-        form {
+        .layout,
+        .insert-form {
           grid-template-columns: 1fr;
-        }
-
-        form {
-          display: grid;
         }
 
         th:last-child,
@@ -220,7 +191,7 @@
   <body>
     <main>
       <section class="hero" aria-labelledby="title">
-        <span class="badge">CDN-loaded SQLite Wasm</span>
+        <shadcn-badge variant="secondary">CDN-loaded SQLite Wasm</shadcn-badge>
         <h1 id="title">SQLite in a plain page.</h1>
         <p class="muted">
           This example imports the official SQLite Wasm ESM build from jsDelivr, resolves
@@ -229,60 +200,108 @@
         </p>
       </section>
 
-      <section class="grid">
-        <div class="panel" aria-labelledby="db-title">
-          <div class="stack">
-            <h2 id="db-title">Notes table</h2>
-            <div class="status" aria-live="polite">
-              <span id="status-dot" class="dot" aria-hidden="true"></span>
-              <span id="status-text">Loading SQLite Wasm from the CDN...</span>
+      <section class="layout">
+        <shadcn-card aria-labelledby="db-title">
+          <shadcn-card-header>
+            <shadcn-card-title id="db-title">Notes table</shadcn-card-title>
+            <shadcn-card-description>Insert a row, then inspect the live query result.</shadcn-card-description>
+          </shadcn-card-header>
+          <shadcn-card-content class="stack">
+            <shadcn-alert id="status-alert">
+              <shadcn-alert-title>SQLite loader</shadcn-alert-title>
+              <shadcn-alert-description class="status-line" aria-live="polite">
+                <shadcn-badge id="status-badge" variant="secondary">Loading</shadcn-badge>
+                <span id="status-text">Loading SQLite Wasm from the CDN...</span>
+              </shadcn-alert-description>
+            </shadcn-alert>
+
+            <form id="note-form" class="insert-form" onsubmit="sqliteWasmCdnDemo.insertNote(event)">
+              <label class="field">
+                <span class="muted">Insert a row</span>
+                <input id="note-input" name="body" autocomplete="off" disabled value="Hello from SQLite Wasm" />
+              </label>
+              <span onclick="globalThis.sqliteWasmCdnDemo?.insertNote(event)">
+                <shadcn-button id="insert-button" disabled>Insert row</shadcn-button>
+              </span>
+            </form>
+
+            <shadcn-tabs value="rows">
+              <shadcn-tabs-list variant="line" aria-label="SQLite output views">
+                <shadcn-tabs-trigger value="rows">Rows</shadcn-tabs-trigger>
+                <shadcn-tabs-trigger value="query">Query output</shadcn-tabs-trigger>
+              </shadcn-tabs-list>
+              <shadcn-tabs-content value="rows">
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th scope="col">Body</th>
+                        <th scope="col">Created</th>
+                      </tr>
+                    </thead>
+                    <tbody id="notes-body"></tbody>
+                  </table>
+                </div>
+              </shadcn-tabs-content>
+              <shadcn-tabs-content value="query">
+                <pre id="query-output">Waiting for SQLite...</pre>
+              </shadcn-tabs-content>
+            </shadcn-tabs>
+          </shadcn-card-content>
+          <shadcn-card-footer class="actions">
+            <span onclick="globalThis.sqliteWasmCdnDemo?.renderRows(event)">
+              <shadcn-button id="query-button" variant="outline" disabled>Run sample query</shadcn-button>
+            </span>
+            <shadcn-badge id="row-count" variant="outline">0 rows</shadcn-badge>
+          </shadcn-card-footer>
+        </shadcn-card>
+
+        <shadcn-card class="runtime-card" size="sm" aria-labelledby="runtime-title">
+          <shadcn-card-header>
+            <shadcn-card-title id="runtime-title">Runtime</shadcn-card-title>
+            <shadcn-card-description>Everything here runs without a bundler or local install.</shadcn-card-description>
+          </shadcn-card-header>
+          <shadcn-card-content class="stack">
+            <div class="metric">
+              <span class="muted">SQLite version</span>
+              <strong id="sqlite-version">pending</strong>
             </div>
-          </div>
-
-          <form id="note-form" onsubmit="sqliteWasmCdnDemo.insertNote(event)">
-            <label>
-              <span class="muted">Insert a row</span>
-              <input id="note-input" name="body" autocomplete="off" disabled value="Hello from SQLite Wasm" />
-            </label>
-            <button id="insert-button" type="submit" disabled>Insert</button>
-          </form>
-
-          <div class="stack">
-            <button id="query-button" class="secondary" type="button" onclick="sqliteWasmCdnDemo.renderRows()" disabled>Run sample query</button>
-            <table>
-              <thead>
-                <tr>
-                  <th scope="col">Body</th>
-                  <th scope="col">Created</th>
-                </tr>
-              </thead>
-              <tbody id="notes-body"></tbody>
-            </table>
-          </div>
-        </div>
-
-        <aside class="panel" aria-labelledby="runtime-title">
-          <h2 id="runtime-title">Runtime</h2>
-          <p class="muted">SQLite version: <strong id="sqlite-version">pending</strong></p>
-          <p class="muted">Database: <code>:memory:</code> so refreshes start fresh.</p>
-          <p class="muted">Wasm URL: <code id="wasm-url"></code></p>
-          <pre id="query-output">Waiting for SQLite...</pre>
-        </aside>
+            <shadcn-separator></shadcn-separator>
+            <p class="muted">Database: <code>:memory:</code> so refreshes start fresh.</p>
+            <p class="muted">Wasm URL: <code id="wasm-url"></code></p>
+            <div class="actions" aria-label="Runtime features">
+              <shadcn-kbd>ESM</shadcn-kbd>
+              <shadcn-kbd>Wasm</shadcn-kbd>
+              <shadcn-kbd>CDN</shadcn-kbd>
+            </div>
+          </shadcn-card-content>
+        </shadcn-card>
       </section>
     </main>
 
     <script type="module">
+      import "web-native/shadcn/define.js"
       import sqlite3InitModule from "@sqlite.org/sqlite-wasm"
+
+      await Promise.all([
+        customElements.whenDefined("shadcn-alert"),
+        customElements.whenDefined("shadcn-badge"),
+        customElements.whenDefined("shadcn-button"),
+        customElements.whenDefined("shadcn-card"),
+        customElements.whenDefined("shadcn-tabs"),
+      ])
 
       const cdnRoot = "https://cdn.jsdelivr.net/npm/@sqlite.org/sqlite-wasm@3.53.0-build1/dist/"
       const wasmUrl = `${cdnRoot}sqlite3.wasm`
-      const dot = document.querySelector("#status-dot")
       const input = document.querySelector("#note-input")
       const insertButton = document.querySelector("#insert-button")
       const notesBody = document.querySelector("#notes-body")
       const output = document.querySelector("#query-output")
       const queryButton = document.querySelector("#query-button")
+      const rowCount = document.querySelector("#row-count")
       const sqliteVersion = document.querySelector("#sqlite-version")
+      const statusAlert = document.querySelector("#status-alert")
+      const statusBadge = document.querySelector("#status-badge")
       const statusText = document.querySelector("#status-text")
       const wasmUrlElement = document.querySelector("#wasm-url")
 
@@ -312,7 +331,7 @@
         setControlsEnabled(true)
         renderRows(db)
 
-        globalThis.sqliteWasmCdnDemo = {
+        const demo = {
           insertNote(event) {
             event.preventDefault()
 
@@ -327,6 +346,8 @@
             renderRows(db)
           },
         }
+
+        globalThis.sqliteWasmCdnDemo = demo
 
         Reflect.set(globalThis, "__webNativeSqliteWasmCdnDemoReady", true)
       } catch (error) {
@@ -355,6 +376,7 @@
           "",
           ...rows.map((row) => `- ${row.body} (${row.createdAt})`),
         ].join("\n")
+        rowCount.textContent = `${rows.length} ${rows.length === 1 ? "row" : "rows"}`
       }
 
       function setControlsEnabled(enabled) {
@@ -364,7 +386,9 @@
       }
 
       function setStatus(kind, message) {
-        dot.className = `dot ${kind}`
+        statusAlert.variant = kind === "error" ? "destructive" : "default"
+        statusBadge.variant = kind === "error" ? "destructive" : kind === "ready" ? "default" : "secondary"
+        statusBadge.textContent = kind === "error" ? "Error" : kind === "ready" ? "Ready" : "Loading"
         statusText.textContent = message
       }
     </script>
