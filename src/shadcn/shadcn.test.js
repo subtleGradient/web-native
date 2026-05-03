@@ -74,8 +74,8 @@ describe("shadcn web components", () => {
       detail = /** @type {CustomEvent<{ value: string | null }>} */ (event).detail
     })
 
-    ;
-    /** @type {HTMLElement} */ (triggers[1]).click()
+    const securityTrigger = /** @type {HTMLElement} */ (triggers[1])
+    securityTrigger.click()
 
     expect(detail).to.deep.equal({
       value: "security",
@@ -87,6 +87,33 @@ describe("shadcn web components", () => {
     expect(triggers[1].hasAttribute("data-active")).to.equal(true)
     expect(/** @type {HTMLElement} */ (contents[0]).hidden).to.equal(true)
     expect(/** @type {HTMLElement} */ (contents[1]).hidden).to.equal(false)
+  })
+
+  it("preserves Base UI manual keyboard activation through shadcn tabs", async () => {
+    const root = mount(`
+      <shadcn-tabs value="account">
+        <shadcn-tabs-list variant="line" aria-label="Settings">
+          <shadcn-tabs-trigger value="account">Account</shadcn-tabs-trigger>
+          <shadcn-tabs-trigger value="security">Security</shadcn-tabs-trigger>
+        </shadcn-tabs-list>
+        <shadcn-tabs-content value="account">Account panel</shadcn-tabs-content>
+        <shadcn-tabs-content value="security">Security panel</shadcn-tabs-content>
+      </shadcn-tabs>
+    `)
+    const tabs = /** @type {import("./tabs/index.js").ShadcnTabs} */ (root.firstElementChild)
+    await nextMicrotask()
+
+    const triggers = Array.from(tabs.querySelectorAll("shadcn-tabs-trigger"))
+    const accountTrigger = /** @type {HTMLElement} */ (triggers[0])
+    const securityTrigger = /** @type {HTMLElement} */ (triggers[1])
+
+    accountTrigger.focus()
+    accountTrigger.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "ArrowRight" }))
+    expect(document.activeElement).to.equal(securityTrigger)
+    expect(tabs.value).to.equal("account")
+
+    securityTrigger.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "Enter" }))
+    expect(tabs.value).to.equal("security")
   })
 
   it("applies slots and classes to presentational components", () => {

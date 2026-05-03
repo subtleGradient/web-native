@@ -77,6 +77,13 @@ export class BaseTabs extends HTMLElement {
       .filter((element) => getTabsRoot(element) === this)
   }
 
+  /** @returns {BaseTabsList[]} */
+  get lists() {
+    return Array.from(this.querySelectorAll("*"))
+      .filter(isBaseTabsList)
+      .filter((element) => getTabsRoot(element) === this)
+  }
+
   update() {
     if (this.#updating) return
 
@@ -86,6 +93,7 @@ export class BaseTabs extends HTMLElement {
       const orientation = this.orientation
       const tabs = this.tabs
       const panels = this.panels
+      const lists = this.lists
       const firstEnabledTab = tabs.find((tab) => !tab.disabled)
       let activeTab = tabs.find((tab) => tab.value === this.value && !tab.disabled)
 
@@ -95,12 +103,23 @@ export class BaseTabs extends HTMLElement {
         this.#activationDirection = "none"
       }
 
-      if (!this.#highlightedTab || !tabs.includes(this.#highlightedTab) || this.#highlightedTab.disabled) {
+      if (!this.#highlightedTab || !tabs.includes(this.#highlightedTab)) {
         this.#highlightedTab = activeTab ?? firstEnabledTab
       }
 
       this.setAttribute("data-orientation", orientation)
       this.setAttribute("data-activation-direction", this.#activationDirection)
+
+      for (const list of lists) {
+        list.setAttribute("role", "tablist")
+        list.setAttribute("data-orientation", orientation)
+
+        if (orientation === "vertical") {
+          list.setAttribute("aria-orientation", "vertical")
+        } else {
+          list.removeAttribute("aria-orientation")
+        }
+      }
 
       for (const [index, tab] of tabs.entries()) {
         const active = tab === activeTab
@@ -111,7 +130,7 @@ export class BaseTabs extends HTMLElement {
         tab.setAttribute("aria-selected", String(active))
         tab.setAttribute("data-orientation", orientation)
         tab.setAttribute("data-activation-direction", this.#activationDirection)
-        tab.tabIndex = !tab.disabled && tab === this.#highlightedTab ? 0 : -1
+        tab.tabIndex = tab === this.#highlightedTab ? 0 : -1
 
         if (panel) {
           ensureElementId(panel, "base-tabs-panel")
@@ -160,7 +179,6 @@ export class BaseTabs extends HTMLElement {
 
   /** @param {BaseTab} tab */
   focusTab(tab) {
-    if (tab.disabled) return
     this.#highlightedTab = tab
     this.#syncTabIndexes()
     tab.focus()
@@ -211,27 +229,26 @@ export class BaseTabs extends HTMLElement {
    */
   getAdjacentEnabledTab(currentTab, offset, loop) {
     const tabs = this.tabs
-    const enabledTabs = tabs.filter((tab) => !tab.disabled)
-    const currentIndex = enabledTabs.indexOf(currentTab)
-    if (currentIndex === -1) return enabledTabs[0]
+    const currentIndex = tabs.indexOf(currentTab)
+    if (currentIndex === -1) return tabs[0]
 
     const nextIndex = currentIndex + offset
-    if (nextIndex >= 0 && nextIndex < enabledTabs.length) return enabledTabs[nextIndex]
+    if (nextIndex >= 0 && nextIndex < tabs.length) return tabs[nextIndex]
     if (!loop) return undefined
-    return offset > 0 ? enabledTabs[0] : enabledTabs.at(-1)
+    return offset > 0 ? tabs[0] : tabs.at(-1)
   }
 
   getFirstEnabledTab() {
-    return this.tabs.find((tab) => !tab.disabled)
+    return this.tabs[0]
   }
 
   getLastEnabledTab() {
-    return this.tabs.filter((tab) => !tab.disabled).at(-1)
+    return this.tabs.at(-1)
   }
 
   #syncTabIndexes() {
     for (const tab of this.tabs) {
-      tab.tabIndex = !tab.disabled && tab === this.#highlightedTab ? 0 : -1
+      tab.tabIndex = tab === this.#highlightedTab ? 0 : -1
     }
   }
 }
@@ -275,6 +292,7 @@ export class BaseTabsList extends HTMLElement {
     } else if (event.key === "End") {
       nextTab = root.getLastEnabledTab()
     } else if (event.key === " " || event.key === "Enter") {
+      event.preventDefault()
       root.activateTab(currentTab, event)
       return
     }
@@ -449,6 +467,14 @@ function isBaseTab(element) {
  */
 function isBaseTabsPanel(element) {
   return element instanceof BaseTabsPanel
+}
+
+/**
+ * @param {Element} element
+ * @returns {element is BaseTabsList}
+ */
+function isBaseTabsList(element) {
+  return element instanceof BaseTabsList
 }
 
 /**

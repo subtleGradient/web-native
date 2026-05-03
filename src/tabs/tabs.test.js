@@ -152,6 +152,115 @@ describe("base-tabs", () => {
     expect(document.activeElement).to.equal(tabs.tabs[1])
     expect(tabs.value).to.equal("security")
   })
+
+  it("supports Home, End, and looping roving focus", async () => {
+    const tabs = mountTabs(`
+      <base-tabs value="one">
+        <base-tabs-list aria-label="Settings">
+          <base-tab value="one">One</base-tab>
+          <base-tab value="two">Two</base-tab>
+          <base-tab value="three">Three</base-tab>
+        </base-tabs-list>
+        <base-tabs-panel value="one">One panel</base-tabs-panel>
+        <base-tabs-panel value="two">Two panel</base-tabs-panel>
+        <base-tabs-panel value="three">Three panel</base-tabs-panel>
+      </base-tabs>
+    `)
+
+    await nextMicrotask()
+
+    tabs.tabs[1].focus()
+    tabs.tabs[1].dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "End" }))
+    expect(document.activeElement).to.equal(tabs.tabs[2])
+
+    tabs.tabs[2].dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "Home" }))
+    expect(document.activeElement).to.equal(tabs.tabs[0])
+
+    tabs.tabs[0].dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "ArrowLeft" }))
+    expect(document.activeElement).to.equal(tabs.tabs[2])
+    expect(tabs.value).to.equal("one")
+  })
+
+  it("respects loop-focus=false at roving focus boundaries", async () => {
+    const tabs = mountTabs(`
+      <base-tabs value="one">
+        <base-tabs-list aria-label="Settings" loop-focus="false">
+          <base-tab value="one">One</base-tab>
+          <base-tab value="two">Two</base-tab>
+        </base-tabs-list>
+        <base-tabs-panel value="one">One panel</base-tabs-panel>
+        <base-tabs-panel value="two">Two panel</base-tabs-panel>
+      </base-tabs>
+    `)
+
+    await nextMicrotask()
+
+    tabs.tabs[0].focus()
+    tabs.tabs[0].dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "ArrowLeft" }))
+
+    expect(document.activeElement).to.equal(tabs.tabs[0])
+  })
+
+  it("uses vertical arrow keys when orientation is vertical", async () => {
+    const tabs = mountTabs(`
+      <base-tabs value="one" orientation="vertical">
+        <base-tabs-list aria-label="Settings">
+          <base-tab value="one">One</base-tab>
+          <base-tab value="two">Two</base-tab>
+        </base-tabs-list>
+        <base-tabs-panel value="one">One panel</base-tabs-panel>
+        <base-tabs-panel value="two">Two panel</base-tabs-panel>
+      </base-tabs>
+    `)
+
+    await nextMicrotask()
+
+    const list = tabs.querySelector("base-tabs-list")
+
+    expect(list?.getAttribute("aria-orientation")).to.equal("vertical")
+    expect(list?.getAttribute("data-orientation")).to.equal("vertical")
+
+    tabs.tabs[0].focus()
+    tabs.tabs[0].dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "ArrowDown" }))
+    expect(document.activeElement).to.equal(tabs.tabs[1])
+
+    tabs.tabs[1].dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "ArrowUp" }))
+    expect(document.activeElement).to.equal(tabs.tabs[0])
+  })
+
+  it("keeps disabled tabs focusable in roving focus but blocks activation", async () => {
+    const tabs = mountTabs(`
+      <base-tabs value="one">
+        <base-tabs-list aria-label="Settings">
+          <base-tab value="one">One</base-tab>
+          <base-tab value="two" disabled>Two</base-tab>
+          <base-tab value="three">Three</base-tab>
+        </base-tabs-list>
+        <base-tabs-panel value="one">One panel</base-tabs-panel>
+        <base-tabs-panel value="two">Two panel</base-tabs-panel>
+        <base-tabs-panel value="three">Three panel</base-tabs-panel>
+      </base-tabs>
+    `)
+
+    await nextMicrotask()
+
+    tabs.tabs[0].focus()
+    tabs.tabs[0].dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "ArrowRight" }))
+
+    expect(document.activeElement).to.equal(tabs.tabs[1])
+    expect(tabs.tabs[1].getAttribute("aria-disabled")).to.equal("true")
+    expect(tabs.tabs[1].tabIndex).to.equal(0)
+    expect(tabs.value).to.equal("one")
+
+    tabs.tabs[1].dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "Enter" }))
+    expect(tabs.value).to.equal("one")
+
+    tabs.tabs[1].dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "ArrowRight" }))
+    expect(document.activeElement).to.equal(tabs.tabs[2])
+
+    tabs.tabs[2].dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: " " }))
+    expect(tabs.value).to.equal("three")
+  })
 })
 
 /**

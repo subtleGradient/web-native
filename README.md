@@ -10,6 +10,7 @@ This project intentionally avoids React, framework runtime dependencies, bundler
 bun install
 bun run check
 bun run test
+bun run verify:dark
 bun run dev
 ```
 
@@ -18,6 +19,8 @@ bun run dev
 `bun run test` starts the same static server, launches Chromium through `puppeteer-core`, runs the browser-native Mocha/Chai tests, and exits non-zero on failures.
 
 `bun run check` uses `tsgo --noEmit`; do not use `tsc` for this project.
+
+`bun run verify:dark` launches Chromium and verifies that the shadcn theme follows `prefers-color-scheme: dark` by default while still allowing explicit `.light`, `.dark`, and `data-theme` overrides.
 
 Set `PUPPETEER_EXECUTABLE_PATH` or `CHROME_BIN` if Chromium is not installed at a common system path.
 
