@@ -3,6 +3,7 @@
 export { ShadcnButton, defineShadcnButton } from "./button/index.js"
 export { ShadcnCheckbox, defineShadcnCheckbox } from "./checkbox/index.js"
 export { ShadcnSeparator, defineShadcnSeparator } from "./separator/index.js"
+export { ShadcnProgress, ShadcnProgressIndicator, ShadcnProgressLabel, ShadcnProgressTrack, ShadcnProgressValue, defineShadcnProgress } from "./progress/index.js"
 export { ShadcnSwitch, defineShadcnSwitch } from "./switch/index.js"
 export { ShadcnTabs, ShadcnTabsContent, ShadcnTabsList, ShadcnTabsTrigger, defineShadcnTabs } from "./tabs/index.js"
 export { ShadcnToggle, defineShadcnToggle } from "./toggle/index.js"

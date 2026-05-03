@@ -29,6 +29,11 @@ Styled shadcn-inspired custom elements for standalone browser usage.
   </select>
 </shadcn-native-select>
 
+<shadcn-progress value="42">
+  <shadcn-progress-label>Upload</shadcn-progress-label>
+  <shadcn-progress-value></shadcn-progress-value>
+</shadcn-progress>
+
 <shadcn-table>
   <table is="shadcn-table-element">
     <thead is="shadcn-table-header">

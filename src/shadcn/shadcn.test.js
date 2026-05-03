@@ -566,6 +566,29 @@ describe("shadcn web components", () => {
     expect(root.querySelector("shadcn-avatar-group-count")?.getAttribute("data-slot")).to.equal("avatar-group-count")
   })
 
+  it("uses Base UI progress behavior under shadcn progress names", () => {
+    const root = mount(html`
+      <shadcn-progress value="30" max="60">
+        <shadcn-progress-label>Sync</shadcn-progress-label>
+        <shadcn-progress-value></shadcn-progress-value>
+      </shadcn-progress>
+    `)
+    const progress = /** @type {import("./progress/index.js").ShadcnProgress} */ (root.querySelector("shadcn-progress"))
+    const label = /** @type {HTMLElement} */ (root.querySelector("shadcn-progress-label"))
+    const value = /** @type {HTMLElement} */ (root.querySelector("shadcn-progress-value"))
+    const track = /** @type {HTMLElement} */ (root.querySelector("shadcn-progress-track"))
+    const indicator = /** @type {HTMLElement} */ (root.querySelector("shadcn-progress-indicator"))
+
+    expect(progress.getAttribute("role")).to.equal("progressbar")
+    expect(progress.getAttribute("aria-valuetext")).to.equal("50%")
+    expect(progress.classList.contains("cn-progress")).to.equal(true)
+    expect(label.classList.contains("cn-progress-label")).to.equal(true)
+    expect(value.textContent).to.equal("50%")
+    expect(track.classList.contains("cn-progress-track")).to.equal(true)
+    expect(indicator.classList.contains("cn-progress-indicator")).to.equal(true)
+    expect(indicator.style.width).to.equal("50%")
+  })
+
   it("loads shadcn CSS without Tailwind and applies usable computed styles", async () => {
     await ensureShadcnStyles()
 

@@ -950,6 +950,52 @@
   grid-template-columns: 1fr auto;
 }
 
+.cn-progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.cn-progress-track {
+  align-items: center;
+  background: var(--muted);
+  border-radius: 999px;
+  display: flex;
+  height: 0.25rem;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.cn-progress-indicator {
+  background: var(--primary);
+  display: block;
+  height: 100%;
+  transition: width 180ms ease;
+}
+
+.cn-progress[data-indeterminate] .cn-progress-indicator {
+  animation: shadcn-progress-indeterminate 1.2s ease-in-out infinite;
+  width: 35%;
+}
+
+.cn-progress-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.cn-progress-value {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+  margin-inline-start: auto;
+}
+
+@keyframes shadcn-progress-indeterminate {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+
 @keyframes shadcn-pulse {
   50% {
     opacity: 0.55;

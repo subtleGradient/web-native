@@ -7,6 +7,7 @@ export const testModules = [
   "/src/separator/separator.test.js",
   "/src/switch/switch.test.js",
   "/src/tabs/tabs.test.js",
+  "/src/progress/progress.test.js",
   "/src/deck-gl/deck-gl.test.js",
   "/src/shadcn/shadcn.test.js",
 ]

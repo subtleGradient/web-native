@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>base-progress demo</title>
+    <script type="module" src="./define.js"></script>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 2rem; max-width: 40rem; }
+      main { display: grid; gap: 1.5rem; }
+      base-progress { display: grid; gap: 0.5rem; }
+      base-progress-track { background: #e5e7eb; border-radius: 999px; display: block; height: 0.5rem; overflow: hidden; }
+      base-progress-indicator { background: #111827; display: block; height: 100%; transition: width 160ms ease; }
+      base-progress-value { color: #6b7280; font-variant-numeric: tabular-nums; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>base-progress</h1>
+      <base-progress value="35">
+        <base-progress-label>Upload</base-progress-label>
+        <base-progress-value></base-progress-value>
+        <base-progress-track><base-progress-indicator></base-progress-indicator></base-progress-track>
+      </base-progress>
+      <base-progress aria-label="Indeterminate sync">
+        <base-progress-track><base-progress-indicator></base-progress-indicator></base-progress-track>
+      </base-progress>
+    </main>
+  </body>
+</html>
