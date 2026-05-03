@@ -187,6 +187,51 @@
         gap: 0.5rem;
       }
 
+      .selected-actions {
+        border-top: 1px solid color-mix(in oklch, CanvasText 14%, transparent);
+        padding-top: 0.75rem;
+      }
+
+      .editor-form {
+        display: grid;
+        gap: 0.75rem;
+      }
+
+      .field-grid {
+        display: grid;
+        gap: 0.75rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      label.field {
+        display: grid;
+        gap: 0.25rem;
+      }
+
+      input:not([type="file"]),
+      select {
+        background: Canvas;
+        border: 1px solid color-mix(in oklch, CanvasText 18%, transparent);
+        border-radius: 0.625rem;
+        color: CanvasText;
+        font: inherit;
+        min-height: 2.25rem;
+        min-width: 0;
+        padding: 0.4rem 0.55rem;
+        width: 100%;
+      }
+
+      input:focus-visible,
+      select:focus-visible {
+        border-color: Highlight;
+        box-shadow: 0 0 0 3px color-mix(in oklch, Highlight 25%, transparent);
+        outline: none;
+      }
+
+      .editor-section[hidden] {
+        display: none;
+      }
+
       .inventory-list {
         display: grid;
         gap: 0.5rem;
@@ -342,6 +387,10 @@
               <button class="secondary" type="button" onclick="OpsBulkDemo.clearSelection()">Close</button>
             </div>
             <dl class="details" id="selected-details"></dl>
+            <div class="actions selected-actions">
+              <button type="button" onclick="OpsBulkDemo.editSelection()">Edit selected</button>
+              <button class="secondary" type="button" onclick="OpsBulkDemo.deleteSelection()">Delete selected</button>
+            </div>
           </section>
           <p class="status" id="status" aria-live="polite">Starting SQLite worker...</p>
         </section>
@@ -378,6 +427,48 @@
           <h2>Deck inventory</h2>
           <p class="muted">Every persisted site and movement currently drawn by the deck. Selecting here selects the same item as clicking the map.</p>
           <div class="inventory-list" id="item-list" role="listbox" aria-label="Deck items"></div>
+        </section>
+
+        <section class="panel">
+          <h2 id="editor-title">Add site</h2>
+          <p class="muted" id="editor-help">Create or update persisted rows. Saves go through SQLite in OPFS and redraw the deck from the database snapshot.</p>
+          <div class="actions">
+            <button type="button" onclick="OpsBulkDemo.newSite()">New site</button>
+            <button class="secondary" type="button" onclick="OpsBulkDemo.newMovement()">New movement</button>
+          </div>
+          <form class="editor-form" id="item-form" onsubmit="OpsBulkDemo.saveEditor(event)">
+            <label class="field">
+              <span class="meta">ID</span>
+              <input name="id" autocomplete="off" required />
+            </label>
+
+            <div class="editor-section site-field">
+              <div class="field-grid">
+                <label class="field"><span class="meta">Name</span><input name="name" autocomplete="off" /></label>
+                <label class="field"><span class="meta">Kind</span><input name="kind" autocomplete="off" /></label>
+                <label class="field"><span class="meta">Longitude</span><input name="longitude" inputmode="decimal" /></label>
+                <label class="field"><span class="meta">Latitude</span><input name="latitude" inputmode="decimal" /></label>
+                <label class="field"><span class="meta">Capacity</span><input name="capacity" inputmode="numeric" /></label>
+                <label class="field"><span class="meta">Status</span><input name="siteStatus" autocomplete="off" /></label>
+              </div>
+            </div>
+
+            <div class="editor-section movement-field" hidden>
+              <div class="field-grid">
+                <label class="field"><span class="meta">From site</span><select name="fromSite"></select></label>
+                <label class="field"><span class="meta">To site</span><select name="toSite"></select></label>
+                <label class="field"><span class="meta">Cargo</span><input name="cargo" autocomplete="off" /></label>
+                <label class="field"><span class="meta">Priority</span><input name="priority" inputmode="numeric" /></label>
+                <label class="field"><span class="meta">Tons</span><input name="tons" inputmode="decimal" /></label>
+                <label class="field"><span class="meta">Status</span><input name="movementStatus" autocomplete="off" /></label>
+              </div>
+            </div>
+
+            <div class="actions">
+              <button type="submit">Save item</button>
+              <button class="secondary" id="delete-editor-button" type="button" onclick="OpsBulkDemo.deleteEditor()">Delete item</button>
+            </div>
+          </form>
         </section>
 
         <section class="panel">
@@ -589,6 +680,9 @@
       globalThis.OpsBulkDemo = {
         currentData: { movements: [], sites: [] },
         deckElement: null,
+        editingId: null,
+        editorKind: "site",
+        pendingSelection: null,
         selected: null,
         initDeck() {
           globalThis.OpsBulkDemo.deckElement = this
@@ -606,11 +700,17 @@
         },
         applySnapshot(data) {
           this.currentData = data
+          if (this.pendingSelection) {
+            this.selected = this.pendingSelection
+            this.pendingSelection = null
+          }
           if (this.selected && !this.findItem(this.selected.kind, this.selected.id)) this.selected = null
           if (this.deckElement) this.deckElement.layers = this.layers()
           this.syncLayerList()
+          this.syncSiteOptions()
           this.renderInventory()
           this.renderSelection()
+          this.renderEditor()
           this.renderRows()
           this.renderMetrics()
         },
@@ -701,6 +801,7 @@
           if (this.deckElement) this.deckElement.layers = this.layers()
           this.renderInventory()
           this.renderSelection()
+          this.loadEditor(kind, id)
           this.setStatus(`Selected ${kind} ${id}`)
         },
         clearSelection() {
@@ -714,6 +815,120 @@
           return kind === "site"
             ? this.currentData.sites.find((site) => site.id === id)
             : this.currentData.movements.find((movement) => movement.id === id)
+        },
+        newSite() {
+          this.editorKind = "site"
+          this.editingId = null
+          this.renderEditor(defaultSite())
+          this.setStatus("Ready to add a site")
+        },
+        newMovement() {
+          this.editorKind = "movement"
+          this.editingId = null
+          this.renderEditor(defaultMovement(this.currentData.sites))
+          this.setStatus("Ready to add a movement")
+        },
+        editSelection() {
+          if (!this.selected) return
+          this.loadEditor(this.selected.kind, this.selected.id)
+          this.setStatus(`Editing ${this.selected.kind} ${this.selected.id}`)
+        },
+        loadEditor(kind, id) {
+          const item = this.findItem(kind, id)
+          if (!item) return
+          this.editorKind = kind
+          this.editingId = id
+          this.renderEditor(item)
+        },
+        renderEditor(item = null) {
+          const form = document.querySelector("#item-form")
+          const title = document.querySelector("#editor-title")
+          const help = document.querySelector("#editor-help")
+          const deleteButton = document.querySelector("#delete-editor-button")
+          const isSite = this.editorKind === "site"
+          const data = item ?? (this.editingId ? this.findItem(this.editorKind, this.editingId) : null) ?? (isSite ? defaultSite() : defaultMovement(this.currentData.sites))
+
+          title.textContent = this.editingId ? `Edit ${this.editorKind} ${this.editingId}` : `Add ${this.editorKind}`
+          help.textContent = isSite ? "Sites draw points and capacity halos on the deck." : "Movements draw routes between two existing sites."
+          deleteButton.disabled = !this.editingId
+
+          setFormValue(form, "id", data.id ?? "")
+          setFormValue(form, "name", data.name ?? "")
+          setFormValue(form, "kind", data.kind ?? "hub")
+          setFormValue(form, "longitude", data.longitude ?? "")
+          setFormValue(form, "latitude", data.latitude ?? "")
+          setFormValue(form, "capacity", data.capacity ?? "")
+          setFormValue(form, "siteStatus", data.status ?? "stable")
+          setFormValue(form, "fromSite", data.fromSite ?? this.currentData.sites[0]?.id ?? "")
+          setFormValue(form, "toSite", data.toSite ?? this.currentData.sites[1]?.id ?? this.currentData.sites[0]?.id ?? "")
+          setFormValue(form, "cargo", data.cargo ?? "supplies")
+          setFormValue(form, "priority", data.priority ?? 1)
+          setFormValue(form, "tons", data.tons ?? 1)
+          setFormValue(form, "movementStatus", data.status ?? "scheduled")
+
+          for (const section of document.querySelectorAll(".site-field")) section.hidden = !isSite
+          for (const section of document.querySelectorAll(".movement-field")) section.hidden = isSite
+          for (const control of document.querySelectorAll(".site-field input, .site-field select")) control.disabled = !isSite
+          for (const control of document.querySelectorAll(".movement-field input, .movement-field select")) control.disabled = isSite
+        },
+        syncSiteOptions() {
+          for (const select of document.querySelectorAll('select[name="fromSite"], select[name="toSite"]')) {
+            const value = select.value
+            select.replaceChildren(
+              ...this.currentData.sites.map((site) => {
+                const option = document.createElement("option")
+                option.value = site.id
+                option.textContent = `${site.id} - ${site.name}`
+                return option
+              }),
+            )
+            if (value) select.value = value
+          }
+        },
+        saveEditor(event) {
+          event.preventDefault()
+          const form = event.currentTarget
+          if (this.editorKind === "site") {
+            const site = {
+              capacity: formValue(form, "capacity"),
+              id: formValue(form, "id"),
+              kind: formValue(form, "kind"),
+              latitude: formValue(form, "latitude"),
+              longitude: formValue(form, "longitude"),
+              name: formValue(form, "name"),
+              status: formValue(form, "siteStatus"),
+            }
+            this.pendingSelection = { id: site.id, kind: "site" }
+            worker.postMessage({ site, type: "save-site" })
+          } else {
+            const movement = {
+              cargo: formValue(form, "cargo"),
+              fromSite: formValue(form, "fromSite"),
+              id: formValue(form, "id"),
+              priority: formValue(form, "priority"),
+              status: formValue(form, "movementStatus"),
+              toSite: formValue(form, "toSite"),
+              tons: formValue(form, "tons"),
+            }
+            this.pendingSelection = { id: movement.id, kind: "movement" }
+            worker.postMessage({ movement, type: "save-movement" })
+          }
+          this.setStatus("Saving item to SQLite OPFS...")
+        },
+        deleteSelection() {
+          if (!this.selected) return
+          this.deleteItem(this.selected.kind, this.selected.id)
+        },
+        deleteEditor() {
+          if (!this.editingId) return
+          this.deleteItem(this.editorKind, this.editingId)
+        },
+        deleteItem(kind, id) {
+          this.selected = null
+          this.pendingSelection = null
+          if (this.editorKind === kind && this.editingId === id) this.editingId = null
+          worker.postMessage({ id, type: kind === "site" ? "delete-site" : "delete-movement" })
+          this.setStatus(`Deleting ${kind} ${id} from SQLite OPFS...`)
         },
         setLayerVisible(event) {
           activeLayers.set(event.detail.id, event.detail.visible)
@@ -767,12 +982,55 @@
         }
         if (message.type === "snapshot") OpsBulkDemo.applySnapshot(message.detail)
         if (message.type === "imported") OpsBulkDemo.setStatus(`Imported ${message.detail.importedSites} sites and ${message.detail.importedMovements} movements (${message.detail.mode}).`)
+        if (message.type === "saved") {
+          OpsBulkDemo.editorKind = message.detail.kind
+          OpsBulkDemo.editingId = message.detail.id
+          OpsBulkDemo.setStatus(`Saved ${message.detail.kind} ${message.detail.id}`)
+        }
+        if (message.type === "deleted") OpsBulkDemo.setStatus(`Deleted ${message.detail.kind} ${message.detail.id}`)
         if (message.type === "exported") downloadText(message.detail)
         if (message.type === "error") OpsBulkDemo.setStatus(message.message)
       }
 
       worker.onerror = (event) => {
         OpsBulkDemo.setStatus(event.message)
+      }
+
+      function defaultSite() {
+        const id = `SITE-${String(Date.now()).slice(-5)}`
+        return {
+          capacity: 50,
+          id,
+          kind: "depot",
+          latitude: 39,
+          longitude: -98,
+          name: "New response site",
+          status: "stable",
+        }
+      }
+
+      function defaultMovement(sites) {
+        const fromSite = sites[0]?.id ?? ""
+        const toSite = sites[1]?.id ?? fromSite
+        return {
+          cargo: "supplies",
+          fromSite,
+          id: `MOVE-${String(Date.now()).slice(-5)}`,
+          priority: 1,
+          status: "scheduled",
+          tons: 1,
+          toSite,
+        }
+      }
+
+      function setFormValue(form, name, value) {
+        const control = form.elements.namedItem(name)
+        if (control && "value" in control) control.value = String(value ?? "")
+      }
+
+      function formValue(form, name) {
+        const control = form.elements.namedItem(name)
+        return control && "value" in control ? control.value.trim() : ""
       }
 
       function detailsFor(kind, item) {
