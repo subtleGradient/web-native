@@ -49,6 +49,8 @@
         <shadcn-badge>Default</shadcn-badge>
         <shadcn-badge variant="secondary">Secondary</shadcn-badge>
         <shadcn-toggle id="demo-toggle" variant="outline" size="sm">Bold</shadcn-toggle>
+        <shadcn-checkbox aria-label="Select row"></shadcn-checkbox>
+        <shadcn-switch aria-label="Enable alerts"></shadcn-switch>
       </section>
 
       <shadcn-card>
@@ -63,7 +65,16 @@
               <shadcn-tabs-trigger value="security">Security</shadcn-tabs-trigger>
             </shadcn-tabs-list>
             <shadcn-tabs-content value="profile">Profile details go here.</shadcn-tabs-content>
-            <shadcn-tabs-content value="security">Security controls go here.</shadcn-tabs-content>
+            <shadcn-tabs-content value="security">
+              <div class="row">
+                <shadcn-switch checked aria-label="Require two-factor authentication"></shadcn-switch>
+                <span>Require two-factor authentication</span>
+              </div>
+              <div class="row">
+                <shadcn-checkbox indeterminate aria-label="Email security digests"></shadcn-checkbox>
+                <span>Email security digests</span>
+              </div>
+            </shadcn-tabs-content>
           </shadcn-tabs>
         </shadcn-card-content>
         <shadcn-card-footer>

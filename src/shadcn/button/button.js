@@ -11,12 +11,24 @@ export class ShadcnButton extends HTMLElement {
   connectedCallback() {
     this.onclick = this.#handleClick.bind(this)
     this.onkeydown = this.#handleKeyDown.bind(this)
+    this.onkeyup = this.#handleKeyUp.bind(this)
+    this.onpointerdown = this.#handlePointerDown.bind(this)
+    this.onpointerup = this.#clearActive.bind(this)
+    this.onpointercancel = this.#clearActive.bind(this)
+    this.onpointerleave = this.#clearActive.bind(this)
+    this.onblur = this.#clearActive.bind(this)
     this.#sync()
   }
 
   disconnectedCallback() {
     this.onclick = null
     this.onkeydown = null
+    this.onkeyup = null
+    this.onpointerdown = null
+    this.onpointerup = null
+    this.onpointercancel = null
+    this.onpointerleave = null
+    this.onblur = null
   }
 
   attributeChangedCallback() {
@@ -67,7 +79,19 @@ export class ShadcnButton extends HTMLElement {
     if (event.key !== " " && event.key !== "Enter") return
 
     event.preventDefault()
+    this.#setActive(true)
     this.click()
+  }
+
+  /** @param {KeyboardEvent} event */
+  #handleKeyUp(event) {
+    if (event.key === " " || event.key === "Enter") this.#clearActive()
+  }
+
+  /** @param {PointerEvent} event */
+  #handlePointerDown(event) {
+    if (this.disabled || event.button !== 0) return
+    this.#setActive(true)
   }
 
   #sync() {
@@ -84,6 +108,17 @@ export class ShadcnButton extends HTMLElement {
 
     if (this.disabled) this.setAttribute("aria-disabled", "true")
     else this.removeAttribute("aria-disabled")
+
+    if (this.disabled) this.#clearActive()
+  }
+
+  /** @param {boolean} active */
+  #setActive(active) {
+    setBooleanAttribute(this, "data-active", active && !this.disabled)
+  }
+
+  #clearActive() {
+    this.#setActive(false)
   }
 }
 

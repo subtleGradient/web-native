@@ -1,9 +1,9 @@
 // @ts-check
 
-const pressedChangeEventName = "base-ui:pressed-change"
+const checkedChangeEventName = "base-ui:checked-change"
 
-export class BaseToggle extends HTMLElement {
-  static observedAttributes = ["disabled", "pressed"]
+export class BaseSwitch extends HTMLElement {
+  static observedAttributes = ["checked", "disabled"]
 
   connectedCallback() {
     this.onclick = this.#handleClick.bind(this)
@@ -32,13 +32,13 @@ export class BaseToggle extends HTMLElement {
     this.#syncAttributes()
   }
 
-  get pressed() {
-    return this.hasAttribute("pressed")
+  get checked() {
+    return this.hasAttribute("checked")
   }
 
   /** @param {boolean} value */
-  set pressed(value) {
-    setBooleanAttribute(this, "pressed", value)
+  set checked(value) {
+    setBooleanAttribute(this, "checked", value)
   }
 
   get disabled() {
@@ -52,8 +52,13 @@ export class BaseToggle extends HTMLElement {
 
   /** @param {MouseEvent} event */
   #handleClick(event) {
-    if (this.disabled) return
-    this.#requestPressedChange(!this.pressed, event)
+    if (this.disabled) {
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      return
+    }
+
+    this.#requestCheckedChange(!this.checked, event)
   }
 
   /** @param {KeyboardEvent} event */
@@ -63,7 +68,7 @@ export class BaseToggle extends HTMLElement {
 
     event.preventDefault()
     this.#setActive(true)
-    this.#requestPressedChange(!this.pressed, event)
+    this.#requestCheckedChange(!this.checked, event)
   }
 
   /** @param {KeyboardEvent} event */
@@ -78,29 +83,32 @@ export class BaseToggle extends HTMLElement {
   }
 
   /**
-   * @param {boolean} nextPressed
+   * @param {boolean} nextChecked
    * @param {Event} nativeEvent
    */
-  #requestPressedChange(nextPressed, nativeEvent) {
-    const event = new CustomEvent(pressedChangeEventName, {
+  #requestCheckedChange(nextChecked, nativeEvent) {
+    const previousChecked = this.checked
+    const event = new CustomEvent(checkedChangeEventName, {
       bubbles: true,
       cancelable: true,
       composed: true,
       detail: {
-        pressed: nextPressed,
+        checked: nextChecked,
+        previousChecked,
         reason: "none",
       },
     })
 
     if (!this.dispatchEvent(event)) return
 
-    this.pressed = nextPressed
+    this.checked = nextChecked
     nativeEvent.preventDefault()
   }
 
   #syncAttributes() {
-    this.setAttribute("role", "button")
-    this.setAttribute("aria-pressed", String(this.pressed))
+    this.setAttribute("role", "switch")
+    this.setAttribute("aria-checked", String(this.checked))
+    this.setAttribute("data-state", this.checked ? "checked" : "unchecked")
 
     if (this.disabled) {
       this.setAttribute("aria-disabled", "true")
@@ -110,7 +118,8 @@ export class BaseToggle extends HTMLElement {
       this.setAttribute("tabindex", "0")
     }
 
-    setBooleanAttribute(this, "data-pressed", this.pressed)
+    setBooleanAttribute(this, "data-checked", this.checked)
+    setBooleanAttribute(this, "data-unchecked", !this.checked)
     setBooleanAttribute(this, "data-disabled", this.disabled)
     if (this.disabled) this.#clearActive()
   }
@@ -139,8 +148,8 @@ function setBooleanAttribute(element, name, value) {
 }
 
 /** @param {string} [name] */
-export function defineBaseToggle(name = "base-toggle") {
+export function defineBaseSwitch(name = "base-switch") {
   if (!customElements.get(name)) {
-    customElements.define(name, BaseToggle)
+    customElements.define(name, BaseSwitch)
   }
 }

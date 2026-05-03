@@ -11,6 +11,7 @@ bun install
 bun run check
 bun run test
 bun run verify:dark
+bun run verify:demos
 bun run dev
 ```
 
@@ -21,6 +22,8 @@ bun run dev
 `bun run check` uses `tsgo --noEmit`; do not use `tsc` for this project.
 
 `bun run verify:dark` launches Chromium and verifies that the shadcn theme follows `prefers-color-scheme: dark` by default while still allowing explicit `.light`, `.dark`, and `data-theme` overrides.
+
+`bun run verify:demos` launches Chromium against the composite demos, interacts with tabs, switches, and checkboxes, verifies focus/active/disabled styles, and runs axe against the page.
 
 Set `PUPPETEER_EXECUTABLE_PATH` or `CHROME_BIN` if Chromium is not installed at a common system path.
 
@@ -62,14 +65,16 @@ Development should follow RGRTDD / demo-first flow:
 
 ## Current Components
 
+- `src/checkbox/` ports Base UI Checkbox as `base-checkbox`.
 - `src/toggle/` ports Base UI Toggle as `base-toggle`.
 - `src/separator/` ports Base UI Separator as `base-separator`.
+- `src/switch/` ports Base UI Switch as `base-switch`.
 - `src/tabs/` ports Base UI Tabs as `base-tabs`, `base-tabs-list`, `base-tab`, and `base-tabs-panel`.
 - `src/shadcn/` adds styled shadcn-inspired custom elements over those Base UI web components.
 
 Each folder includes a `*.demo.html`, `*.test.js`, and `README.md` next to the implementation.
 
-The standalone GitHub import-map demo lives at `examples/standalone/shadcn-github.html`.
+The standalone GitHub import-map demo lives at `examples/standalone/shadcn-github.html`. Composite local demos live in `examples/composite/`.
 
 ## Browser Imports
 

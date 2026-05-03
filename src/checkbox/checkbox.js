@@ -1,9 +1,9 @@
 // @ts-check
 
-const pressedChangeEventName = "base-ui:pressed-change"
+const checkedChangeEventName = "base-ui:checked-change"
 
-export class BaseToggle extends HTMLElement {
-  static observedAttributes = ["disabled", "pressed"]
+export class BaseCheckbox extends HTMLElement {
+  static observedAttributes = ["checked", "disabled", "indeterminate"]
 
   connectedCallback() {
     this.onclick = this.#handleClick.bind(this)
@@ -32,13 +32,22 @@ export class BaseToggle extends HTMLElement {
     this.#syncAttributes()
   }
 
-  get pressed() {
-    return this.hasAttribute("pressed")
+  get checked() {
+    return this.hasAttribute("checked")
   }
 
   /** @param {boolean} value */
-  set pressed(value) {
-    setBooleanAttribute(this, "pressed", value)
+  set checked(value) {
+    setBooleanAttribute(this, "checked", value)
+  }
+
+  get indeterminate() {
+    return this.hasAttribute("indeterminate")
+  }
+
+  /** @param {boolean} value */
+  set indeterminate(value) {
+    setBooleanAttribute(this, "indeterminate", value)
   }
 
   get disabled() {
@@ -52,23 +61,28 @@ export class BaseToggle extends HTMLElement {
 
   /** @param {MouseEvent} event */
   #handleClick(event) {
-    if (this.disabled) return
-    this.#requestPressedChange(!this.pressed, event)
+    if (this.disabled) {
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      return
+    }
+
+    this.#requestCheckedChange(this.indeterminate ? true : !this.checked, false, event)
   }
 
   /** @param {KeyboardEvent} event */
   #handleKeyDown(event) {
     if (this.disabled) return
-    if (event.key !== " " && event.key !== "Enter") return
+    if (event.key !== " ") return
 
     event.preventDefault()
     this.#setActive(true)
-    this.#requestPressedChange(!this.pressed, event)
+    this.#requestCheckedChange(this.indeterminate ? true : !this.checked, false, event)
   }
 
   /** @param {KeyboardEvent} event */
   #handleKeyUp(event) {
-    if (event.key === " " || event.key === "Enter") this.#clearActive()
+    if (event.key === " ") this.#clearActive()
   }
 
   /** @param {PointerEvent} event */
@@ -78,29 +92,39 @@ export class BaseToggle extends HTMLElement {
   }
 
   /**
-   * @param {boolean} nextPressed
+   * @param {boolean} nextChecked
+   * @param {boolean} nextIndeterminate
    * @param {Event} nativeEvent
    */
-  #requestPressedChange(nextPressed, nativeEvent) {
-    const event = new CustomEvent(pressedChangeEventName, {
+  #requestCheckedChange(nextChecked, nextIndeterminate, nativeEvent) {
+    const previousChecked = this.checked
+    const previousIndeterminate = this.indeterminate
+    const event = new CustomEvent(checkedChangeEventName, {
       bubbles: true,
       cancelable: true,
       composed: true,
       detail: {
-        pressed: nextPressed,
+        checked: nextChecked,
+        indeterminate: nextIndeterminate,
+        previousChecked,
+        previousIndeterminate,
         reason: "none",
       },
     })
 
     if (!this.dispatchEvent(event)) return
 
-    this.pressed = nextPressed
+    this.checked = nextChecked
+    this.indeterminate = nextIndeterminate
     nativeEvent.preventDefault()
   }
 
   #syncAttributes() {
-    this.setAttribute("role", "button")
-    this.setAttribute("aria-pressed", String(this.pressed))
+    const state = this.indeterminate ? "indeterminate" : this.checked ? "checked" : "unchecked"
+
+    this.setAttribute("role", "checkbox")
+    this.setAttribute("aria-checked", this.indeterminate ? "mixed" : String(this.checked))
+    this.setAttribute("data-state", state)
 
     if (this.disabled) {
       this.setAttribute("aria-disabled", "true")
@@ -110,7 +134,9 @@ export class BaseToggle extends HTMLElement {
       this.setAttribute("tabindex", "0")
     }
 
-    setBooleanAttribute(this, "data-pressed", this.pressed)
+    setBooleanAttribute(this, "data-checked", this.checked && !this.indeterminate)
+    setBooleanAttribute(this, "data-unchecked", !this.checked && !this.indeterminate)
+    setBooleanAttribute(this, "data-indeterminate", this.indeterminate)
     setBooleanAttribute(this, "data-disabled", this.disabled)
     if (this.disabled) this.#clearActive()
   }
@@ -139,8 +165,8 @@ function setBooleanAttribute(element, name, value) {
 }
 
 /** @param {string} [name] */
-export function defineBaseToggle(name = "base-toggle") {
+export function defineBaseCheckbox(name = "base-checkbox") {
   if (!customElements.get(name)) {
-    customElements.define(name, BaseToggle)
+    customElements.define(name, BaseCheckbox)
   }
 }

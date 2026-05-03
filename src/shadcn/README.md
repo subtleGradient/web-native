@@ -12,6 +12,10 @@ Styled shadcn-inspired custom elements for standalone browser usage.
 
 <shadcn-toggle variant="outline" size="sm">Bold</shadcn-toggle>
 
+<shadcn-checkbox aria-label="Accept terms"></shadcn-checkbox>
+
+<shadcn-switch checked aria-label="Enable alerts"></shadcn-switch>
+
 <shadcn-tabs value="account">
   <shadcn-tabs-list variant="line" aria-label="Settings sections">
     <shadcn-tabs-trigger value="account">Account</shadcn-tabs-trigger>
@@ -25,6 +29,7 @@ Styled shadcn-inspired custom elements for standalone browser usage.
 Interactive components expose shadcn-namespaced cancelable events:
 
 - `shadcn:pressed-change` from `shadcn-toggle`
+- `shadcn:checked-change` from `shadcn-checkbox` and `shadcn-switch`
 - `shadcn:value-change` from `shadcn-tabs`
 
-The standalone GitHub import-map fixture is `examples/standalone/shadcn-github.html`.
+The standalone GitHub import-map fixture is `examples/standalone/shadcn-github.html`. The composite settings console is `examples/composite/settings-console.html`.

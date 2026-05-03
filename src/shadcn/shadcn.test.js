@@ -111,6 +111,145 @@ describe("shadcn web components", () => {
     expect(toggle.classList.contains("cn-toggle-size-lg")).to.equal(true)
   })
 
+  it("applies checkbox and switch slots, classes, and Base UI semantics", () => {
+    const root = mount(`
+      <shadcn-checkbox size="sm" indeterminate aria-label="Select all"></shadcn-checkbox>
+      <shadcn-switch size="lg" checked aria-label="Enable alerts"></shadcn-switch>
+    `)
+    const checkbox = /** @type {import("./checkbox/index.js").ShadcnCheckbox} */ (root.querySelector("shadcn-checkbox"))
+    const switchControl = /** @type {import("./switch/index.js").ShadcnSwitch} */ (root.querySelector("shadcn-switch"))
+
+    expect(checkbox.getAttribute("data-slot")).to.equal("checkbox")
+    expect(checkbox.getAttribute("role")).to.equal("checkbox")
+    expect(checkbox.getAttribute("aria-checked")).to.equal("mixed")
+    expect(checkbox.getAttribute("data-size")).to.equal("sm")
+    expect(checkbox.classList.contains("cn-checkbox-size-sm")).to.equal(true)
+
+    expect(switchControl.getAttribute("data-slot")).to.equal("switch")
+    expect(switchControl.getAttribute("role")).to.equal("switch")
+    expect(switchControl.getAttribute("aria-checked")).to.equal("true")
+    expect(switchControl.getAttribute("data-size")).to.equal("lg")
+    expect(switchControl.classList.contains("cn-switch-size-lg")).to.equal(true)
+  })
+
+  it("exposes shadcn checked events and hides Base UI checkbox and switch events", () => {
+    const root = mount(`
+      <shadcn-checkbox aria-label="Accept terms"></shadcn-checkbox>
+      <shadcn-switch aria-label="Enable alerts"></shadcn-switch>
+    `)
+    const checkbox = /** @type {import("./checkbox/index.js").ShadcnCheckbox} */ (root.querySelector("shadcn-checkbox"))
+    const switchControl = /** @type {import("./switch/index.js").ShadcnSwitch} */ (root.querySelector("shadcn-switch"))
+    let shadcnCheckboxEvents = 0
+    let shadcnSwitchEvents = 0
+    let baseEvents = 0
+
+    checkbox.addEventListener("shadcn:checked-change", (event) => {
+      shadcnCheckboxEvents += 1
+      expect(/** @type {CustomEvent<{ checked: boolean, indeterminate: boolean }>} */ (event).detail).to.deep.include({ checked: true, indeterminate: false })
+    })
+    switchControl.addEventListener("shadcn:checked-change", (event) => {
+      shadcnSwitchEvents += 1
+      expect(/** @type {CustomEvent<{ checked: boolean }>} */ (event).detail.checked).to.equal(true)
+    })
+    root.addEventListener("base-ui:checked-change", () => {
+      baseEvents += 1
+    })
+
+    checkbox.click()
+    switchControl.click()
+
+    expect(shadcnCheckboxEvents).to.equal(1)
+    expect(shadcnSwitchEvents).to.equal(1)
+    expect(baseEvents).to.equal(0)
+    expect(checkbox.checked).to.equal(true)
+    expect(switchControl.checked).to.equal(true)
+  })
+
+  it("lets canceled shadcn checked events block checkbox and switch commits", () => {
+    const root = mount(`
+      <shadcn-checkbox aria-label="Accept terms"></shadcn-checkbox>
+      <shadcn-switch aria-label="Enable alerts"></shadcn-switch>
+    `)
+    const checkbox = /** @type {import("./checkbox/index.js").ShadcnCheckbox} */ (root.querySelector("shadcn-checkbox"))
+    const switchControl = /** @type {import("./switch/index.js").ShadcnSwitch} */ (root.querySelector("shadcn-switch"))
+
+    checkbox.addEventListener("shadcn:checked-change", (event) => event.preventDefault())
+    switchControl.addEventListener("shadcn:checked-change", (event) => event.preventDefault())
+    checkbox.click()
+    switchControl.click()
+
+    expect(checkbox.checked).to.equal(false)
+    expect(switchControl.checked).to.equal(false)
+  })
+
+  it("styles checkbox and switch focus, active, checked, and disabled states", async () => {
+    await ensureShadcnStyles()
+
+    const root = mount(`
+      <shadcn-checkbox aria-label="Accept terms"></shadcn-checkbox>
+      <shadcn-checkbox disabled aria-label="Disabled checkbox"></shadcn-checkbox>
+      <shadcn-switch aria-label="Enable alerts"></shadcn-switch>
+      <shadcn-switch disabled aria-label="Disabled switch"></shadcn-switch>
+    `)
+    const checkbox = /** @type {import("./checkbox/index.js").ShadcnCheckbox} */ (root.querySelector("shadcn-checkbox:not([disabled])"))
+    const disabledCheckbox = /** @type {HTMLElement} */ (root.querySelector("shadcn-checkbox[disabled]"))
+    const switchControl = /** @type {import("./switch/index.js").ShadcnSwitch} */ (root.querySelector("shadcn-switch:not([disabled])"))
+    const disabledSwitch = /** @type {HTMLElement} */ (root.querySelector("shadcn-switch[disabled]"))
+
+    expect(getComputedStyle(checkbox).display).to.equal("inline-flex")
+    expect(getComputedStyle(switchControl).display).to.equal("inline-flex")
+    expect(getComputedStyle(disabledCheckbox).opacity).to.equal("0.5")
+    expect(getComputedStyle(disabledSwitch).opacity).to.equal("0.5")
+
+    focusVisible(checkbox)
+    await nextFrame()
+    expect(document.activeElement).to.equal(checkbox)
+    expect(getComputedStyle(checkbox).boxShadow).to.not.equal("none")
+
+    checkbox.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0 }))
+    switchControl.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0 }))
+    expect(getComputedStyle(checkbox).transform).to.not.equal("none")
+    expect(getComputedStyle(switchControl).transform).to.not.equal("none")
+
+    const switchOffBackground = getComputedStyle(switchControl).backgroundColor
+    switchControl.click()
+    await nextFrame()
+    expect(getComputedStyle(switchControl).backgroundColor).to.not.equal(switchOffBackground)
+  })
+
+  it("styles existing button and toggle focus, active, and disabled states", async () => {
+    await ensureShadcnStyles()
+
+    const root = mount(`
+      <shadcn-button>Save</shadcn-button>
+      <shadcn-button disabled>Disabled</shadcn-button>
+      <shadcn-toggle variant="outline">Bold</shadcn-toggle>
+      <shadcn-toggle disabled>Disabled toggle</shadcn-toggle>
+    `)
+    const button = /** @type {import("./button/index.js").ShadcnButton} */ (root.querySelector("shadcn-button:not([disabled])"))
+    const disabledButton = /** @type {HTMLElement} */ (root.querySelector("shadcn-button[disabled]"))
+    const toggle = /** @type {import("./toggle/index.js").ShadcnToggle} */ (root.querySelector("shadcn-toggle:not([disabled])"))
+    const disabledToggle = /** @type {HTMLElement} */ (root.querySelector("shadcn-toggle[disabled]"))
+
+    focusVisible(button)
+    await nextFrame()
+    expect(document.activeElement).to.equal(button)
+    expect(getComputedStyle(button).boxShadow).to.not.equal("none")
+    expect(getComputedStyle(disabledButton).opacity).to.equal("0.5")
+    expect(getComputedStyle(disabledToggle).opacity).to.equal("0.5")
+
+    button.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0 }))
+    toggle.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0 }))
+    expect(button.hasAttribute("data-active")).to.equal(true)
+    expect(toggle.hasAttribute("data-active")).to.equal(true)
+    expect(getComputedStyle(button).transform).to.not.equal("none")
+    expect(getComputedStyle(toggle).transform).to.not.equal("none")
+
+    toggle.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: " " }))
+    expect(toggle.pressed).to.equal(true)
+    expect(toggle.hasAttribute("data-active")).to.equal(true)
+  })
+
   it("uses Base UI tabs behavior under shadcn tab names", async () => {
     const root = mount(`
       <shadcn-tabs value="account">
@@ -360,6 +499,8 @@ describe("shadcn web components", () => {
         <shadcn-card-footer>
           <shadcn-button>Save</shadcn-button>
           <shadcn-toggle variant="outline">Bold</shadcn-toggle>
+          <shadcn-checkbox aria-label="Email receipts"></shadcn-checkbox>
+          <shadcn-switch aria-label="Security alerts"></shadcn-switch>
         </shadcn-card-footer>
       </shadcn-card>
     `)
@@ -386,6 +527,15 @@ function mount(html) {
 
 function nextMicrotask() {
   return Promise.resolve()
+}
+
+function nextFrame() {
+  return new Promise((resolve) => requestAnimationFrame(resolve))
+}
+
+/** @param {HTMLElement} element */
+function focusVisible(element) {
+  Reflect.apply(HTMLElement.prototype.focus, element, [{ focusVisible: true }])
 }
 
 async function ensureShadcnStyles() {
