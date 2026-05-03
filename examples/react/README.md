@@ -24,6 +24,7 @@ Open the inline demo directly or through the local server. Open the service-work
   {
     "imports": {
       "react": "https://esm.sh/react@19.2.0?dev",
+      "react/jsx-dev-runtime": "https://esm.sh/react@19.2.0/jsx-dev-runtime?dev",
       "react/jsx-runtime": "https://esm.sh/react@19.2.0/jsx-runtime?dev",
       "react-dom/client": "https://esm.sh/react-dom@19.2.0/client?dev"
     }
