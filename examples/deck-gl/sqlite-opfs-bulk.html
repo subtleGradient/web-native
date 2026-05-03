@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>deck-gl SQLite OPFS bulk data demo</title>
+    <script>
+      (() => {
+        const media = matchMedia("(prefers-color-scheme: dark)")
+        const syncTheme = () => {
+          document.documentElement.dataset.theme = media.matches ? "dark" : "light"
+        }
+
+        syncTheme()
+        media.addEventListener("change", syncTheme)
+      })()
+    </script>
+    <style>
+      :root { color-scheme: light dark; }
+      :root[data-theme="light"] { color-scheme: light; }
+      :root[data-theme="dark"] { color-scheme: dark; }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        background:
+          radial-gradient(circle at top left, color-mix(in oklch, Highlight 18%, transparent), transparent 28rem),
+          Canvas;
+        color: CanvasText;
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+        margin: 0;
+      }
+
+      main {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: minmax(0, 1fr) minmax(18rem, 24rem);
+        min-height: 100vh;
+        padding: clamp(1rem, 4vw, 2rem);
+      }
+
+      .map-column,
+      aside,
+      .stack {
+        display: grid;
+        gap: 1rem;
+      }
+
+      .map-column {
+        grid-template-rows: auto minmax(30rem, 1fr);
+      }
+
+      header {
+        display: grid;
+        gap: 0.75rem;
+        max-width: 62rem;
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: clamp(2.5rem, 8vw, 6rem);
+        letter-spacing: -0.075em;
+        line-height: 0.86;
+        max-width: 12ch;
+      }
+
+      h2 {
+        font-size: 1rem;
+      }
+
+      .muted,
+      .meta {
+        color: color-mix(in oklch, CanvasText 62%, transparent);
+      }
+
+      .map-shell,
+      .panel,
+      .metric-strip {
+        background: color-mix(in oklch, Canvas 91%, CanvasText 9%);
+        border: 1px solid color-mix(in oklch, CanvasText 14%, transparent);
+        border-radius: 1.25rem;
+      }
+
+      .map-shell {
+        min-height: 30rem;
+        overflow: hidden;
+        position: relative;
+      }
+
+      deck-gl {
+        height: 100%;
+        min-height: 30rem;
+      }
+
+      .status {
+        background: color-mix(in oklch, Canvas 86%, CanvasText 14%);
+        border: 1px solid color-mix(in oklch, CanvasText 14%, transparent);
+        border-radius: 999px;
+        bottom: 1rem;
+        inset-inline: 1rem;
+        padding: 0.625rem 0.875rem;
+        position: absolute;
+      }
+
+      .panel {
+        display: grid;
+        gap: 0.875rem;
+        padding: 1rem;
+      }
+
+      .metric-strip {
+        display: grid;
+        gap: 0.5rem;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        padding: 0.875rem;
+      }
+
+      .metric {
+        display: grid;
+        gap: 0.125rem;
+      }
+
+      .metric strong {
+        font-size: 1.75rem;
+        letter-spacing: -0.04em;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      button,
+      .file-button {
+        align-items: center;
+        background: CanvasText;
+        border: 1px solid CanvasText;
+        border-radius: 999px;
+        color: Canvas;
+        cursor: default;
+        display: inline-flex;
+        font: inherit;
+        min-height: 2.25rem;
+        padding: 0.5rem 0.8rem;
+      }
+
+      button.secondary,
+      .file-button {
+        background: transparent;
+        border-color: color-mix(in oklch, CanvasText 24%, transparent);
+        color: CanvasText;
+      }
+
+      button:disabled,
+      .file-button[aria-disabled="true"] {
+        opacity: 0.5;
+      }
+
+      button:focus-visible,
+      .file-button:focus-within {
+        outline: 2px solid Highlight;
+        outline-offset: 2px;
+      }
+
+      input[type="file"] {
+        inline-size: 1px;
+        opacity: 0;
+        position: absolute;
+      }
+
+      label.check {
+        align-items: center;
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      code,
+      pre {
+        font-family: "SFMono-Regular", Consolas, monospace;
+      }
+
+      code {
+        background: color-mix(in oklch, CanvasText 10%, transparent);
+        border-radius: 0.375rem;
+        padding: 0.125rem 0.25rem;
+      }
+
+      pre {
+        background: color-mix(in oklch, CanvasText 9%, transparent);
+        border-radius: 0.75rem;
+        margin: 0;
+        max-height: 13rem;
+        overflow: auto;
+        padding: 0.875rem;
+        white-space: pre-wrap;
+      }
+
+      .table-wrap {
+        max-height: 16rem;
+        overflow: auto;
+      }
+
+      table {
+        border-collapse: collapse;
+        font-size: 0.875rem;
+        width: 100%;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid color-mix(in oklch, CanvasText 14%, transparent);
+        padding: 0.5rem 0;
+        text-align: left;
+      }
+
+      @media (max-width: 980px) {
+        main,
+        .metric-strip {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="map-column">
+        <header>
+          <h1>SQLite-backed operations map.</h1>
+          <p class="muted">
+            The data lives in an OPFS-backed SQLite database inside a module worker. Bulk upload merges or replaces rows, and downloads are generated from the persisted database.
+          </p>
+        </header>
+
+        <section class="map-shell" aria-label="SQLite operations map">
+          <deck-gl
+            id="ops-deck"
+            controller
+            initial-view-state='{"longitude":-98,"latitude":39,"zoom":3}'
+            oninit="OpsBulkDemo.initDeck.call(this, event)"
+            onload="OpsBulkDemo.setStatus('Map renderer ready. Waiting for SQLite OPFS...')"
+            onhover="OpsBulkDemo.preview(event)"
+            ondeckclick="OpsBulkDemo.pin(event)"
+            onviewstatechange="OpsBulkDemo.syncView(event)"
+          ></deck-gl>
+          <p class="status" id="status" aria-live="polite">Starting SQLite worker...</p>
+        </section>
+      </section>
+
+      <aside>
+        <section class="metric-strip" aria-label="Database metrics">
+          <div class="metric"><span class="meta">Sites</span><strong id="site-count">0</strong></div>
+          <div class="metric"><span class="meta">Movements</span><strong id="movement-count">0</strong></div>
+          <div class="metric"><span class="meta">Cargo tons</span><strong id="ton-count">0</strong></div>
+          <div class="metric"><span class="meta">Priority max</span><strong id="priority-max">0</strong></div>
+        </section>
+
+        <section class="panel">
+          <h2>OPFS database</h2>
+          <p class="muted"><code id="database-name">opening...</code></p>
+          <p class="muted">SQLite <span id="sqlite-version">pending</span> via <code id="vfs-name">pending</code></p>
+          <p class="muted">Pool files: <span id="pool-files">pending</span></p>
+        </section>
+
+        <section class="panel">
+          <deck-layer-list
+            label="SQLite layers"
+            items='[
+              {"id":"capacity","label":"Capacity halos","visible":true,"swatch":"#a78bfa","count":0},
+              {"id":"movements","label":"Cargo movements","visible":true,"swatch":"#fb923c","count":0},
+              {"id":"sites","label":"Sites","visible":true,"swatch":"#22c55e","count":0}
+            ]'
+            onlayervisibilitychange="OpsBulkDemo.setLayerVisible(event)"
+          ></deck-layer-list>
+        </section>
+
+        <deck-details-panel for="ops-deck" empty="Hover or click a site or movement." ondetailschange="OpsBulkDemo.describe(event)"></deck-details-panel>
+
+        <section class="panel">
+          <h2>Bulk upload</h2>
+          <p class="muted">Upload the JSON dump generated by this page, a JSON array of site or movement rows, or a CSV with matching headers.</p>
+          <label class="check"><input id="replace-data" type="checkbox" /> Replace entire database before import</label>
+          <label class="file-button" id="file-label">
+            Upload JSON or CSV
+            <input id="bulk-file" type="file" accept=".json,.csv,application/json,text/csv" onchange="OpsBulkDemo.uploadBulk(event)" />
+          </label>
+        </section>
+
+        <section class="panel">
+          <h2>Bulk download</h2>
+          <div class="actions">
+            <button onclick="OpsBulkDemo.downloadJson()">Download JSON</button>
+            <button class="secondary" onclick="OpsBulkDemo.downloadCsv('sites')">Sites CSV</button>
+            <button class="secondary" onclick="OpsBulkDemo.downloadCsv('movements')">Movements CSV</button>
+            <button class="secondary" onclick="OpsBulkDemo.resetSeed()">Reset seed data</button>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Current rows</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">ID</th>
+                  <th scope="col">Name or cargo</th>
+                  <th scope="col">Status</th>
+                </tr>
+              </thead>
+              <tbody id="rows-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Upload shape</h2>
+          <pre>{
+  "sites": [
+    {"id":"PDX","name":"Portland Cache","kind":"depot","longitude":-122.6,"latitude":45.5,"capacity":61,"status":"stable"}
+  ],
+  "movements": [
+    {"id":"PDX-SEA-001","fromSite":"PDX","toSite":"SEA","cargo":"water","priority":3,"tons":12,"status":"scheduled"}
+  ]
+}</pre>
+        </section>
+      </aside>
+    </main>
+
+    <script type="module">
+      class DemoLayer {
+        constructor(props) {
+          Object.assign(this, props)
+        }
+      }
+
+      class SqliteDeck {
+        constructor(props) {
+          this.props = {}
+          this.parent = props.parent
+          this.svg = document.createElementNS("http://www.w3.org/2000/svg", "svg")
+          this.svg.setAttribute("viewBox", "0 0 1000 620")
+          this.svg.setAttribute("role", "img")
+          this.svg.setAttribute("aria-label", "SQLite OPFS operations map")
+          this.svg.style.cssText = "display:block;width:100%;height:100%;background:linear-gradient(135deg,#020617,#172554 52%,#312e81);"
+          this.parent.append(this.svg)
+          this.svg.addEventListener("wheel", (event) => this.zoom(event), { passive: false })
+          this.setProps(props)
+          this.props.onLoad?.()
+        }
+
+        setProps(props) {
+          Object.assign(this.props, props)
+          this.draw()
+        }
+
+        redraw() {
+          this.draw()
+        }
+
+        finalize() {
+          this.svg.remove()
+        }
+
+        zoom(event) {
+          event.preventDefault()
+          const base = this.props.viewState ?? this.props.initialViewState ?? { zoom: 3 }
+          const previous = Number(base.zoom ?? 3)
+          const zoom = Math.max(1, Math.min(8, previous + (event.deltaY < 0 ? 0.4 : -0.4)))
+          const viewState = { ...base, zoom: Number(zoom.toFixed(1)) }
+          this.props.viewState = viewState
+          this.props.onViewStateChange?.({ viewState, oldViewState: base })
+        }
+
+        draw() {
+          this.svg.replaceChildren(this.grid())
+          for (const layer of this.props.layers ?? []) {
+            if (layer.visible === false) continue
+            if (layer.type === "capacity") this.drawCapacity(layer)
+            if (layer.type === "movements") this.drawMovements(layer)
+            if (layer.type === "sites") this.drawSites(layer)
+          }
+        }
+
+        grid() {
+          const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
+          group.setAttribute("opacity", "0.24")
+          for (let x = 80; x < 980; x += 120) {
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line")
+            line.setAttribute("x1", String(x))
+            line.setAttribute("x2", String(x))
+            line.setAttribute("y1", "40")
+            line.setAttribute("y2", "580")
+            line.setAttribute("stroke", "white")
+            group.append(line)
+          }
+          for (let y = 80; y < 600; y += 100) {
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line")
+            line.setAttribute("x1", "40")
+            line.setAttribute("x2", "960")
+            line.setAttribute("y1", String(y))
+            line.setAttribute("y2", String(y))
+            line.setAttribute("stroke", "white")
+            group.append(line)
+          }
+          return group
+        }
+
+        drawCapacity(layer) {
+          for (const site of layer.data.sites) {
+            const [cx, cy] = project(site)
+            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle")
+            circle.setAttribute("cx", String(cx))
+            circle.setAttribute("cy", String(cy))
+            circle.setAttribute("r", String(12 + Number(site.capacity) * 0.34))
+            circle.setAttribute("fill", site.status === "strained" ? "rgba(250,204,21,.15)" : "rgba(167,139,250,.13)")
+            circle.setAttribute("stroke", site.status === "strained" ? "rgba(250,204,21,.65)" : "rgba(167,139,250,.55)")
+            circle.setAttribute("stroke-width", "2")
+            this.bindFeature(circle, site, layer)
+            this.svg.append(circle)
+          }
+        }
+
+        drawMovements(layer) {
+          const sitesById = new Map(layer.data.sites.map((site) => [site.id, site]))
+          for (const movement of layer.data.movements) {
+            const source = sitesById.get(movement.fromSite)
+            const target = sitesById.get(movement.toSite)
+            if (!source || !target) continue
+            const [sx, sy] = project(source)
+            const [tx, ty] = project(target)
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path")
+            const lift = Math.min(180, Math.hypot(tx - sx, ty - sy) * 0.28)
+            path.setAttribute("d", `M ${sx} ${sy} Q ${(sx + tx) / 2} ${Math.min(sy, ty) - lift} ${tx} ${ty}`)
+            path.setAttribute("fill", "none")
+            path.setAttribute("stroke", movement.status === "critical" ? "#ef4444" : "#fb923c")
+            path.setAttribute("stroke-linecap", "round")
+            path.setAttribute("stroke-width", String(1.5 + Number(movement.priority)))
+            this.bindFeature(path, { ...movement, name: `${movement.fromSite} to ${movement.toSite}` }, layer)
+            this.svg.append(path)
+          }
+        }
+
+        drawSites(layer) {
+          for (const site of layer.data.sites) {
+            const [cx, cy] = project(site)
+            const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
+            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle")
+            const label = document.createElementNS("http://www.w3.org/2000/svg", "text")
+            circle.setAttribute("cx", String(cx))
+            circle.setAttribute("cy", String(cy))
+            circle.setAttribute("r", String(7 + Math.sqrt(Number(site.capacity))))
+            circle.setAttribute("fill", site.status === "strained" ? "#facc15" : site.kind === "clinic" ? "#38bdf8" : "#22c55e")
+            circle.setAttribute("stroke", "white")
+            circle.setAttribute("stroke-width", "2")
+            label.setAttribute("x", String(cx + 13))
+            label.setAttribute("y", String(cy + 5))
+            label.setAttribute("fill", "white")
+            label.setAttribute("font-size", "18")
+            label.setAttribute("font-weight", "700")
+            label.textContent = site.id
+            group.append(circle, label)
+            this.bindFeature(group, site, layer)
+            this.svg.append(group)
+          }
+        }
+
+        bindFeature(node, object, layer) {
+          node.style.cursor = "default"
+          node.addEventListener("pointerenter", (event) => this.props.onHover?.({ object, layer, picked: true }, event))
+          node.addEventListener("pointerleave", (event) => this.props.onHover?.({ object: null, layer, picked: false }, event))
+          node.addEventListener("click", (event) => this.props.onClick?.({ object, layer, picked: true }, event))
+        }
+      }
+
+      const activeLayers = new Map([
+        ["capacity", true],
+        ["movements", true],
+        ["sites", true],
+      ])
+      const worker = new Worker(new URL("./sqlite-opfs-worker.js", import.meta.url), { type: "module" })
+
+      globalThis.OpsBulkDemo = {
+        currentData: { movements: [], sites: [] },
+        deckElement: null,
+        initDeck() {
+          globalThis.OpsBulkDemo.deckElement = this
+          this.deckConstructor = SqliteDeck
+          this.layers = globalThis.OpsBulkDemo.layers()
+        },
+        layers() {
+          const data = this.currentData
+          return [
+            new DemoLayer({ id: "capacity", type: "capacity", data, visible: activeLayers.get("capacity") }),
+            new DemoLayer({ id: "movements", type: "movements", data, visible: activeLayers.get("movements") }),
+            new DemoLayer({ id: "sites", type: "sites", data, visible: activeLayers.get("sites") }),
+          ]
+        },
+        applySnapshot(data) {
+          this.currentData = data
+          if (this.deckElement) this.deckElement.layers = this.layers()
+          this.syncLayerList()
+          this.renderRows()
+          this.renderMetrics()
+        },
+        syncLayerList() {
+          const list = document.querySelector("deck-layer-list")
+          if (!list) return
+          list.items = [
+            { id: "capacity", label: "Capacity halos", visible: activeLayers.get("capacity"), swatch: "#a78bfa", count: this.currentData.sites.length },
+            { id: "movements", label: "Cargo movements", visible: activeLayers.get("movements"), swatch: "#fb923c", count: this.currentData.movements.length },
+            { id: "sites", label: "Sites", visible: activeLayers.get("sites"), swatch: "#22c55e", count: this.currentData.sites.length },
+          ]
+        },
+        renderMetrics() {
+          const tons = this.currentData.movements.reduce((total, movement) => total + Number(movement.tons ?? 0), 0)
+          const priority = Math.max(0, ...this.currentData.movements.map((movement) => Number(movement.priority ?? 0)))
+          text("#site-count", String(this.currentData.sites.length))
+          text("#movement-count", String(this.currentData.movements.length))
+          text("#ton-count", String(tons))
+          text("#priority-max", String(priority))
+        },
+        renderRows() {
+          const body = document.querySelector("#rows-body")
+          const rows = [
+            ...this.currentData.sites.map((site) => ({ id: site.id, label: site.name, status: `${site.kind} / ${site.status}` })),
+            ...this.currentData.movements.map((movement) => ({ id: movement.id, label: `${movement.cargo}: ${movement.fromSite} to ${movement.toSite}`, status: `${movement.status}, P${movement.priority}` })),
+          ]
+          body.replaceChildren(
+            ...rows.map((row) => {
+              const tr = document.createElement("tr")
+              for (const value of [row.id, row.label, row.status]) {
+                const td = document.createElement("td")
+                td.textContent = value
+                tr.append(td)
+              }
+              return tr
+            }),
+          )
+        },
+        setLayerVisible(event) {
+          activeLayers.set(event.detail.id, event.detail.visible)
+          if (this.deckElement) this.deckElement.layers = this.layers()
+          this.setStatus(`${event.detail.item.label}: ${event.detail.visible ? "visible" : "hidden"}`)
+        },
+        async uploadBulk(event) {
+          const input = event.target
+          const file = input.files?.[0]
+          if (!file) return
+          const text = await file.text()
+          worker.postMessage({ fileName: file.name, replace: document.querySelector("#replace-data").checked, text, type: "import" })
+          input.value = ""
+          this.setStatus(`Uploading ${file.name} into SQLite...`)
+        },
+        downloadJson() {
+          worker.postMessage({ format: "json", type: "export" })
+        },
+        downloadCsv(table) {
+          worker.postMessage({ format: "csv", table, type: "export" })
+        },
+        resetSeed() {
+          worker.postMessage({ type: "reset" })
+          this.setStatus("Resetting OPFS database to seed data...")
+        },
+        preview(event) {
+          const object = event.detail.info.object
+          if (object) this.setStatus(`Hovering ${object.name ?? object.id}`)
+        },
+        pin(event) {
+          const object = event.detail.info.object
+          if (object) this.setStatus(`Selected ${object.name ?? object.id}`)
+        },
+        describe(event) {
+          this.setStatus(`Details panel opened ${event.detail.object.name ?? event.detail.object.id}`)
+        },
+        syncView(event) {
+          this.setStatus(`Wheel zoom: ${event.detail.viewState.zoom}`)
+        },
+        setStatus(message) {
+          text("#status", message)
+        },
+      }
+
+      worker.onmessage = (event) => {
+        const message = event.data ?? {}
+        if (message.type === "ready") {
+          text("#database-name", message.detail.databaseName)
+          text("#sqlite-version", message.detail.sqliteVersion)
+          text("#vfs-name", message.detail.vfsName)
+          text("#pool-files", `${message.detail.fileCount} of ${message.detail.capacity}`)
+          OpsBulkDemo.setStatus("SQLite OPFS database ready. Data survives reloads on this origin.")
+        }
+        if (message.type === "snapshot") OpsBulkDemo.applySnapshot(message.detail)
+        if (message.type === "imported") OpsBulkDemo.setStatus(`Imported ${message.detail.importedSites} sites and ${message.detail.importedMovements} movements (${message.detail.mode}).`)
+        if (message.type === "exported") downloadText(message.detail)
+        if (message.type === "error") OpsBulkDemo.setStatus(message.message)
+      }
+
+      worker.onerror = (event) => {
+        OpsBulkDemo.setStatus(event.message)
+      }
+
+      function project(site) {
+        return [(Number(site.longitude) + 128) * 16.2, (52 - Number(site.latitude)) * 22.5]
+      }
+
+      function text(selector, value) {
+        const element = document.querySelector(selector)
+        if (element) element.textContent = value
+      }
+
+      function downloadText(detail) {
+        const blob = new Blob([detail.text], { type: detail.mimeType })
+        const link = document.createElement("a")
+        link.href = URL.createObjectURL(blob)
+        link.download = detail.filename
+        link.click()
+        URL.revokeObjectURL(link.href)
+        OpsBulkDemo.setStatus(`Downloaded ${detail.filename}`)
+      }
+
+      worker.postMessage({ type: "init" })
+      await import("../../src/deck-gl/define.js")
+    </script>
+  </body>
+</html>
