@@ -1,6 +1,8 @@
 // @ts-check
 
 /** @type {WeakMap<Element, string[]>} */
+// Tracks only runtime-owned shadcn class tokens so variant/size sync can remove
+// stale generated classes without wiping author-provided classes on the element.
 const appliedClassTokens = new WeakMap()
 
 /**

@@ -86,27 +86,34 @@ describe("base-toggle", () => {
 
   it("does not commit a canceled keyboard pressed change", () => {
     const toggle = mountToggle(html`<base-toggle>Bold</base-toggle>`)
-    const event = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: " " })
+    const keydown = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: " " })
+    const keyup = new KeyboardEvent("keyup", { bubbles: true, cancelable: true, key: " " })
 
     toggle.addEventListener("base-ui:pressed-change", (pressedEvent) => pressedEvent.preventDefault())
-    toggle.dispatchEvent(event)
+    toggle.dispatchEvent(keydown)
+    toggle.dispatchEvent(keyup)
 
-    expect(event.defaultPrevented).to.equal(true)
+    expect(keydown.defaultPrevented).to.equal(true)
     expect(toggle.pressed).to.equal(false)
   })
 
   it("ignores pointer and keyboard activation while disabled", () => {
     const toggle = mountToggle(html`<base-toggle disabled>Bold</base-toggle>`)
     let calls = 0
+    let clicks = 0
 
     toggle.addEventListener("base-ui:pressed-change", () => {
       calls += 1
+    })
+    toggle.addEventListener("click", () => {
+      clicks += 1
     })
 
     toggle.click()
     toggle.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "Enter" }))
 
     expect(calls).to.equal(0)
+    expect(clicks).to.equal(0)
     expect(toggle.pressed).to.equal(false)
     expect(toggle.hasAttribute("data-disabled")).to.equal(true)
     expect(toggle.getAttribute("aria-disabled")).to.equal("true")
@@ -119,6 +126,12 @@ describe("base-toggle", () => {
 
     toggle.dispatchEvent(space)
     expect(space.defaultPrevented).to.equal(true)
+    expect(toggle.pressed).to.equal(false)
+
+    toggle.dispatchEvent(space)
+    expect(toggle.pressed).to.equal(false)
+
+    toggle.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true, cancelable: true, key: " " }))
     expect(toggle.pressed).to.equal(true)
 
     toggle.dispatchEvent(enter)

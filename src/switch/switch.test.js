@@ -78,14 +78,19 @@ describe("base-switch", () => {
   it("supports Space and Enter keyboard activation", () => {
     const toggle = mountSwitch(html`<base-switch></base-switch>`)
     const space = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: " " })
+    const spaceUp = new KeyboardEvent("keyup", { bubbles: true, cancelable: true, key: " " })
     const enter = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Enter" })
 
     toggle.dispatchEvent(space)
     expect(space.defaultPrevented).to.equal(true)
-    expect(toggle.checked).to.equal(true)
+    expect(toggle.checked).to.equal(false)
     expect(toggle.hasAttribute("data-active")).to.equal(true)
 
-    toggle.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true, key: " " }))
+    toggle.dispatchEvent(space)
+    expect(toggle.checked).to.equal(false)
+
+    toggle.dispatchEvent(spaceUp)
+    expect(toggle.checked).to.equal(true)
     expect(toggle.hasAttribute("data-active")).to.equal(false)
 
     toggle.dispatchEvent(enter)
@@ -96,9 +101,13 @@ describe("base-switch", () => {
   it("ignores pointer and keyboard activation while disabled", () => {
     const toggle = mountSwitch(html`<base-switch disabled></base-switch>`)
     let events = 0
+    let clicks = 0
 
     toggle.addEventListener("base-ui:checked-change", () => {
       events += 1
+    })
+    toggle.addEventListener("click", () => {
+      clicks += 1
     })
 
     toggle.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0 }))
@@ -106,8 +115,31 @@ describe("base-switch", () => {
     toggle.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Enter" }))
 
     expect(events).to.equal(0)
+    expect(clicks).to.equal(0)
     expect(toggle.checked).to.equal(false)
     expect(toggle.hasAttribute("data-active")).to.equal(false)
+  })
+
+  it("participates in forms as a required switch", () => {
+    const form = /** @type {HTMLFormElement} */ (mount(html`
+      <form>
+        <base-switch name="alerts" value="enabled" required>Email alerts</base-switch>
+      </form>
+    `).firstElementChild)
+    const toggle = /** @type {import("./index.js").BaseSwitch} */ (form.querySelector("base-switch"))
+
+    expect(new FormData(form).has("alerts")).to.equal(false)
+    expect(toggle.matches(":invalid")).to.equal(true)
+
+    toggle.click()
+
+    expect(new FormData(form).get("alerts")).to.equal("enabled")
+    expect(toggle.matches(":valid")).to.equal(true)
+
+    form.reset()
+
+    expect(toggle.checked).to.equal(false)
+    expect(new FormData(form).has("alerts")).to.equal(false)
   })
 
   it("does not duplicate listeners after reconnecting", () => {

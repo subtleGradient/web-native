@@ -107,12 +107,14 @@ export class BaseTabs extends HTMLElement {
       const lists = this.lists
       const firstEnabledTab = tabs.find((tab) => !tab.disabled)
       let activeTab = tabs.find((tab) => tab.value === this.value && !tab.disabled)
+      let movedSelectionToFallback = false
 
       if (!activeTab) {
         const previousValue = this.value
 
         if (firstEnabledTab) {
           activeTab = firstEnabledTab
+          movedSelectionToFallback = true
           this.#activationDirection = "none"
           this.value = activeTab.value
 
@@ -120,13 +122,18 @@ export class BaseTabs extends HTMLElement {
             this.#dispatchValueChange(activeTab.value, previousValue, getAutomaticChangeReason(tabs, previousValue), "none", false)
           }
         } else if (previousValue != null) {
+          movedSelectionToFallback = true
           this.#activationDirection = "none"
           this.value = null
           this.#dispatchValueChange(null, previousValue, getAutomaticChangeReason(tabs, previousValue), "none", false)
         }
       }
 
-      if (!this.#highlightedTab || !tabs.includes(this.#highlightedTab)) {
+      if (
+        !this.#highlightedTab ||
+        !tabs.includes(this.#highlightedTab) ||
+        (movedSelectionToFallback && this.#highlightedTab.disabled)
+      ) {
         this.#highlightedTab = activeTab ?? firstEnabledTab
       }
 
@@ -409,6 +416,12 @@ export class BaseTab extends HTMLElement {
 
   /** @param {MouseEvent} event */
   #handleClick(event) {
+    if (this.disabled) {
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      return
+    }
+
     getTabsRoot(this)?.activateTab(this, event)
   }
 }

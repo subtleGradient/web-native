@@ -1,6 +1,6 @@
 // @ts-check
 
-import { BaseTab, BaseTabs, BaseTabsList, BaseTabsPanel, defineBaseTabs } from "../../tabs/index.js"
+import { BaseTab, BaseTabs, BaseTabsList, BaseTabsPanel } from "../../tabs/index.js"
 import { normalizeToken, setDataAttributes, setSlot, syncGeneratedClasses } from "../internal/classes.js"
 
 const listVariants = ["default", "line"]
@@ -115,7 +115,6 @@ export class ShadcnTabsContent extends BaseTabsPanel {
 }
 
 export function defineShadcnTabs() {
-  defineBaseTabs()
   if (!customElements.get("shadcn-tabs")) customElements.define("shadcn-tabs", ShadcnTabs)
   if (!customElements.get("shadcn-tabs-list")) customElements.define("shadcn-tabs-list", ShadcnTabsList)
   if (!customElements.get("shadcn-tabs-trigger")) customElements.define("shadcn-tabs-trigger", ShadcnTabsTrigger)

@@ -1,6 +1,6 @@
 // @ts-check
 
-import { BaseSwitch, defineBaseSwitch } from "../../switch/index.js"
+import { BaseSwitch } from "../../switch/index.js"
 import { normalizeToken, setDataAttributes, setSlot, syncGeneratedClasses } from "../internal/classes.js"
 
 const sizes = ["default", "sm", "lg"]
@@ -64,6 +64,5 @@ export class ShadcnSwitch extends BaseSwitch {
 
 /** @param {string} [name] */
 export function defineShadcnSwitch(name = "shadcn-switch") {
-  defineBaseSwitch()
   if (!customElements.get(name)) customElements.define(name, ShadcnSwitch)
 }

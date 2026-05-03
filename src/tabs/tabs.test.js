@@ -375,6 +375,8 @@ describe("base-tabs", () => {
     })
     expect(tabs.value).to.equal("two")
     expect(tabs.tabs[1].hasAttribute("data-active")).to.equal(true)
+    expect(tabs.tabs[0].tabIndex).to.equal(-1)
+    expect(tabs.tabs[1].tabIndex).to.equal(0)
   })
 
   it("falls back when the current tab is removed", async () => {

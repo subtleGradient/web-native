@@ -110,39 +110,71 @@ describe("base-checkbox", () => {
     expect(checkbox.getAttribute("aria-checked")).to.equal("true")
   })
 
-  it("supports Space keyboard activation and ignores Enter", () => {
+  it("supports Space keyup and Enter keydown activation", () => {
     const checkbox = mountCheckbox(html`<base-checkbox></base-checkbox>`)
     const space = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: " " })
+    const spaceUp = new KeyboardEvent("keyup", { bubbles: true, cancelable: true, key: " " })
     const enter = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Enter" })
 
     checkbox.dispatchEvent(space)
     expect(space.defaultPrevented).to.equal(true)
-    expect(checkbox.checked).to.equal(true)
+    expect(checkbox.checked).to.equal(false)
     expect(checkbox.hasAttribute("data-active")).to.equal(true)
 
-    checkbox.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true, key: " " }))
+    checkbox.dispatchEvent(space)
+    expect(checkbox.checked).to.equal(false)
+
+    checkbox.dispatchEvent(spaceUp)
+    expect(checkbox.checked).to.equal(true)
     expect(checkbox.hasAttribute("data-active")).to.equal(false)
 
     checkbox.dispatchEvent(enter)
-    expect(enter.defaultPrevented).to.equal(false)
-    expect(checkbox.checked).to.equal(true)
+    expect(enter.defaultPrevented).to.equal(true)
+    expect(checkbox.checked).to.equal(false)
   })
 
   it("ignores pointer and keyboard activation while disabled", () => {
     const checkbox = mountCheckbox(html`<base-checkbox disabled></base-checkbox>`)
     let events = 0
+    let clicks = 0
 
     checkbox.addEventListener("base-ui:checked-change", () => {
       events += 1
     })
+    checkbox.addEventListener("click", () => {
+      clicks += 1
+    })
 
     checkbox.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0 }))
     checkbox.click()
-    checkbox.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: " " }))
+    checkbox.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Enter" }))
 
     expect(events).to.equal(0)
+    expect(clicks).to.equal(0)
     expect(checkbox.checked).to.equal(false)
     expect(checkbox.hasAttribute("data-active")).to.equal(false)
+  })
+
+  it("participates in forms as a required checkbox", () => {
+    const form = /** @type {HTMLFormElement} */ (mount(html`
+      <form>
+        <base-checkbox name="terms" value="yes" required>Accept terms</base-checkbox>
+      </form>
+    `).firstElementChild)
+    const checkbox = /** @type {import("./index.js").BaseCheckbox} */ (form.querySelector("base-checkbox"))
+
+    expect(new FormData(form).has("terms")).to.equal(false)
+    expect(checkbox.matches(":invalid")).to.equal(true)
+
+    checkbox.click()
+
+    expect(new FormData(form).get("terms")).to.equal("yes")
+    expect(checkbox.matches(":valid")).to.equal(true)
+
+    form.reset()
+
+    expect(checkbox.checked).to.equal(false)
+    expect(new FormData(form).has("terms")).to.equal(false)
   })
 
   it("does not duplicate listeners after reconnecting", () => {

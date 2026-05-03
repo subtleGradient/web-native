@@ -51,6 +51,9 @@ describe("shadcn web components", () => {
     })
 
     button.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: " " }))
+    expect(clicks).to.equal(0)
+
+    button.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true, cancelable: true, key: " " }))
     button.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Enter" }))
     expect(clicks).to.equal(2)
 
@@ -247,9 +250,14 @@ describe("shadcn web components", () => {
     expect(getComputedStyle(button).transform).to.not.equal("none")
     expect(getComputedStyle(toggle).transform).to.not.equal("none")
 
+    toggle.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, button: 0 }))
     toggle.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: " " }))
-    expect(toggle.pressed).to.equal(true)
+    expect(toggle.pressed).to.equal(false)
     expect(toggle.hasAttribute("data-active")).to.equal(true)
+
+    toggle.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true, cancelable: true, key: " " }))
+    expect(toggle.pressed).to.equal(true)
+    expect(toggle.hasAttribute("data-active")).to.equal(false)
   })
 
   it("uses Base UI tabs behavior under shadcn tab names", async () => {
@@ -407,6 +415,29 @@ describe("shadcn web components", () => {
     list.variant = "default"
     expect(list.classList.contains("cn-tabs-list-variant-line")).to.equal(false)
     expect(list.classList.contains("cn-tabs-list-variant-default")).to.equal(true)
+  })
+
+  it("styles vertical line tabs with a vertical list and indicator", async () => {
+    await ensureShadcnStyles()
+
+    const root = mount(html`
+      <shadcn-tabs value="account" orientation="vertical">
+        <shadcn-tabs-list variant="line" aria-label="Settings">
+          <shadcn-tabs-trigger value="account">Account</shadcn-tabs-trigger>
+          <shadcn-tabs-trigger value="security">Security</shadcn-tabs-trigger>
+        </shadcn-tabs-list>
+        <shadcn-tabs-content value="account">Account panel</shadcn-tabs-content>
+        <shadcn-tabs-content value="security">Security panel</shadcn-tabs-content>
+      </shadcn-tabs>
+    `)
+    const list = /** @type {HTMLElement} */ (root.querySelector("shadcn-tabs-list"))
+    const trigger = /** @type {HTMLElement} */ (root.querySelector("shadcn-tabs-trigger"))
+
+    await nextMicrotask()
+
+    expect(getComputedStyle(list).flexDirection).to.equal("column")
+    expect(getComputedStyle(list).borderRightWidth).to.equal("1px")
+    expect(getComputedStyle(trigger, "::after").width).to.equal("2px")
   })
 
   it("applies slots and classes to presentational components", () => {

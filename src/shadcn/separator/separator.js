@@ -1,6 +1,6 @@
 // @ts-check
 
-import { BaseSeparator, defineBaseSeparator } from "../../separator/index.js"
+import { BaseSeparator } from "../../separator/index.js"
 import { setSlot, syncGeneratedClasses } from "../internal/classes.js"
 
 export class ShadcnSeparator extends BaseSeparator {
@@ -22,6 +22,5 @@ export class ShadcnSeparator extends BaseSeparator {
 
 /** @param {string} [name] */
 export function defineShadcnSeparator(name = "shadcn-separator") {
-  defineBaseSeparator()
   if (!customElements.get(name)) customElements.define(name, ShadcnSeparator)
 }

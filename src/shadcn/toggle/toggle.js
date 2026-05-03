@@ -1,6 +1,6 @@
 // @ts-check
 
-import { BaseToggle, defineBaseToggle } from "../../toggle/index.js"
+import { BaseToggle } from "../../toggle/index.js"
 import { normalizeToken, setDataAttributes, setSlot, syncGeneratedClasses } from "../internal/classes.js"
 
 const variants = ["default", "outline"]
@@ -80,6 +80,5 @@ export class ShadcnToggle extends BaseToggle {
 
 /** @param {string} [name] */
 export function defineShadcnToggle(name = "shadcn-toggle") {
-  defineBaseToggle()
   if (!customElements.get(name)) customElements.define(name, ShadcnToggle)
 }

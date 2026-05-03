@@ -1,6 +1,6 @@
 // @ts-check
 
-import { BaseCheckbox, defineBaseCheckbox } from "../../checkbox/index.js"
+import { BaseCheckbox } from "../../checkbox/index.js"
 import { normalizeToken, setDataAttributes, setSlot, syncGeneratedClasses } from "../internal/classes.js"
 
 const sizes = ["default", "sm", "lg"]
@@ -64,6 +64,5 @@ export class ShadcnCheckbox extends BaseCheckbox {
 
 /** @param {string} [name] */
 export function defineShadcnCheckbox(name = "shadcn-checkbox") {
-  defineBaseCheckbox()
   if (!customElements.get(name)) customElements.define(name, ShadcnCheckbox)
 }

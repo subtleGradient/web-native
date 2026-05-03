@@ -8,6 +8,8 @@ const sizes = ["default", "xs", "sm", "lg", "icon", "icon-xs", "icon-sm", "icon-
 export class ShadcnButton extends HTMLElement {
   static observedAttributes = ["disabled", "size", "variant"]
 
+  #spaceKeyDown = false
+
   connectedCallback() {
     this.onclick = this.#handleClick.bind(this)
     this.onkeydown = this.#handleKeyDown.bind(this)
@@ -75,22 +77,48 @@ export class ShadcnButton extends HTMLElement {
 
   /** @param {KeyboardEvent} event */
   #handleKeyDown(event) {
-    if (this.disabled) return
-    if (event.key !== " " && event.key !== "Enter") return
+    const isActivationKey = event.key === " " || event.key === "Enter"
+
+    if (this.disabled) {
+      if (isActivationKey) blockInteraction(event)
+      return
+    }
+
+    if (!isActivationKey) return
 
     event.preventDefault()
     this.#setActive(true)
+
+    if (event.key === " ") {
+      this.#spaceKeyDown = true
+      return
+    }
+
     this.click()
   }
 
   /** @param {KeyboardEvent} event */
   #handleKeyUp(event) {
-    if (event.key === " " || event.key === "Enter") this.#clearActive()
+    if (event.key === " ") {
+      const shouldActivate = this.#spaceKeyDown && !this.disabled
+      this.#spaceKeyDown = false
+
+      if (shouldActivate) this.click()
+      this.#clearActive()
+    } else if (event.key === "Enter") {
+      this.#clearActive()
+    }
   }
 
   /** @param {PointerEvent} event */
   #handlePointerDown(event) {
-    if (this.disabled || event.button !== 0) return
+    if (event.button !== 0) return
+
+    if (this.disabled) {
+      blockInteraction(event)
+      return
+    }
+
     this.#setActive(true)
   }
 
@@ -118,8 +146,15 @@ export class ShadcnButton extends HTMLElement {
   }
 
   #clearActive() {
+    this.#spaceKeyDown = false
     this.#setActive(false)
   }
+}
+
+/** @param {Event} event */
+function blockInteraction(event) {
+  event.preventDefault()
+  event.stopImmediatePropagation()
 }
 
 /** @param {string} [name] */

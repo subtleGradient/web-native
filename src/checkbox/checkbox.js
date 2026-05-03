@@ -1,11 +1,40 @@
 // @ts-check
 
 const checkedChangeEventName = "base-ui:checked-change"
+const defaultFormValue = "on"
 
 export class BaseCheckbox extends HTMLElement {
-  static observedAttributes = ["checked", "disabled", "indeterminate"]
+  static formAssociated = true
+  static observedAttributes = [
+    "checked",
+    "disabled",
+    "indeterminate",
+    "name",
+    "required",
+    "unchecked-value",
+    "value",
+  ]
+
+  /** @type {ElementInternals | undefined} */
+  #internals = typeof this.attachInternals === "function" ? this.attachInternals() : undefined
+
+  #defaultChecked = false
+
+  #defaultIndeterminate = false
+
+  #defaultsCaptured = false
+
+  #formDisabled = false
+
+  #spaceKeyDown = false
 
   connectedCallback() {
+    if (!this.#defaultsCaptured) {
+      this.#defaultChecked = this.checked
+      this.#defaultIndeterminate = this.indeterminate
+      this.#defaultsCaptured = true
+    }
+
     this.onclick = this.#handleClick.bind(this)
     this.onkeydown = this.#handleKeyDown.bind(this)
     this.onkeyup = this.#handleKeyUp.bind(this)
@@ -51,7 +80,7 @@ export class BaseCheckbox extends HTMLElement {
   }
 
   get disabled() {
-    return this.hasAttribute("disabled")
+    return this.hasAttribute("disabled") || this.#formDisabled
   }
 
   /** @param {boolean} value */
@@ -59,11 +88,60 @@ export class BaseCheckbox extends HTMLElement {
     setBooleanAttribute(this, "disabled", value)
   }
 
+  get required() {
+    return this.hasAttribute("required")
+  }
+
+  /** @param {boolean} value */
+  set required(value) {
+    setBooleanAttribute(this, "required", value)
+  }
+
+  get name() {
+    return this.getAttribute("name") ?? ""
+  }
+
+  /** @param {string | null | undefined} value */
+  set name(value) {
+    if (value == null) this.removeAttribute("name")
+    else this.setAttribute("name", String(value))
+  }
+
+  get value() {
+    return this.getAttribute("value") ?? defaultFormValue
+  }
+
+  /** @param {string | null | undefined} value */
+  set value(value) {
+    if (value == null) this.removeAttribute("value")
+    else this.setAttribute("value", String(value))
+  }
+
+  get uncheckedValue() {
+    return this.getAttribute("unchecked-value")
+  }
+
+  /** @param {string | null | undefined} value */
+  set uncheckedValue(value) {
+    if (value == null) this.removeAttribute("unchecked-value")
+    else this.setAttribute("unchecked-value", String(value))
+  }
+
+  /** @param {boolean} disabled */
+  formDisabledCallback(disabled) {
+    this.#formDisabled = disabled
+    this.#syncAttributes()
+  }
+
+  formResetCallback() {
+    this.checked = this.#defaultChecked
+    this.indeterminate = this.#defaultIndeterminate
+  }
+
   /** @param {MouseEvent} event */
   #handleClick(event) {
     if (this.disabled) {
-      event.preventDefault()
-      event.stopImmediatePropagation()
+      blockInteraction(event)
       return
     }
 
@@ -72,22 +150,51 @@ export class BaseCheckbox extends HTMLElement {
 
   /** @param {KeyboardEvent} event */
   #handleKeyDown(event) {
-    if (this.disabled) return
-    if (event.key !== " ") return
+    const isActivationKey = event.key === " " || event.key === "Enter"
+
+    if (this.disabled) {
+      if (isActivationKey) blockInteraction(event)
+      return
+    }
+
+    if (!isActivationKey) return
 
     event.preventDefault()
     this.#setActive(true)
+
+    if (event.key === " ") {
+      this.#spaceKeyDown = true
+      return
+    }
+
     this.#requestCheckedChange(this.indeterminate ? true : !this.checked, false, event)
   }
 
   /** @param {KeyboardEvent} event */
   #handleKeyUp(event) {
-    if (event.key === " ") this.#clearActive()
+    if (event.key === " ") {
+      const shouldActivate = this.#spaceKeyDown && !this.disabled
+      this.#spaceKeyDown = false
+
+      if (shouldActivate) {
+        this.#requestCheckedChange(this.indeterminate ? true : !this.checked, false, event)
+      }
+
+      this.#clearActive()
+    } else if (event.key === "Enter") {
+      this.#clearActive()
+    }
   }
 
   /** @param {PointerEvent} event */
   #handlePointerDown(event) {
-    if (this.disabled || event.button !== 0) return
+    if (event.button !== 0) return
+
+    if (this.disabled) {
+      blockInteraction(event)
+      return
+    }
+
     this.#setActive(true)
   }
 
@@ -139,6 +246,18 @@ export class BaseCheckbox extends HTMLElement {
     setBooleanAttribute(this, "data-indeterminate", this.indeterminate)
     setBooleanAttribute(this, "data-disabled", this.disabled)
     if (this.disabled) this.#clearActive()
+    this.#syncFormValue()
+  }
+
+  #syncFormValue() {
+    const formValue = this.checked ? this.value : this.uncheckedValue
+    this.#internals?.setFormValue(this.disabled ? null : (formValue ?? null))
+
+    if (this.required && !this.checked && !this.disabled) {
+      this.#internals?.setValidity({ valueMissing: true }, "Please check this box.", this)
+    } else {
+      this.#internals?.setValidity({})
+    }
   }
 
   /** @param {boolean} active */
@@ -147,6 +266,7 @@ export class BaseCheckbox extends HTMLElement {
   }
 
   #clearActive() {
+    this.#spaceKeyDown = false
     this.#setActive(false)
   }
 }
@@ -162,6 +282,12 @@ function setBooleanAttribute(element, name, value) {
   } else {
     element.removeAttribute(name)
   }
+}
+
+/** @param {Event} event */
+function blockInteraction(event) {
+  event.preventDefault()
+  event.stopImmediatePropagation()
 }
 
 /** @param {string} [name] */
