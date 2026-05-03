@@ -9,6 +9,7 @@ import { defineShadcnSeparator } from "./separator/index.js"
 import { defineShadcnSwitch } from "./switch/index.js"
 import { defineShadcnTabs } from "./tabs/index.js"
 import { defineShadcnToggle } from "./toggle/index.js"
+import { defineShadcnToggleGroup } from "./toggle-group/index.js"
 
 defineShadcnButton()
 defineShadcnToggle()
@@ -19,3 +20,4 @@ defineShadcnSeparator()
 defineShadcnPresentational()
 defineShadcnProgress()
 defineShadcnRadioGroup()
+defineShadcnToggleGroup()

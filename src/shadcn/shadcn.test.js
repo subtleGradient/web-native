@@ -620,6 +620,38 @@ describe("shadcn web components", () => {
     expect(sms.getAttribute("aria-checked")).to.equal("true")
   })
 
+  it("uses Base UI toggle group behavior under shadcn toggle group names", () => {
+    const root = mount(html`
+      <shadcn-toggle-group multiple value="bold" variant="outline" size="sm" aria-label="Formatting">
+        <shadcn-toggle-group-item value="bold">Bold</shadcn-toggle-group-item>
+        <shadcn-toggle-group-item value="italic">Italic</shadcn-toggle-group-item>
+      </shadcn-toggle-group>
+    `)
+    const group = /** @type {import("./toggle-group/index.js").ShadcnToggleGroup} */ (root.querySelector("shadcn-toggle-group"))
+    const items = Array.from(root.querySelectorAll("shadcn-toggle-group-item"))
+    const italic = /** @type {HTMLElement} */ (items[1])
+    let shadcnEvents = 0
+    let baseEvents = 0
+
+    group.addEventListener("shadcn:value-change", (event) => {
+      shadcnEvents += 1
+      expect(/** @type {CustomEvent<{ value: string[], previousValue: string[] }>} */ (event).detail).to.deep.include({ value: ["bold", "italic"], previousValue: ["bold"] })
+    })
+    group.addEventListener("base-ui:value-change", () => {
+      baseEvents += 1
+    })
+
+    italic.click()
+
+    expect(shadcnEvents).to.equal(1)
+    expect(baseEvents).to.equal(0)
+    expect(group.values).to.deep.equal(["bold", "italic"])
+    expect(group.classList.contains("cn-toggle-group")).to.equal(true)
+    expect(italic.classList.contains("cn-toggle-group-item")).to.equal(true)
+    expect(italic.classList.contains("cn-toggle-size-sm")).to.equal(true)
+    expect(italic.getAttribute("aria-pressed")).to.equal("true")
+  })
+
   it("loads shadcn CSS without Tailwind and applies usable computed styles", async () => {
     await ensureShadcnStyles()
 

@@ -4,6 +4,7 @@ export const projectName = "web-native"
 
 export { BaseCheckbox, defineBaseCheckbox } from "./checkbox/index.js"
 export { BaseToggle, defineBaseToggle } from "./toggle/index.js"
+export { BaseToggleGroup, BaseToggleGroupItem, defineBaseToggleGroup } from "./toggle-group/index.js"
 export { BaseSeparator, defineBaseSeparator } from "./separator/index.js"
 export { BaseSwitch, defineBaseSwitch } from "./switch/index.js"
 export { BaseTab, BaseTabs, BaseTabsList, BaseTabsPanel, defineBaseTabs } from "./tabs/index.js"

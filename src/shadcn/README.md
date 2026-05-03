@@ -39,6 +39,11 @@ Styled shadcn-inspired custom elements for standalone browser usage.
   <shadcn-radio-group-item value="sms"></shadcn-radio-group-item> SMS
 </shadcn-radio-group>
 
+<shadcn-toggle-group multiple value="bold" variant="outline" size="sm" aria-label="Formatting">
+  <shadcn-toggle-group-item value="bold">Bold</shadcn-toggle-group-item>
+  <shadcn-toggle-group-item value="italic">Italic</shadcn-toggle-group-item>
+</shadcn-toggle-group>
+
 <shadcn-table>
   <table is="shadcn-table-element">
     <thead is="shadcn-table-header">

@@ -8,6 +8,7 @@ export { ShadcnRadioGroup, ShadcnRadioGroupItem, defineShadcnRadioGroup } from "
 export { ShadcnSwitch, defineShadcnSwitch } from "./switch/index.js"
 export { ShadcnTabs, ShadcnTabsContent, ShadcnTabsList, ShadcnTabsTrigger, defineShadcnTabs } from "./tabs/index.js"
 export { ShadcnToggle, defineShadcnToggle } from "./toggle/index.js"
+export { ShadcnToggleGroup, ShadcnToggleGroupItem, defineShadcnToggleGroup } from "./toggle-group/index.js"
 export {
   ShadcnAlert,
   ShadcnAlertDescription,
