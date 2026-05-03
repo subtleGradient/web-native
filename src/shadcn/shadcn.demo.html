@@ -41,6 +41,16 @@
         height: 1rem;
         width: 12rem;
       }
+
+      .form-grid {
+        display: grid;
+        gap: 1rem;
+      }
+
+      .table-demo {
+        display: grid;
+        gap: 1rem;
+      }
     </style>
   </head>
   <body>
@@ -62,6 +72,61 @@
         <shadcn-toggle id="demo-toggle" variant="outline" size="sm">Bold</shadcn-toggle>
         <shadcn-checkbox aria-label="Select row"></shadcn-checkbox>
         <shadcn-switch aria-label="Enable alerts"></shadcn-switch>
+      </section>
+
+      <shadcn-card>
+        <shadcn-card-header>
+          <shadcn-card-title>Form controls</shadcn-card-title>
+          <shadcn-card-description>Native inputs wrapped as shadcn custom elements while preserving form submission.</shadcn-card-description>
+          <shadcn-card-action><shadcn-badge variant="outline">New</shadcn-badge></shadcn-card-action>
+        </shadcn-card-header>
+        <shadcn-card-content>
+          <form class="form-grid">
+            <shadcn-field-group>
+              <shadcn-field>
+                <shadcn-field-label for="demo-email">Email</shadcn-field-label>
+                <shadcn-input id="demo-email" name="email" type="email" placeholder="team@example.com"></shadcn-input>
+                <shadcn-field-description>Used for deployment notifications.</shadcn-field-description>
+              </shadcn-field>
+              <shadcn-field>
+                <shadcn-field-label for="demo-role">Role</shadcn-field-label>
+                <shadcn-native-select id="demo-role" size="sm">
+                  <select name="role">
+                    <option value="viewer">Viewer</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </shadcn-native-select>
+              </shadcn-field>
+              <shadcn-field>
+                <shadcn-field-label for="demo-notes">Notes</shadcn-field-label>
+                <shadcn-textarea id="demo-notes" name="notes" placeholder="Add onboarding notes"></shadcn-textarea>
+              </shadcn-field>
+            </shadcn-field-group>
+          </form>
+        </shadcn-card-content>
+      </shadcn-card>
+
+      <section class="table-demo" aria-label="Table and avatar">
+        <div class="row">
+          <shadcn-avatar size="lg"><shadcn-avatar-fallback>TN</shadcn-avatar-fallback><shadcn-avatar-badge></shadcn-avatar-badge></shadcn-avatar>
+          <shadcn-avatar-group>
+            <shadcn-avatar size="sm"><shadcn-avatar-fallback>A</shadcn-avatar-fallback></shadcn-avatar>
+            <shadcn-avatar size="sm"><shadcn-avatar-fallback>B</shadcn-avatar-fallback></shadcn-avatar>
+            <shadcn-avatar-group-count>+3</shadcn-avatar-group-count>
+          </shadcn-avatar-group>
+        </div>
+        <shadcn-table>
+          <table is="shadcn-table-element">
+            <caption is="shadcn-table-caption">Recent deployments</caption>
+            <thead is="shadcn-table-header">
+              <tr is="shadcn-table-row"><th is="shadcn-table-head">Name</th><th is="shadcn-table-head">Status</th></tr>
+            </thead>
+            <tbody is="shadcn-table-body">
+              <tr is="shadcn-table-row"><td is="shadcn-table-cell">Edge API</td><td is="shadcn-table-cell"><shadcn-badge variant="secondary">Healthy</shadcn-badge></td></tr>
+              <tr is="shadcn-table-row"><td is="shadcn-table-cell">Worker</td><td is="shadcn-table-cell"><shadcn-badge variant="outline">Queued</shadcn-badge></td></tr>
+            </tbody>
+          </table>
+        </shadcn-table>
       </section>
 
       <shadcn-card>

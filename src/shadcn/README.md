@@ -16,6 +16,30 @@ Styled shadcn-inspired custom elements for standalone browser usage.
 
 <shadcn-switch checked aria-label="Enable alerts"></shadcn-switch>
 
+<shadcn-field>
+  <shadcn-field-label for="email">Email</shadcn-field-label>
+  <shadcn-input id="email" name="email" type="email" placeholder="team@example.com"></shadcn-input>
+  <shadcn-field-description>Used for notifications.</shadcn-field-description>
+</shadcn-field>
+
+<shadcn-native-select size="sm">
+  <select name="role">
+    <option value="viewer">Viewer</option>
+    <option value="admin">Admin</option>
+  </select>
+</shadcn-native-select>
+
+<shadcn-table>
+  <table is="shadcn-table-element">
+    <thead is="shadcn-table-header">
+      <tr is="shadcn-table-row"><th is="shadcn-table-head">Name</th></tr>
+    </thead>
+    <tbody is="shadcn-table-body">
+      <tr is="shadcn-table-row"><td is="shadcn-table-cell">Web</td></tr>
+    </tbody>
+  </table>
+</shadcn-table>
+
 <shadcn-tabs value="account">
   <shadcn-tabs-list variant="line" aria-label="Settings sections">
     <shadcn-tabs-trigger value="account">Account</shadcn-tabs-trigger>
@@ -31,5 +55,7 @@ Interactive components expose shadcn-namespaced cancelable events:
 - `shadcn:pressed-change` from `shadcn-toggle`
 - `shadcn:checked-change` from `shadcn-checkbox` and `shadcn-switch`
 - `shadcn:value-change` from `shadcn-tabs`
+
+`shadcn-input` and `shadcn-textarea` create native text controls internally and participate in `FormData` through form-associated custom elements. `shadcn-native-select` decorates a slotted native `<select>` so browser select behavior and form semantics stay native.
 
 The standalone GitHub import-map fixture is `examples/standalone/shadcn-github.html`. The composite settings console is `examples/composite/settings-console.html`.

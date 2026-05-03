@@ -485,6 +485,87 @@ describe("shadcn web components", () => {
     expect(alert.classList.contains("cn-alert-variant-default")).to.equal(true)
   })
 
+  it("supports shadcn field, text control, and native select primitives", () => {
+    const root = mount(html`
+      <form>
+        <shadcn-field orientation="horizontal">
+          <shadcn-field-label for="email">Email</shadcn-field-label>
+          <shadcn-field-content>
+            <shadcn-input id="email" name="email" value="tom@example.test" required placeholder="Email"></shadcn-input>
+            <shadcn-field-description>Used for receipts.</shadcn-field-description>
+          </shadcn-field-content>
+        </shadcn-field>
+        <shadcn-textarea name="bio" value="Builder"></shadcn-textarea>
+        <shadcn-native-select size="sm">
+          <select name="status">
+            <option value="draft">Draft</option>
+            <option value="active" selected>Active</option>
+          </select>
+        </shadcn-native-select>
+      </form>
+    `)
+    const form = /** @type {HTMLFormElement} */ (root.querySelector("form"))
+    const field = /** @type {HTMLElement} */ (root.querySelector("shadcn-field"))
+    const label = /** @type {HTMLElement} */ (root.querySelector("shadcn-field-label"))
+    const input = /** @type {import("./presentational/index.js").ShadcnInput} */ (root.querySelector("shadcn-input"))
+    const inputControl = /** @type {HTMLInputElement} */ (input.querySelector("input"))
+    const textarea = /** @type {import("./presentational/index.js").ShadcnTextarea} */ (root.querySelector("shadcn-textarea"))
+    const textareaControl = /** @type {HTMLTextAreaElement} */ (textarea.querySelector("textarea"))
+    const nativeSelect = /** @type {HTMLElement} */ (root.querySelector("shadcn-native-select"))
+    const select = /** @type {HTMLSelectElement} */ (nativeSelect.querySelector("select"))
+
+    expect(field.getAttribute("data-orientation")).to.equal("horizontal")
+    expect(label.classList.contains("cn-field-label")).to.equal(true)
+    expect(input.getAttribute("data-slot")).to.equal("input-wrapper")
+    expect(inputControl.getAttribute("data-slot")).to.equal("input")
+    expect(inputControl.classList.contains("cn-input")).to.equal(true)
+    expect(textareaControl.classList.contains("cn-textarea")).to.equal(true)
+    expect(nativeSelect.getAttribute("data-size")).to.equal("sm")
+    expect(select.classList.contains("cn-native-select-size-sm")).to.equal(true)
+    expect(new FormData(form).get("email")).to.equal("tom@example.test")
+    expect(new FormData(form).get("bio")).to.equal("Builder")
+    expect(new FormData(form).get("status")).to.equal("active")
+
+    inputControl.value = "team@example.test"
+    inputControl.dispatchEvent(new Event("input", { bubbles: true }))
+    textarea.value = "Updated"
+
+    expect(new FormData(form).get("email")).to.equal("team@example.test")
+    expect(new FormData(form).get("bio")).to.equal("Updated")
+  })
+
+  it("decorates table and avatar component parts", () => {
+    const root = mount(html`
+      <shadcn-table>
+        <table is="shadcn-table-element">
+          <caption is="shadcn-table-caption">Deployments</caption>
+          <thead is="shadcn-table-header">
+            <tr is="shadcn-table-row"><th is="shadcn-table-head">Name</th></tr>
+          </thead>
+          <tbody is="shadcn-table-body">
+            <tr is="shadcn-table-row" data-state="selected"><td is="shadcn-table-cell">Web</td></tr>
+          </tbody>
+        </table>
+      </shadcn-table>
+      <shadcn-avatar size="lg">
+        <shadcn-avatar-fallback>TN</shadcn-avatar-fallback>
+        <shadcn-avatar-badge></shadcn-avatar-badge>
+      </shadcn-avatar>
+      <shadcn-avatar-group>
+        <shadcn-avatar size="sm"><shadcn-avatar-fallback>A</shadcn-avatar-fallback></shadcn-avatar>
+        <shadcn-avatar-group-count>+3</shadcn-avatar-group-count>
+      </shadcn-avatar-group>
+    `)
+
+    expect(root.querySelector("shadcn-table")?.classList.contains("cn-table-container")).to.equal(true)
+    expect(root.querySelector("table")?.classList.contains("cn-table")).to.equal(true)
+    expect(root.querySelector("tr")?.classList.contains("cn-table-row")).to.equal(true)
+    expect(root.querySelector("td")?.getAttribute("data-slot")).to.equal("table-cell")
+    expect(root.querySelector("shadcn-avatar")?.classList.contains("cn-avatar-size-lg")).to.equal(true)
+    expect(root.querySelector("shadcn-avatar-fallback")?.classList.contains("cn-avatar-fallback")).to.equal(true)
+    expect(root.querySelector("shadcn-avatar-group-count")?.getAttribute("data-slot")).to.equal("avatar-group-count")
+  })
+
   it("loads shadcn CSS without Tailwind and applies usable computed styles", async () => {
     await ensureShadcnStyles()
 
