@@ -14,6 +14,7 @@ These are isolated research demos for running React directly in the browser with
 
 - `inline-jsx.html` is the direct 2014-style pattern modernized: one HTML file, import map, React ESM, Babel standalone, and inline JSX transformed in the browser.
 - `service-worker-jsx.html` registers `jsx-transform-sw.js`, then imports real `.jsx` modules. The service worker fetches those files, runs Babel in the browser worker, and returns JavaScript to native ESM.
+- `deckgl-sqlite-opfs.html` imports `@deck.gl/react` and `@deck.gl/layers` from esm.sh, reuses the SQLite Wasm OPFS worker from `examples/deck-gl/`, and renders persisted rows with the official DeckGL React component.
 
 Open the inline demo directly or through the local server. Open the service-worker demo through `bun run dev`; service workers do not run from `file://` pages.
 
