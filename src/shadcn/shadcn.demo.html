@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>shadcn web components demo</title>
+    <link rel="stylesheet" href="./themes/neutral.css" />
+    <link rel="stylesheet" href="./styles/base-nova.css" />
+    <script type="module" src="./define.js"></script>
+    <style>
+      body {
+        margin: 2rem;
+        max-width: 56rem;
+      }
+
+      main {
+        display: grid;
+        gap: 1.5rem;
+      }
+
+      .row {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      shadcn-skeleton {
+        height: 1rem;
+        width: 12rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section>
+        <h1>shadcn web components</h1>
+        <p>Styled custom elements layered over web-native Base UI behavior.</p>
+      </section>
+
+      <section class="row" aria-label="Buttons">
+        <shadcn-button>Save changes</shadcn-button>
+        <shadcn-button variant="outline">Cancel</shadcn-button>
+        <shadcn-button variant="destructive">Delete</shadcn-button>
+      </section>
+
+      <section class="row" aria-label="Badges and toggles">
+        <shadcn-badge>Default</shadcn-badge>
+        <shadcn-badge variant="secondary">Secondary</shadcn-badge>
+        <shadcn-toggle id="demo-toggle" variant="outline" size="sm">Bold</shadcn-toggle>
+      </section>
+
+      <shadcn-card>
+        <shadcn-card-header>
+          <shadcn-card-title>Account settings</shadcn-card-title>
+          <shadcn-card-description>Update your profile and security settings.</shadcn-card-description>
+        </shadcn-card-header>
+        <shadcn-card-content>
+          <shadcn-tabs value="profile">
+            <shadcn-tabs-list variant="line" aria-label="Account sections">
+              <shadcn-tabs-trigger value="profile">Profile</shadcn-tabs-trigger>
+              <shadcn-tabs-trigger value="security">Security</shadcn-tabs-trigger>
+            </shadcn-tabs-list>
+            <shadcn-tabs-content value="profile">Profile details go here.</shadcn-tabs-content>
+            <shadcn-tabs-content value="security">Security controls go here.</shadcn-tabs-content>
+          </shadcn-tabs>
+        </shadcn-card-content>
+        <shadcn-card-footer>
+          <shadcn-button size="sm">Save</shadcn-button>
+          <shadcn-button size="sm" variant="ghost">Reset</shadcn-button>
+        </shadcn-card-footer>
+      </shadcn-card>
+
+      <shadcn-alert>
+        <shadcn-alert-title>Heads up</shadcn-alert-title>
+        <shadcn-alert-description>The demo uses plain CSS, importable ESM, and no framework runtime.</shadcn-alert-description>
+      </shadcn-alert>
+
+      <section class="row" aria-label="Skeleton and keyboard">
+        <shadcn-skeleton></shadcn-skeleton>
+        <shadcn-kbd-group><shadcn-kbd>Ctrl</shadcn-kbd><shadcn-kbd>K</shadcn-kbd></shadcn-kbd-group>
+      </section>
+    </main>
+  </body>
+</html>

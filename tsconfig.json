@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "allowImportingTsExtensions": true,
+    "checkJs": true,
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "module": "Preserve",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "ES2024",
+    "paths": {
+      "web-native/*": ["./src/*"]
+    },
+    "types": ["bun", "chai", "mocha"]
+  },
+  "include": ["scripts/**/*.ts", "src/**/*.js", "test/**/*.js"]
+}

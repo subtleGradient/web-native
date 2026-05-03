@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>base-separator demo</title>
+    <script type="module" src="./define.js"></script>
+    <style>
+      body {
+        color-scheme: light dark;
+        font-family: system-ui, sans-serif;
+        margin: 2rem;
+      }
+
+      base-separator {
+        background: color-mix(in oklch, canvastext 25%, transparent);
+        display: block;
+      }
+
+      base-separator[data-orientation="horizontal"] {
+        height: 1px;
+        margin: 1rem 0;
+      }
+
+      .row {
+        align-items: center;
+        display: flex;
+        gap: 1rem;
+      }
+
+      base-separator[data-orientation="vertical"] {
+        align-self: stretch;
+        width: 1px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>base-separator</h1>
+    <p>Above</p>
+    <base-separator></base-separator>
+    <p>Below</p>
+
+    <div class="row">
+      <span>Left</span>
+      <base-separator orientation="vertical"></base-separator>
+      <span>Right</span>
+    </div>
+  </body>
+</html>

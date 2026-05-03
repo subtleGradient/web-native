@@ -1,0 +1,23 @@
+{
+  "name": "web-native",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Generic universal web-native ESM modules and custom elements.",
+  "scripts": {
+    "check": "tsgo --noEmit",
+    "dev": "bun run scripts/serve.ts",
+    "test": "bun run scripts/test.ts",
+    "verify:github-demo": "bun run scripts/verify-github-demo.ts"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/bun": "^1.3.13",
+    "@types/chai": "^5.2.3",
+    "@types/mocha": "^10.0.10",
+    "@typescript/native-preview": "^7.0.0-dev.20260421.2",
+    "chai": "^6.2.2",
+    "mocha": "^11.7.5",
+    "puppeteer-core": "^24.42.0"
+  }
+}
