@@ -469,6 +469,7 @@
 .cn-alert {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
+  box-sizing: border-box;
   display: grid;
   gap: 0.25rem;
   padding: 0.875rem 1rem;

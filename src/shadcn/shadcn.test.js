@@ -459,6 +459,7 @@ describe("shadcn web components", () => {
 
     const root = mount(html`
       <shadcn-button>Save</shadcn-button>
+      <shadcn-alert><shadcn-alert-title>Status</shadcn-alert-title></shadcn-alert>
       <shadcn-tabs value="one">
         <shadcn-tabs-list aria-label="Sections">
           <shadcn-tabs-trigger value="one">One</shadcn-tabs-trigger>
@@ -467,12 +468,14 @@ describe("shadcn web components", () => {
       </shadcn-tabs>
     `)
     const button = /** @type {HTMLElement} */ (root.querySelector("shadcn-button"))
+    const alert = /** @type {HTMLElement} */ (root.querySelector("shadcn-alert"))
     const tabs = /** @type {HTMLElement} */ (root.querySelector("shadcn-tabs"))
     const trigger = /** @type {HTMLElement} */ (root.querySelector("shadcn-tabs-trigger"))
 
     await nextMicrotask()
 
     expect(getComputedStyle(button).display).to.equal("inline-flex")
+    expect(getComputedStyle(alert).boxSizing).to.equal("border-box")
     expect(getComputedStyle(tabs).display).to.equal("flex")
     expect(getComputedStyle(trigger).position).to.equal("relative")
   })
