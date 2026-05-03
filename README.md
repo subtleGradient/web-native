@@ -73,11 +73,12 @@ Development should follow RGRTDD / demo-first flow:
 - `src/separator/` ports Base UI Separator as `base-separator`.
 - `src/switch/` ports Base UI Switch as `base-switch`.
 - `src/tabs/` ports Base UI Tabs as `base-tabs`, `base-tabs-list`, `base-tab`, and `base-tabs-panel`.
+- `src/deck-gl/` adds deck.gl-inspired `deck-gl`, `deck-layer-list`, and `deck-details-panel` elements for static HTML map examples.
 - `src/shadcn/` adds styled shadcn-inspired custom elements over those Base UI web components.
 
 Each folder includes a `*.demo.html`, `*.test.js`, and `README.md` next to the implementation.
 
-The standalone GitHub import-map demo lives at `examples/standalone/shadcn-github.html`. The SQLite Wasm CDN example lives at `examples/standalone/sqlite-wasm-cdn.html`. Composite local demos live in `examples/composite/`. Each component/demo folder also has a `*.standalone.html` page that can be opened directly without running a server.
+The standalone GitHub import-map demo lives at `examples/standalone/shadcn-github.html`. The SQLite Wasm CDN example lives at `examples/standalone/sqlite-wasm-cdn.html`. Composite local demos live in `examples/composite/`. deck.gl-style examples live in `examples/deck-gl/`. Each component/demo folder also has a `*.standalone.html` page that can be opened directly without running a server.
 
 ## Browser Imports
 
