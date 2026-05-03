@@ -111,6 +111,53 @@
         position: absolute;
       }
 
+      .selected-panel {
+        backdrop-filter: blur(18px);
+        background: color-mix(in oklch, Canvas 84%, transparent);
+        border: 1px solid color-mix(in oklch, CanvasText 18%, transparent);
+        border-radius: 1.25rem;
+        box-shadow: 0 24px 80px color-mix(in oklch, black 28%, transparent);
+        display: grid;
+        gap: 0.75rem;
+        inset-block-start: 1rem;
+        inset-inline-start: 1rem;
+        max-width: min(24rem, calc(100% - 2rem));
+        padding: 1rem;
+        position: absolute;
+        z-index: 2;
+      }
+
+      .selected-panel[hidden] {
+        display: none;
+      }
+
+      .selected-header {
+        align-items: start;
+        display: grid;
+        gap: 0.5rem;
+        grid-template-columns: minmax(0, 1fr) auto;
+      }
+
+      .selected-header button {
+        min-height: 1.75rem;
+        padding: 0.125rem 0.5rem;
+      }
+
+      .details {
+        display: grid;
+        gap: 0.375rem 0.75rem;
+        grid-template-columns: max-content minmax(0, 1fr);
+      }
+
+      .details dt {
+        color: color-mix(in oklch, CanvasText 58%, transparent);
+      }
+
+      .details dd {
+        margin: 0;
+        overflow-wrap: anywhere;
+      }
+
       .panel {
         display: grid;
         gap: 0.875rem;
@@ -138,6 +185,40 @@
         display: flex;
         flex-wrap: wrap;
         gap: 0.5rem;
+      }
+
+      .inventory-list {
+        display: grid;
+        gap: 0.5rem;
+        max-height: 18rem;
+        overflow: auto;
+      }
+
+      .inventory-item {
+        background: color-mix(in oklch, Canvas 88%, CanvasText 12%);
+        border-color: color-mix(in oklch, CanvasText 16%, transparent);
+        border-radius: 0.875rem;
+        color: CanvasText;
+        display: grid;
+        gap: 0.125rem;
+        justify-items: start;
+        min-height: 0;
+        padding: 0.625rem 0.75rem;
+        text-align: start;
+      }
+
+      .inventory-item[aria-pressed="true"] {
+        border-color: Highlight;
+        box-shadow: 0 0 0 3px color-mix(in oklch, Highlight 28%, transparent);
+      }
+
+      .inventory-title {
+        font-weight: 700;
+      }
+
+      .inventory-meta {
+        color: color-mix(in oklch, CanvasText 62%, transparent);
+        font-size: 0.8125rem;
       }
 
       button,
@@ -252,6 +333,16 @@
             ondeckclick="OpsBulkDemo.pin(event)"
             onviewstatechange="OpsBulkDemo.syncView(event)"
           ></deck-gl>
+          <section class="selected-panel" id="selected-panel" hidden aria-live="polite">
+            <div class="selected-header">
+              <div>
+                <h2 id="selected-title">No selection</h2>
+                <p class="meta" id="selected-meta">Select a site or movement.</p>
+              </div>
+              <button class="secondary" type="button" onclick="OpsBulkDemo.clearSelection()">Close</button>
+            </div>
+            <dl class="details" id="selected-details"></dl>
+          </section>
           <p class="status" id="status" aria-live="polite">Starting SQLite worker...</p>
         </section>
       </section>
@@ -283,7 +374,11 @@
           ></deck-layer-list>
         </section>
 
-        <deck-details-panel for="ops-deck" empty="Hover or click a site or movement." ondetailschange="OpsBulkDemo.describe(event)"></deck-details-panel>
+        <section class="panel">
+          <h2>Deck inventory</h2>
+          <p class="muted">Every persisted site and movement currently drawn by the deck. Selecting here selects the same item as clicking the map.</p>
+          <div class="inventory-list" id="item-list" role="listbox" aria-label="Deck items"></div>
+        </section>
 
         <section class="panel">
           <h2>Bulk upload</h2>
@@ -417,13 +512,14 @@
         drawCapacity(layer) {
           for (const site of layer.data.sites) {
             const [cx, cy] = project(site)
+            const selected = layer.selected?.kind === "site" && layer.selected.id === site.id
             const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle")
             circle.setAttribute("cx", String(cx))
             circle.setAttribute("cy", String(cy))
-            circle.setAttribute("r", String(12 + Number(site.capacity) * 0.34))
+            circle.setAttribute("r", String((selected ? 18 : 12) + Number(site.capacity) * 0.34))
             circle.setAttribute("fill", site.status === "strained" ? "rgba(250,204,21,.15)" : "rgba(167,139,250,.13)")
-            circle.setAttribute("stroke", site.status === "strained" ? "rgba(250,204,21,.65)" : "rgba(167,139,250,.55)")
-            circle.setAttribute("stroke-width", "2")
+            circle.setAttribute("stroke", selected ? "white" : site.status === "strained" ? "rgba(250,204,21,.65)" : "rgba(167,139,250,.55)")
+            circle.setAttribute("stroke-width", selected ? "4" : "2")
             this.bindFeature(circle, site, layer)
             this.svg.append(circle)
           }
@@ -439,11 +535,12 @@
             const [tx, ty] = project(target)
             const path = document.createElementNS("http://www.w3.org/2000/svg", "path")
             const lift = Math.min(180, Math.hypot(tx - sx, ty - sy) * 0.28)
+            const selected = layer.selected?.kind === "movement" && layer.selected.id === movement.id
             path.setAttribute("d", `M ${sx} ${sy} Q ${(sx + tx) / 2} ${Math.min(sy, ty) - lift} ${tx} ${ty}`)
             path.setAttribute("fill", "none")
-            path.setAttribute("stroke", movement.status === "critical" ? "#ef4444" : "#fb923c")
+            path.setAttribute("stroke", selected ? "#ffffff" : movement.status === "critical" ? "#ef4444" : "#fb923c")
             path.setAttribute("stroke-linecap", "round")
-            path.setAttribute("stroke-width", String(1.5 + Number(movement.priority)))
+            path.setAttribute("stroke-width", String((selected ? 4 : 1.5) + Number(movement.priority)))
             this.bindFeature(path, { ...movement, name: `${movement.fromSite} to ${movement.toSite}` }, layer)
             this.svg.append(path)
           }
@@ -452,15 +549,16 @@
         drawSites(layer) {
           for (const site of layer.data.sites) {
             const [cx, cy] = project(site)
+            const selected = layer.selected?.kind === "site" && layer.selected.id === site.id
             const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
             const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle")
             const label = document.createElementNS("http://www.w3.org/2000/svg", "text")
             circle.setAttribute("cx", String(cx))
             circle.setAttribute("cy", String(cy))
-            circle.setAttribute("r", String(7 + Math.sqrt(Number(site.capacity))))
+            circle.setAttribute("r", String((selected ? 11 : 7) + Math.sqrt(Number(site.capacity))))
             circle.setAttribute("fill", site.status === "strained" ? "#facc15" : site.kind === "clinic" ? "#38bdf8" : "#22c55e")
-            circle.setAttribute("stroke", "white")
-            circle.setAttribute("stroke-width", "2")
+            circle.setAttribute("stroke", selected ? "#f8fafc" : "white")
+            circle.setAttribute("stroke-width", selected ? "5" : "2")
             label.setAttribute("x", String(cx + 13))
             label.setAttribute("y", String(cy + 5))
             label.setAttribute("fill", "white")
@@ -491,6 +589,7 @@
       globalThis.OpsBulkDemo = {
         currentData: { movements: [], sites: [] },
         deckElement: null,
+        selected: null,
         initDeck() {
           globalThis.OpsBulkDemo.deckElement = this
           this.deckConstructor = SqliteDeck
@@ -498,16 +597,20 @@
         },
         layers() {
           const data = this.currentData
+          const selected = this.selected
           return [
-            new DemoLayer({ id: "capacity", type: "capacity", data, visible: activeLayers.get("capacity") }),
-            new DemoLayer({ id: "movements", type: "movements", data, visible: activeLayers.get("movements") }),
-            new DemoLayer({ id: "sites", type: "sites", data, visible: activeLayers.get("sites") }),
+            new DemoLayer({ id: "capacity", type: "capacity", data, selected, visible: activeLayers.get("capacity") }),
+            new DemoLayer({ id: "movements", type: "movements", data, selected, visible: activeLayers.get("movements") }),
+            new DemoLayer({ id: "sites", type: "sites", data, selected, visible: activeLayers.get("sites") }),
           ]
         },
         applySnapshot(data) {
           this.currentData = data
+          if (this.selected && !this.findItem(this.selected.kind, this.selected.id)) this.selected = null
           if (this.deckElement) this.deckElement.layers = this.layers()
           this.syncLayerList()
+          this.renderInventory()
+          this.renderSelection()
           this.renderRows()
           this.renderMetrics()
         },
@@ -546,6 +649,72 @@
             }),
           )
         },
+        renderInventory() {
+          const list = document.querySelector("#item-list")
+          const items = [
+            ...this.currentData.sites.map((site) => ({ description: `${site.kind} / ${site.status} / capacity ${site.capacity}`, id: site.id, kind: "site", title: site.name })),
+            ...this.currentData.movements.map((movement) => ({ description: `${movement.cargo}, ${movement.tons} tons, P${movement.priority}, ${movement.status}`, id: movement.id, kind: "movement", title: `${movement.fromSite} to ${movement.toSite}` })),
+          ]
+
+          list.replaceChildren(
+            ...items.map((item) => {
+              const button = document.createElement("button")
+              button.type = "button"
+              button.className = "inventory-item"
+              button.setAttribute("role", "option")
+              button.setAttribute("aria-pressed", String(this.selected?.kind === item.kind && this.selected.id === item.id))
+              button.setAttribute("aria-selected", String(this.selected?.kind === item.kind && this.selected.id === item.id))
+              button.onclick = () => this.selectItem(item.kind, item.id)
+
+              const title = document.createElement("span")
+              title.className = "inventory-title"
+              title.textContent = item.title
+              const meta = document.createElement("span")
+              meta.className = "inventory-meta"
+              meta.textContent = `${item.kind} ${item.id} - ${item.description}`
+              button.append(title, meta)
+              return button
+            }),
+          )
+        },
+        renderSelection() {
+          const panel = document.querySelector("#selected-panel")
+          const title = document.querySelector("#selected-title")
+          const meta = document.querySelector("#selected-meta")
+          const details = document.querySelector("#selected-details")
+          const item = this.selected && this.findItem(this.selected.kind, this.selected.id)
+
+          if (!item) {
+            panel.hidden = true
+            details.replaceChildren()
+            return
+          }
+
+          panel.hidden = false
+          title.textContent = this.selected.kind === "site" ? item.name : `${item.fromSite} to ${item.toSite}`
+          meta.textContent = this.selected.kind === "site" ? `Site ${item.id}` : `Movement ${item.id}`
+          details.replaceChildren(...detailsFor(this.selected.kind, item).flatMap(([key, value]) => detailNodes(key, value)))
+        },
+        selectItem(kind, id) {
+          if (!this.findItem(kind, id)) return
+          this.selected = { kind, id }
+          if (this.deckElement) this.deckElement.layers = this.layers()
+          this.renderInventory()
+          this.renderSelection()
+          this.setStatus(`Selected ${kind} ${id}`)
+        },
+        clearSelection() {
+          this.selected = null
+          if (this.deckElement) this.deckElement.layers = this.layers()
+          this.renderInventory()
+          this.renderSelection()
+          this.setStatus("Selection cleared")
+        },
+        findItem(kind, id) {
+          return kind === "site"
+            ? this.currentData.sites.find((site) => site.id === id)
+            : this.currentData.movements.find((movement) => movement.id === id)
+        },
         setLayerVisible(event) {
           activeLayers.set(event.detail.id, event.detail.visible)
           if (this.deckElement) this.deckElement.layers = this.layers()
@@ -576,10 +745,8 @@
         },
         pin(event) {
           const object = event.detail.info.object
-          if (object) this.setStatus(`Selected ${object.name ?? object.id}`)
-        },
-        describe(event) {
-          this.setStatus(`Details panel opened ${event.detail.object.name ?? event.detail.object.id}`)
+          const layerType = event.detail.info.layer?.type
+          if (object) this.selectItem(layerType === "movements" ? "movement" : "site", object.id)
         },
         syncView(event) {
           this.setStatus(`Wheel zoom: ${event.detail.viewState.zoom}`)
@@ -606,6 +773,37 @@
 
       worker.onerror = (event) => {
         OpsBulkDemo.setStatus(event.message)
+      }
+
+      function detailsFor(kind, item) {
+        if (kind === "site") {
+          return [
+            ["Name", item.name],
+            ["Kind", item.kind],
+            ["Status", item.status],
+            ["Capacity", item.capacity],
+            ["Longitude", item.longitude],
+            ["Latitude", item.latitude],
+            ["Updated", item.updatedAt],
+          ]
+        }
+
+        return [
+          ["Cargo", item.cargo],
+          ["Route", `${item.fromSite} to ${item.toSite}`],
+          ["Priority", item.priority],
+          ["Tons", item.tons],
+          ["Status", item.status],
+          ["Updated", item.updatedAt],
+        ]
+      }
+
+      function detailNodes(key, value) {
+        const term = document.createElement("dt")
+        const description = document.createElement("dd")
+        term.textContent = key
+        description.textContent = String(value ?? "")
+        return [term, description]
       }
 
       function project(site) {
