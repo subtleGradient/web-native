@@ -2,7 +2,7 @@
 
 Generic universal web-native ESM modules and custom elements.
 
-This project intentionally avoids React, framework runtime dependencies, bundlers, transpilers, npm publishing assumptions, and TypeScript source syntax. Browser-facing code is plain JavaScript ESM with strict TypeScript checking through JSDoc.
+This project's core source intentionally avoids React, framework runtime dependencies, bundlers, transpilers, npm publishing assumptions, and TypeScript source syntax. Browser-facing code is plain JavaScript ESM with strict TypeScript checking through JSDoc. Isolated research demos may live under `examples/` without changing that source model.
 
 ## Development
 
@@ -78,7 +78,7 @@ Development should follow RGRTDD / demo-first flow:
 
 Each folder includes a `*.demo.html`, `*.test.js`, and `README.md` next to the implementation.
 
-The standalone GitHub import-map demo lives at `examples/standalone/shadcn-github.html`. The SQLite Wasm CDN example lives at `examples/standalone/sqlite-wasm-cdn.html`. Composite local demos live in `examples/composite/`. deck.gl-style examples live in `examples/deck-gl/`. Each component/demo folder also has a `*.standalone.html` page that can be opened directly without running a server.
+The standalone GitHub import-map demo lives at `examples/standalone/shadcn-github.html`. The SQLite Wasm CDN example lives at `examples/standalone/sqlite-wasm-cdn.html`. Composite local demos live in `examples/composite/`. deck.gl-style examples live in `examples/deck-gl/`. React no-build research demos live in `examples/react/`. Each component/demo folder also has a `*.standalone.html` page that can be opened directly without running a server.
 
 ## Browser Imports
 

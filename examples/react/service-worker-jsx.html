@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Multi-file JSX without a build step</title>
+    <script>
+      (() => {
+        const media = matchMedia("(prefers-color-scheme: dark)")
+        const syncTheme = () => {
+          document.documentElement.dataset.theme = media.matches ? "dark" : "light"
+        }
+
+        syncTheme()
+        media.addEventListener("change", syncTheme)
+      })()
+    </script>
+    <link rel="stylesheet" href="./react-no-build.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "react": "https://esm.sh/react@19.2.0?dev",
+          "react/jsx-runtime": "https://esm.sh/react@19.2.0/jsx-runtime?dev",
+          "react-dom/client": "https://esm.sh/react-dom@19.2.0/client?dev"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero" aria-labelledby="title">
+        <span class="eyebrow">Service worker JSX loader</span>
+        <h1 id="title">Import real JSX files.</h1>
+        <p class="lead">
+          This page registers a service worker that intercepts same-origin <code>.jsx</code> requests, transforms them with Babel standalone inside the browser, and returns JavaScript to the native ESM loader.
+        </p>
+      </section>
+
+      <section class="two-column">
+        <div class="demo-frame">
+          <span id="worker-status" class="status" data-state="working">Installing JSX transformer</span>
+          <div id="root" class="react-mount">Waiting for the service worker to control this page...</div>
+        </div>
+
+        <aside class="demo-frame" aria-labelledby="files-title">
+          <h2 id="files-title">Files in play</h2>
+          <ul class="source-list">
+            <li><code>service-worker-jsx.html</code> owns the import map and bootstraps the loader.</li>
+            <li><code>jsx-transform-sw.js</code> runs Babel standalone inside the service worker.</li>
+            <li><code>sw-app.jsx</code> imports <code>sw-components.jsx</code> as a normal ESM dependency.</li>
+          </ul>
+        </aside>
+      </section>
+    </main>
+
+    <script type="module">
+      const status = document.getElementById("worker-status")
+
+      boot().catch((error) => {
+        status.dataset.state = "working"
+        status.textContent = "JSX loader failed"
+        document.getElementById("root").textContent = error instanceof Error ? error.message : String(error)
+        console.error(error)
+      })
+
+      async function boot() {
+        if (!HTMLScriptElement.supports?.("importmap")) {
+          throw new Error("This browser does not support native import maps.")
+        }
+
+        if (!("serviceWorker" in navigator)) {
+          throw new Error("This browser does not support service workers, so it cannot run the multi-file JSX demo.")
+        }
+
+        const registration = await navigator.serviceWorker.register("./jsx-transform-sw.js", { scope: "./" })
+        await navigator.serviceWorker.ready
+
+        if (!navigator.serviceWorker.controller) {
+          await new Promise((resolve) => {
+            const timeout = setTimeout(resolve, 1000)
+            navigator.serviceWorker.addEventListener(
+              "controllerchange",
+              () => {
+                clearTimeout(timeout)
+                resolve()
+              },
+              { once: true },
+            )
+          })
+        }
+
+        if (!navigator.serviceWorker.controller) {
+          if (sessionStorage.getItem("react-no-build-sw-reloaded") !== "yes") {
+            sessionStorage.setItem("react-no-build-sw-reloaded", "yes")
+            location.reload()
+            return
+          }
+
+          throw new Error(`Service worker ${registration.scope} installed, but it did not control this page.`)
+        }
+
+        sessionStorage.removeItem("react-no-build-sw-reloaded")
+        status.dataset.state = "ready"
+        status.textContent = "Transforming .jsx modules"
+        await import("./sw-app.jsx")
+      }
+    </script>
+  </body>
+</html>
