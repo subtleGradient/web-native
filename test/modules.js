@@ -8,6 +8,7 @@ export const testModules = [
   "/src/switch/switch.test.js",
   "/src/tabs/tabs.test.js",
   "/src/progress/progress.test.js",
+  "/src/radio-group/radio-group.test.js",
   "/src/deck-gl/deck-gl.test.js",
   "/src/shadcn/shadcn.test.js",
 ]

@@ -34,6 +34,11 @@ Styled shadcn-inspired custom elements for standalone browser usage.
   <shadcn-progress-value></shadcn-progress-value>
 </shadcn-progress>
 
+<shadcn-radio-group name="contact" value="email" aria-label="Contact method">
+  <shadcn-radio-group-item value="email"></shadcn-radio-group-item> Email
+  <shadcn-radio-group-item value="sms"></shadcn-radio-group-item> SMS
+</shadcn-radio-group>
+
 <shadcn-table>
   <table is="shadcn-table-element">
     <thead is="shadcn-table-header">

@@ -589,6 +589,37 @@ describe("shadcn web components", () => {
     expect(indicator.style.width).to.equal("50%")
   })
 
+  it("uses Base UI radio group behavior under shadcn radio names", () => {
+    const root = mount(html`
+      <shadcn-radio-group value="email" aria-label="Contact method">
+        <shadcn-radio-group-item value="email">Email</shadcn-radio-group-item>
+        <shadcn-radio-group-item value="sms">SMS</shadcn-radio-group-item>
+      </shadcn-radio-group>
+    `)
+    const group = /** @type {import("./radio-group/index.js").ShadcnRadioGroup} */ (root.querySelector("shadcn-radio-group"))
+    const items = Array.from(root.querySelectorAll("shadcn-radio-group-item"))
+    const sms = /** @type {HTMLElement} */ (items[1])
+    let shadcnEvents = 0
+    let baseEvents = 0
+
+    group.addEventListener("shadcn:value-change", (event) => {
+      shadcnEvents += 1
+      expect(/** @type {CustomEvent<{ value: string, previousValue: string | null }>} */ (event).detail).to.deep.include({ value: "sms", previousValue: "email" })
+    })
+    group.addEventListener("base-ui:value-change", () => {
+      baseEvents += 1
+    })
+
+    sms.click()
+
+    expect(shadcnEvents).to.equal(1)
+    expect(baseEvents).to.equal(0)
+    expect(group.value).to.equal("sms")
+    expect(group.classList.contains("cn-radio-group")).to.equal(true)
+    expect(sms.classList.contains("cn-radio-group-item")).to.equal(true)
+    expect(sms.getAttribute("aria-checked")).to.equal("true")
+  })
+
   it("loads shadcn CSS without Tailwind and applies usable computed styles", async () => {
     await ensureShadcnStyles()
 
