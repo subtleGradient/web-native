@@ -14,6 +14,10 @@ self.onmessage = async (event) => {
     if (message.type === "import") importBulk(message)
     if (message.type === "export") exportBulk(message)
     if (message.type === "reset") resetSeedData()
+    if (message.type === "save-site") saveSite(message)
+    if (message.type === "save-movement") saveMovement(message)
+    if (message.type === "delete-site") deleteSite(message)
+    if (message.type === "delete-movement") deleteMovement(message)
   } catch (error) {
     postMessage({ type: "error", message: errorToString(error) })
   }
@@ -143,6 +147,42 @@ function exportBulk(message) {
       text: JSON.stringify({ exportedAt: new Date().toISOString(), version: 1, ...snapshot }, null, 2),
     },
   })
+}
+
+function saveSite(message) {
+  requireDb()
+
+  const site = normalizeSite(message.site ?? {})
+  upsertSite(site)
+  postMessage({ type: "saved", detail: { id: site.id, kind: "site", label: site.name } })
+  postSnapshot()
+}
+
+function saveMovement(message) {
+  requireDb()
+
+  const movement = normalizeMovement(message.movement ?? {})
+  upsertMovement(movement)
+  postMessage({ type: "saved", detail: { id: movement.id, kind: "movement", label: `${movement.fromSite} to ${movement.toSite}` } })
+  postSnapshot()
+}
+
+function deleteSite(message) {
+  requireDb()
+
+  const id = requireString(message.id, "site.id")
+  db.exec("delete from sites where id = ?", { bind: [id] })
+  postMessage({ type: "deleted", detail: { id, kind: "site" } })
+  postSnapshot()
+}
+
+function deleteMovement(message) {
+  requireDb()
+
+  const id = requireString(message.id, "movement.id")
+  db.exec("delete from movements where id = ?", { bind: [id] })
+  postMessage({ type: "deleted", detail: { id, kind: "movement" } })
+  postSnapshot()
 }
 
 function importRows(rows, options) {
