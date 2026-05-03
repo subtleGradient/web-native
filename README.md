@@ -77,7 +77,7 @@ Development should follow RGRTDD / demo-first flow:
 
 Each folder includes a `*.demo.html`, `*.test.js`, and `README.md` next to the implementation.
 
-The standalone GitHub import-map demo lives at `examples/standalone/shadcn-github.html`. Composite local demos live in `examples/composite/`. Each component/demo folder also has a `*.standalone.html` page that can be opened directly without running a server.
+The standalone GitHub import-map demo lives at `examples/standalone/shadcn-github.html`. The SQLite Wasm CDN example lives at `examples/standalone/sqlite-wasm-cdn.html`. Composite local demos live in `examples/composite/`. Each component/demo folder also has a `*.standalone.html` page that can be opened directly without running a server.
 
 ## Browser Imports
 
