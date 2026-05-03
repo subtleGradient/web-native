@@ -18,16 +18,17 @@ export class BaseTabs extends HTMLElement {
   /** @type {ActivationDirection} */
   #activationDirection = "none"
 
+  #updateQueued = false
+
   #updating = false
 
   connectedCallback() {
     if (!this.#observer) {
-      this.#observer = new MutationObserver(() => this.update())
+      this.#observer = new MutationObserver(() => this.requestUpdate())
       this.#observer.observe(this, { childList: true, subtree: true })
     }
 
-    this.update()
-    queueMicrotask(() => this.update())
+    this.requestUpdate()
   }
 
   disconnectedCallback() {
@@ -36,7 +37,17 @@ export class BaseTabs extends HTMLElement {
   }
 
   attributeChangedCallback() {
-    this.update()
+    this.requestUpdate()
+  }
+
+  requestUpdate() {
+    if (this.#updating || this.#updateQueued) return
+
+    this.#updateQueued = true
+    queueMicrotask(() => {
+      this.#updateQueued = false
+      if (this.isConnected) this.update()
+    })
   }
 
   /** @returns {string | null} */
@@ -97,10 +108,22 @@ export class BaseTabs extends HTMLElement {
       const firstEnabledTab = tabs.find((tab) => !tab.disabled)
       let activeTab = tabs.find((tab) => tab.value === this.value && !tab.disabled)
 
-      if (!activeTab && firstEnabledTab) {
-        activeTab = firstEnabledTab
-        this.value = activeTab.value
-        this.#activationDirection = "none"
+      if (!activeTab) {
+        const previousValue = this.value
+
+        if (firstEnabledTab) {
+          activeTab = firstEnabledTab
+          this.#activationDirection = "none"
+          this.value = activeTab.value
+
+          if (previousValue !== activeTab.value) {
+            this.#dispatchValueChange(activeTab.value, previousValue, getAutomaticChangeReason(tabs, previousValue), "none", false)
+          }
+        } else if (previousValue != null) {
+          this.#activationDirection = "none"
+          this.value = null
+          this.#dispatchValueChange(null, previousValue, getAutomaticChangeReason(tabs, previousValue), "none", false)
+        }
       }
 
       if (!this.#highlightedTab || !tabs.includes(this.#highlightedTab)) {
@@ -191,6 +214,11 @@ export class BaseTabs extends HTMLElement {
   activateTab(tab, nativeEvent) {
     if (tab.disabled) return false
 
+    if (this.#updateQueued) {
+      this.#updateQueued = false
+      this.update()
+    }
+
     const previousValue = this.value
     const nextValue = tab.value
     const activationDirection = computeActivationDirection(this.tabs, previousValue, nextValue, this.orientation)
@@ -200,19 +228,7 @@ export class BaseTabs extends HTMLElement {
       return true
     }
 
-    const event = new CustomEvent(valueChangeEventName, {
-      bubbles: true,
-      cancelable: true,
-      composed: true,
-      detail: {
-        value: nextValue,
-        previousValue,
-        reason: "none",
-        activationDirection,
-      },
-    })
-
-    if (!this.dispatchEvent(event)) return false
+    if (!this.#dispatchValueChange(nextValue, previousValue, "none", activationDirection, true)) return false
 
     this.#activationDirection = activationDirection
     this.#highlightedTab = tab
@@ -220,6 +236,29 @@ export class BaseTabs extends HTMLElement {
     this.update()
     nativeEvent.preventDefault()
     return true
+  }
+
+  /**
+   * @param {string | null} nextValue
+   * @param {string | null} previousValue
+   * @param {string} reason
+   * @param {ActivationDirection} activationDirection
+   * @param {boolean} cancelable
+   */
+  #dispatchValueChange(nextValue, previousValue, reason, activationDirection, cancelable) {
+    const event = new CustomEvent(valueChangeEventName, {
+      bubbles: true,
+      cancelable,
+      composed: true,
+      detail: {
+        value: nextValue,
+        previousValue,
+        reason,
+        activationDirection,
+      },
+    })
+
+    return this.dispatchEvent(event)
   }
 
   /**
@@ -254,7 +293,11 @@ export class BaseTabs extends HTMLElement {
 }
 
 export class BaseTabsList extends HTMLElement {
+  /** @type {BaseTabs | undefined} */
+  #root
+
   connectedCallback() {
+    this.#root = getTabsRoot(this)
     this.setAttribute("role", "tablist")
     this.onkeydown = this.#handleKeyDown.bind(this)
     requestTabsUpdate(this)
@@ -262,6 +305,8 @@ export class BaseTabsList extends HTMLElement {
 
   disconnectedCallback() {
     this.onkeydown = null
+    this.#root?.requestUpdate()
+    this.#root = undefined
   }
 
   get activateOnFocus() {
@@ -311,7 +356,11 @@ export class BaseTabsList extends HTMLElement {
 export class BaseTab extends HTMLElement {
   static observedAttributes = ["disabled", "value"]
 
+  /** @type {BaseTabs | undefined} */
+  #root
+
   connectedCallback() {
+    this.#root = getTabsRoot(this)
     ensureElementId(this, "base-tab")
     this.setAttribute("role", "tab")
     this.onclick = this.#handleClick.bind(this)
@@ -322,7 +371,8 @@ export class BaseTab extends HTMLElement {
   disconnectedCallback() {
     this.onclick = null
     this.onfocus = null
-    requestTabsUpdate(this)
+    this.#root?.requestUpdate()
+    this.#root = undefined
   }
 
   attributeChangedCallback() {
@@ -366,14 +416,19 @@ export class BaseTab extends HTMLElement {
 export class BaseTabsPanel extends HTMLElement {
   static observedAttributes = ["value"]
 
+  /** @type {BaseTabs | undefined} */
+  #root
+
   connectedCallback() {
+    this.#root = getTabsRoot(this)
     ensureElementId(this, "base-tabs-panel")
     this.setAttribute("role", "tabpanel")
     requestTabsUpdate(this)
   }
 
   disconnectedCallback() {
-    requestTabsUpdate(this)
+    this.#root?.requestUpdate()
+    this.#root = undefined
   }
 
   attributeChangedCallback() {
@@ -450,7 +505,7 @@ function getTabsRoot(element) {
 
 /** @param {Element} element */
 function requestTabsUpdate(element) {
-  getTabsRoot(element)?.update()
+  getTabsRoot(element)?.requestUpdate()
 }
 
 /**
@@ -506,4 +561,17 @@ function computeActivationDirection(tabs, previousValue, nextValue, orientation)
   if (previousIndex === -1 || nextIndex === -1 || previousIndex === nextIndex) return "none"
   if (orientation === "vertical") return nextIndex > previousIndex ? "down" : "up"
   return nextIndex > previousIndex ? "right" : "left"
+}
+
+/**
+ * @param {BaseTab[]} tabs
+ * @param {string | null} previousValue
+ */
+function getAutomaticChangeReason(tabs, previousValue) {
+  if (previousValue == null) return "initial"
+
+  const previousTab = tabs.find((tab) => tab.value === previousValue)
+  if (previousTab?.disabled) return "disabled"
+
+  return "missing"
 }

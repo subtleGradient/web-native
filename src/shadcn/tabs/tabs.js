@@ -12,9 +12,9 @@ export class ShadcnTabs extends BaseTabs {
   #translateValueChange
 
   connectedCallback() {
-    super.connectedCallback()
     this.#translateValueChange ??= (event) => this.#handleBaseValueChange(event)
     this.addEventListener("base-ui:value-change", this.#translateValueChange)
+    super.connectedCallback()
     this.#syncShadcn()
   }
 
@@ -40,7 +40,7 @@ export class ShadcnTabs extends BaseTabs {
     const baseEvent = /** @type {CustomEvent<{ value: string | null, previousValue: string | null, reason: string, activationDirection: string }>} */ (event)
     const shadcnEvent = new CustomEvent("shadcn:value-change", {
       bubbles: true,
-      cancelable: true,
+      cancelable: baseEvent.cancelable,
       composed: true,
       detail: baseEvent.detail,
     })
