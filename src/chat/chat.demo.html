@@ -10,12 +10,12 @@
   data-index="001"
   data-topic="demo"
   data-start-message="0001"
-  data-end-message="0002"
-  data-message-count="2"
+  data-end-message="0003"
+  data-message-count="3"
 >
   <header>
     <h1>001 Demo Topic</h1>
-    <p>Messages 0001 through 0002.</p>
+    <p>Messages 0001 through 0003.</p>
   </header>
   <chat-summary data-scope="previous">
     <p>
@@ -37,7 +37,7 @@ Please keep the source light, but make it readable.
 
 - preserve the raw text
 - render common Markdown
-- show message metadata</pre
+- hide archival noise by default</pre
     >
   </chat-message>
   <chat-message
@@ -62,6 +62,18 @@ Citation tokens render as compact source pills: citeturn289313search1tu
 ```js
 customElements.define("chat-message", ChatMessage)
 ```</pre
+    >
+  </chat-message>
+  <chat-message
+    data-source="0003-assistant.md"
+    data-turn="3"
+    data-role="assistant"
+    data-recipient="web.run"
+    data-content-type="code"
+    data-created="2026-05-13T20:41:02.000Z"
+  >
+    <pre>
+{"search_query":[{"q":"Hacker News Who is hiring May 2026 freelance contract remote developer"},{"q":"remote freelance accessibility audit website contractor job"}],"response_length":"medium"}</pre
     >
   </chat-message>
 </topic-transcript>

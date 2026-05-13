@@ -14,9 +14,7 @@ const pageStyles = String.raw`
   }
 
   body {
-    background:
-      radial-gradient(circle at top left, color-mix(in oklch, Highlight 12%, transparent), transparent 28rem),
-      Canvas;
+    background: color-mix(in oklch, Canvas 96%, CanvasText 4%);
     color: CanvasText;
     font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     line-height: 1.5;
@@ -88,68 +86,194 @@ const messageStyles = String.raw`
   }
 
   article {
-    border: 1px solid color-mix(in oklch, CanvasText 14%, transparent);
-    border-radius: 0.75rem;
     box-sizing: border-box;
     display: grid;
-    overflow: clip;
+    gap: 0.625rem;
+    grid-template-columns: minmax(7rem, 11rem) minmax(0, 1fr);
+    padding-block: 0.25rem;
   }
 
-  article[data-role="user"] {
-    background: color-mix(in oklch, Canvas 94%, CanvasText 6%);
-  }
-
-  article[data-role="assistant"] {
-    background: color-mix(in oklch, Canvas 98%, CanvasText 2%);
+  article[data-kind="tool"] {
+    grid-template-columns: minmax(0, 1fr);
+    padding-inline-start: clamp(0.75rem, 1.6vw, 1.5rem);
   }
 
   article[data-hidden="true"] {
-    opacity: 0.7;
+    opacity: 0.66;
   }
 
-  header {
-    align-items: center;
-    background: color-mix(in oklch, Canvas 88%, CanvasText 12%);
-    border-bottom: 1px solid color-mix(in oklch, CanvasText 10%, transparent);
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.375rem;
-    padding: 0.625rem 0.75rem;
+  .message-header {
+    align-self: start;
+    color: color-mix(in oklch, CanvasText 58%, transparent);
+    display: grid;
+    gap: 0.2rem;
+    justify-items: end;
+    padding-block-start: 0.55rem;
+    text-align: end;
   }
 
-  .badge,
-  .meta {
-    align-items: center;
-    border-radius: 999px;
-    display: inline-flex;
-    min-height: 1.5rem;
-    white-space: nowrap;
+  .speaker {
+    color: CanvasText;
+    font-size: 0.8125rem;
+    font-weight: 750;
+    line-height: 1.2;
   }
 
-  .badge {
-    background: CanvasText;
-    color: Canvas;
-    font-size: 0.75rem;
-    font-weight: 700;
-    padding-inline: 0.625rem;
-    text-transform: capitalize;
+  .time,
+  .context {
+    font-size: 0.72rem;
+    line-height: 1.25;
   }
 
-  .meta {
-    background: color-mix(in oklch, Canvas 78%, CanvasText 22%);
-    color: color-mix(in oklch, CanvasText 70%, transparent);
-    font-size: 0.75rem;
-    padding-inline: 0.5rem;
+  .context {
+    color: color-mix(in oklch, CanvasText 48%, transparent);
   }
 
   .content {
+    background: color-mix(in oklch, Canvas 98%, CanvasText 2%);
+    border: 1px solid color-mix(in oklch, CanvasText 11%, transparent);
+    border-radius: 0.65rem;
+    box-shadow: 0 1px 2px color-mix(in oklch, CanvasText 7%, transparent);
     color: CanvasText;
     display: grid;
     font-size: 0.9375rem;
     gap: 0.75rem;
     line-height: 1.6;
+    min-width: 0;
     overflow-wrap: anywhere;
-    padding: clamp(0.875rem, 2vw, 1.25rem);
+    padding: clamp(0.875rem, 1.7vw, 1.25rem);
+  }
+
+  article[data-kind="user"] .content {
+    background: color-mix(in oklch, Highlight 10%, Canvas);
+    border-color: color-mix(in oklch, Highlight 24%, CanvasText 8%);
+  }
+
+  article[data-kind="assistant"] .content {
+    border-inline-start: 0.25rem solid color-mix(in oklch, CanvasText 32%, transparent);
+  }
+
+  .tool-event {
+    background: color-mix(in oklch, Canvas 94%, CanvasText 6%);
+    border: 1px solid color-mix(in oklch, CanvasText 12%, transparent);
+    border-radius: 0.65rem;
+    display: grid;
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+
+  .tool-header {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .event-dot {
+    background: color-mix(in oklch, Highlight 65%, CanvasText 20%);
+    border-radius: 999px;
+    block-size: 0.5rem;
+    inline-size: 0.5rem;
+  }
+
+  .tool-name {
+    color: CanvasText;
+    font-size: 0.8125rem;
+    font-weight: 750;
+  }
+
+  .tool-status,
+  .tool-chip {
+    align-items: center;
+    background: color-mix(in oklch, Canvas 82%, CanvasText 18%);
+    border-radius: 999px;
+    color: color-mix(in oklch, CanvasText 66%, transparent);
+    display: inline-flex;
+    font-size: 0.72rem;
+    min-height: 1.35rem;
+    padding-inline: 0.45rem;
+    white-space: nowrap;
+  }
+
+  .tool-body {
+    display: grid;
+    gap: 0.625rem;
+  }
+
+  .tool-section {
+    background: color-mix(in oklch, Canvas 97%, CanvasText 3%);
+    border: 1px solid color-mix(in oklch, CanvasText 10%, transparent);
+    border-radius: 0.5rem;
+    display: grid;
+    gap: 0.45rem;
+    padding: 0.65rem;
+  }
+
+  .tool-section-title {
+    color: color-mix(in oklch, CanvasText 62%, transparent);
+    font-size: 0.72rem;
+    font-weight: 760;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .tool-list {
+    display: grid;
+    gap: 0.4rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .tool-item {
+    display: grid;
+    gap: 0.15rem;
+  }
+
+  .tool-item-main {
+    color: CanvasText;
+    font-size: 0.9rem;
+    line-height: 1.35;
+  }
+
+  .tool-item-meta {
+    color: color-mix(in oklch, CanvasText 55%, transparent);
+    font-size: 0.76rem;
+    line-height: 1.3;
+  }
+
+  .tool-fields {
+    display: grid;
+    gap: 0.35rem;
+    grid-template-columns: repeat(auto-fit, minmax(min(12rem, 100%), 1fr));
+  }
+
+  .tool-field {
+    background: color-mix(in oklch, Canvas 94%, CanvasText 6%);
+    border-radius: 0.4rem;
+    display: grid;
+    gap: 0.1rem;
+    padding: 0.45rem 0.5rem;
+  }
+
+  .tool-key {
+    color: color-mix(in oklch, CanvasText 52%, transparent);
+    font-size: 0.68rem;
+    font-weight: 760;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .tool-value {
+    color: CanvasText;
+    font-size: 0.86rem;
+    overflow-wrap: anywhere;
+  }
+
+  .tool-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
   }
 
   .content > :first-child {
@@ -280,6 +404,18 @@ const messageStyles = String.raw`
     min-width: 1.15rem;
     padding: 0.18rem 0.34rem;
   }
+
+  @media (max-width: 48rem) {
+    article {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .message-header {
+      justify-items: start;
+      padding-block-start: 0;
+      text-align: start;
+    }
+  }
 `
 
 export class TopicTranscript extends HTMLElement {
@@ -371,24 +507,15 @@ export class ChatMessage extends HTMLElement {
   #render() {
     const role = this.dataset.role ?? "message"
     const hidden = this.dataset.hidden === "true"
-    const source = this.dataset.source
+    const kind = this.dataset.recipient ? "tool" : role === "user" ? "user" : "assistant"
     const body = getRawMessageBody(this)
     const shadow = this.shadowRoot ?? this.attachShadow({ mode: "open" })
     shadow.innerHTML = String.raw`
       <style>${messageStyles}</style>
-      <article data-role="${escapeAttribute(role)}" data-hidden="${hidden ? "true" : "false"}">
-        <header>
-          <strong class="badge">${escapeHtml(role)}</strong>
-          ${metaPill("turn", this.dataset.turn)}
-          ${metaPill("created", formatCreated(this.dataset.created))}
-          ${metaPill("model", this.dataset.model)}
-          ${metaPill("channel", this.dataset.channel)}
-          ${metaPill("recipient", this.dataset.recipient)}
-          ${metaPill("type", this.dataset.contentType)}
-          ${hidden ? metaPill("hidden", "true") : ""}
-          ${source ? metaPill("source", source) : ""}
-        </header>
-        <div class="content">${renderMarkdown(body)}</div>
+      <article data-kind="${escapeAttribute(kind)}" data-role="${escapeAttribute(role)}" data-hidden="${hidden ? "true" : "false"}">
+        ${kind === "tool"
+          ? renderToolEvent(this, body)
+          : `${renderMessageHeader(this, kind)}<section class="content">${renderMarkdown(body)}</section>`}
       </article>
     `
   }
@@ -410,15 +537,6 @@ function getRawMessageBody(element) {
   return element.textContent ?? ""
 }
 
-/**
- * @param {string} label
- * @param {string | undefined} value
- */
-function metaPill(label, value) {
-  if (!value) return ""
-  return `<span class="meta">${escapeHtml(label)}: ${escapeHtml(value)}</span>`
-}
-
 /** @param {string | undefined} value */
 function formatCreated(value) {
   if (!value) return undefined
@@ -428,6 +546,279 @@ function formatCreated(value) {
     dateStyle: "medium",
     timeStyle: "short",
   })
+}
+
+/**
+ * @param {HTMLElement} element
+ * @param {string} kind
+ */
+function renderMessageHeader(element, kind) {
+  const created = formatCreated(element.dataset.created)
+  const context = messageContext(element)
+  return String.raw`
+    <header class="message-header">
+      <strong class="speaker">${escapeHtml(displaySpeaker(kind))}</strong>
+      ${created ? `<time class="time" datetime="${escapeAttribute(element.dataset.created ?? "")}">${escapeHtml(created)}</time>` : ""}
+      ${context ? `<span class="context">${escapeHtml(context)}</span>` : ""}
+    </header>
+  `
+}
+
+/** @param {string} kind */
+function displaySpeaker(kind) {
+  if (kind === "user") return "You"
+  if (kind === "assistant") return "Assistant"
+  return titleCase(kind)
+}
+
+/** @param {HTMLElement} element */
+function messageContext(element) {
+  if (element.dataset.hidden === "true") return "hidden"
+  if (element.dataset.thinking === "true") return "working note"
+  if (element.dataset.channel && element.dataset.channel !== "final") return element.dataset.channel
+  return undefined
+}
+
+/**
+ * @param {HTMLElement} element
+ * @param {string} body
+ */
+function renderToolEvent(element, body) {
+  const recipient = element.dataset.recipient ?? "tool"
+  const created = formatCreated(element.dataset.created)
+  const parsed = parseJson(body)
+
+  return String.raw`
+    <section class="tool-event" aria-label="${escapeAttribute(`${recipient} event`)}">
+      <header class="tool-header">
+        <span class="event-dot" aria-hidden="true"></span>
+        <strong class="tool-name">${escapeHtml(recipient)}</strong>
+        <span class="tool-status">${escapeHtml(toolStatus(element))}</span>
+        ${created ? `<time class="time" datetime="${escapeAttribute(element.dataset.created ?? "")}">${escapeHtml(created)}</time>` : ""}
+      </header>
+      <section class="tool-body">
+        ${parsed.ok ? renderToolPayload(parsed.value) : renderUnknownToolPayload(body)}
+      </section>
+    </section>
+  `
+}
+
+/** @param {HTMLElement} element */
+function toolStatus(element) {
+  if (element.dataset.contentType === "code") return "request"
+  return element.dataset.contentType ?? "event"
+}
+
+/** @param {string} body */
+function parseJson(body) {
+  try {
+    return { ok: true, value: JSON.parse(body) }
+  } catch {
+    return { ok: false, value: undefined }
+  }
+}
+
+/** @param {unknown} value */
+function renderToolPayload(value) {
+  if (Array.isArray(value)) {
+    return renderToolSection("items", value)
+  }
+
+  if (!isRecord(value)) {
+    return renderToolFields({ value })
+  }
+
+  const entries = Object.entries(value)
+  const chips = entries
+    .filter((entry) => isToolOption(entry[0]))
+    .map(([key, option]) => `<span class="tool-chip">${escapeHtml(formatToolKey(key))}: ${escapeHtml(formatToolValue(option))}</span>`)
+    .join("")
+  const sections = entries
+    .filter((entry) => !isToolOption(entry[0]))
+    .map(([key, sectionValue]) => renderToolSection(key, sectionValue))
+    .join("")
+
+  return `${chips ? `<section class="tool-chips">${chips}</section>` : ""}${sections || renderToolFields(value)}`
+}
+
+/**
+ * @param {string} key
+ * @param {unknown} value
+ */
+function renderToolSection(key, value) {
+  if (Array.isArray(value)) {
+    const items = value.map((item) => renderToolItem(key, item)).join("")
+    return String.raw`
+      <section class="tool-section">
+        <strong class="tool-section-title">${escapeHtml(formatToolKey(key))}</strong>
+        <ul class="tool-list">${items}</ul>
+      </section>
+    `
+  }
+
+  if (isRecord(value)) {
+    return String.raw`
+      <section class="tool-section">
+        <strong class="tool-section-title">${escapeHtml(formatToolKey(key))}</strong>
+        ${renderToolFields(value)}
+      </section>
+    `
+  }
+
+  return String.raw`
+    <section class="tool-section">
+      <strong class="tool-section-title">${escapeHtml(formatToolKey(key))}</strong>
+      <div class="tool-item-main">${escapeHtml(formatToolValue(value))}</div>
+    </section>
+  `
+}
+
+/**
+ * @param {string} sectionKey
+ * @param {unknown} item
+ */
+function renderToolItem(sectionKey, item) {
+  if (!isRecord(item)) {
+    return `<li class="tool-item"><span class="tool-item-main">${escapeHtml(formatToolValue(item))}</span></li>`
+  }
+
+  const summary = summarizeToolItem(sectionKey, item)
+  return String.raw`
+    <li class="tool-item">
+      <span class="tool-item-main">${escapeHtml(summary.main)}</span>
+      ${summary.meta ? `<span class="tool-item-meta">${escapeHtml(summary.meta)}</span>` : ""}
+    </li>
+  `
+}
+
+/**
+ * @param {string} sectionKey
+ * @param {Record<string, unknown>} item
+ */
+function summarizeToolItem(sectionKey, item) {
+  if ((sectionKey === "search_query" || sectionKey === "image_query") && typeof item.q === "string") {
+    return { main: item.q, meta: joinToolMeta(item, ["q"]) }
+  }
+
+  if (sectionKey === "open" && typeof item.ref_id === "string") {
+    return { main: `Open ${item.ref_id}`, meta: joinToolMeta(item, ["ref_id"]) }
+  }
+
+  if (sectionKey === "find") {
+    const pattern = typeof item.pattern === "string" ? `"${item.pattern}"` : "text"
+    const target = typeof item.ref_id === "string" ? ` in ${item.ref_id}` : ""
+    return { main: `Find ${pattern}${target}`, meta: joinToolMeta(item, ["pattern", "ref_id"]) }
+  }
+
+  if (sectionKey === "click") {
+    const id = typeof item.id === "number" || typeof item.id === "string" ? ` ${item.id}` : ""
+    const target = typeof item.ref_id === "string" ? ` in ${item.ref_id}` : ""
+    return { main: `Click${id}${target}`, meta: joinToolMeta(item, ["id", "ref_id"]) }
+  }
+
+  if (sectionKey === "finance" && typeof item.ticker === "string") {
+    return { main: item.ticker, meta: joinToolMeta(item, ["ticker"]) }
+  }
+
+  if (sectionKey === "weather" && typeof item.location === "string") {
+    return { main: item.location, meta: joinToolMeta(item, ["location"]) }
+  }
+
+  if (sectionKey === "sports") {
+    const main = [item.league, item.fn].filter((part) => typeof part === "string").join(" ")
+    return { main: main || summarizeObject(item), meta: joinToolMeta(item, ["league", "fn"]) }
+  }
+
+  if (sectionKey === "time" && typeof item.utc_offset === "string") {
+    return { main: item.utc_offset, meta: joinToolMeta(item, ["utc_offset"]) }
+  }
+
+  const preferredKey = ["q", "query", "url", "location", "ticker", "ref_id", "pattern", "name"].find((key) => typeof item[key] === "string")
+  if (preferredKey) {
+    return { main: String(item[preferredKey]), meta: joinToolMeta(item, [preferredKey]) }
+  }
+
+  return { main: summarizeObject(item), meta: "" }
+}
+
+/** @param {Record<string, unknown>} fields */
+function renderToolFields(fields) {
+  return String.raw`
+    <dl class="tool-fields">
+      ${Object.entries(fields).map(([key, value]) => String.raw`
+        <div class="tool-field">
+          <dt class="tool-key">${escapeHtml(formatToolKey(key))}</dt>
+          <dd class="tool-value">${escapeHtml(formatToolValue(value))}</dd>
+        </div>
+      `).join("")}
+    </dl>
+  `
+}
+
+/**
+ * @param {Record<string, unknown>} item
+ * @param {string[]} omit
+ */
+function joinToolMeta(item, omit) {
+  return Object.entries(item)
+    .filter(([key, value]) => !omit.includes(key) && value !== undefined && value !== null && value !== "")
+    .map(([key, value]) => `${formatToolKey(key)}: ${formatToolValue(value)}`)
+    .join(" · ")
+}
+
+/** @param {string} body */
+function renderUnknownToolPayload(body) {
+  return String.raw`
+    <section class="tool-section">
+      <strong class="tool-section-title">Payload</strong>
+      <div class="tool-item-main">${renderInline(body.trim())}</div>
+    </section>
+  `
+}
+
+/** @param {string} key */
+function isToolOption(key) {
+  return ["response_length", "recency", "locale"].includes(key)
+}
+
+/** @param {string} key */
+function formatToolKey(key) {
+  return titleCase(key.replace(/_/g, " "))
+}
+
+/**
+ * @param {unknown} value
+ * @returns {string}
+ */
+function formatToolValue(value) {
+  if (value === null) return "null"
+  if (value === undefined) return ""
+  if (Array.isArray(value)) return value.map(formatToolValue).filter(Boolean).join(", ")
+  if (isRecord(value)) return summarizeObject(value)
+  return String(value)
+}
+
+/**
+ * @param {Record<string, unknown>} value
+ * @returns {string}
+ */
+function summarizeObject(value) {
+  return Object.entries(value)
+    .map(([key, item]) => `${formatToolKey(key)}: ${formatToolValue(item)}`)
+    .join(" · ")
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is Record<string, unknown>}
+ */
+function isRecord(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value)
+}
+
+/** @param {string} text */
+function titleCase(text) {
+  return text.replace(/\b[a-z]/g, (letter) => letter.toUpperCase())
 }
 
 /**

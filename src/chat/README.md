@@ -23,4 +23,4 @@ Plain custom elements for rendering lightweight archived chat transcripts.
 
 `chat-message` reads its light DOM body, preferring a nested `pre`, then renders common Markdown-like structures in shadow DOM: headings, paragraphs, lists, blockquotes, fenced code blocks, inline code, links, horizontal rules, simple pipe tables, and ChatGPT-style citation tokens like `citeturn289313search1turn289313search21`.
 
-Metadata from `data-*` attributes is shown in the message header. The original light DOM is left in place so transcript source remains portable and inspectable.
+User and assistant messages are visually distinct without surfacing archival noise like turn numbers or model ids. Messages with `data-recipient` render as tool events; JSON payloads are parsed into action summaries instead of being dumped as raw JSON. The original light DOM is left in place so transcript source remains portable and inspectable.

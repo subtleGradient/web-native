@@ -37,7 +37,7 @@ const ok = true
     await nextFrame()
 
     const shadow = message.shadowRoot
-    expect(shadow?.querySelector(".badge")?.textContent).to.equal("assistant")
+    expect(shadow?.querySelector(".speaker")?.textContent).to.equal("Assistant")
     expect(shadow?.querySelector("h1")?.textContent).to.equal("Heading")
     expect(shadow?.querySelector(".content strong")?.textContent).to.equal("bold")
     expect(Array.from(shadow?.querySelectorAll(".citation-ref") ?? []).map((ref) => ref.textContent)).to.deep.equal(["1", "21"])
@@ -49,6 +49,45 @@ const ok = true
     expect(shadow?.querySelector("table")?.textContent).to.include("Space")
     expect(shadow?.querySelector("blockquote")?.textContent?.trim()).to.equal("quoted")
     expect(shadow?.querySelector("pre code")?.textContent).to.equal("const ok = true")
+  })
+
+  it("makes user and assistant messages visually distinct without noisy metadata", async () => {
+    const root = mount(html`
+      <chat-message data-turn="1" data-role="user" data-created="2026-05-13T20:36:49.063Z"><pre>Hello</pre></chat-message>
+      <chat-message data-turn="2" data-role="assistant" data-model="gpt-test" data-channel="final"><pre>Hi.</pre></chat-message>
+    `)
+
+    await nextFrame()
+
+    const [user, assistant] = Array.from(root.querySelectorAll("chat-message"))
+    expect(user?.shadowRoot?.querySelector("article")?.getAttribute("data-kind")).to.equal("user")
+    expect(user?.shadowRoot?.querySelector(".speaker")?.textContent).to.equal("You")
+    expect(assistant?.shadowRoot?.querySelector("article")?.getAttribute("data-kind")).to.equal("assistant")
+    expect(assistant?.shadowRoot?.querySelector(".speaker")?.textContent).to.equal("Assistant")
+    expect(assistant?.shadowRoot?.textContent).to.not.include("turn")
+    expect(assistant?.shadowRoot?.textContent).to.not.include("gpt-test")
+  })
+
+  it("renders tool-call JSON as event summaries instead of raw JSON", async () => {
+    const message = mountMessage(html`
+      <chat-message data-role="assistant" data-recipient="web.run" data-content-type="code" data-created="2026-05-13T20:40:15.673Z">
+        <pre>{"search_query":[{"q":"Hacker News Who is hiring May 2026 freelance contract remote developer","domains":["news.ycombinator.com"]},{"q":"remote freelance accessibility audit website contractor job"}],"response_length":"medium"}</pre>
+      </chat-message>
+    `)
+
+    await nextFrame()
+
+    const shadow = message.shadowRoot
+    expect(shadow?.querySelector("article")?.getAttribute("data-kind")).to.equal("tool")
+    expect(shadow?.querySelector(".tool-name")?.textContent).to.equal("web.run")
+    expect(shadow?.querySelector(".tool-status")?.textContent).to.equal("request")
+    expect(shadow?.querySelector(".tool-section-title")?.textContent).to.equal("Search Query")
+    expect(Array.from(shadow?.querySelectorAll(".tool-item-main") ?? []).map((item) => item.textContent)).to.deep.equal([
+      "Hacker News Who is hiring May 2026 freelance contract remote developer",
+      "remote freelance accessibility audit website contractor job",
+    ])
+    expect(shadow?.querySelector(".tool-chip")?.textContent).to.equal("Response Length: medium")
+    expect(shadow?.querySelector(".tool-event")?.textContent).to.not.include("{\"search_query\"")
   })
 
   it("renders chat-summary and topic-transcript shells", async () => {
