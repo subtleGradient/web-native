@@ -73,6 +73,7 @@ Development should follow RGRTDD / demo-first flow:
 - `src/separator/` ports Base UI Separator as `base-separator`.
 - `src/switch/` ports Base UI Switch as `base-switch`.
 - `src/tabs/` ports Base UI Tabs as `base-tabs`, `base-tabs-list`, `base-tab`, and `base-tabs-panel`.
+- `src/chat/` adds `topic-transcript`, `chat-summary`, and `chat-message` elements for lightweight archived chat transcript pages.
 - `src/deck-gl/` adds deck.gl-inspired `deck-gl`, `deck-layer-list`, and `deck-details-panel` elements for static HTML map examples.
 - `src/shadcn/` adds styled shadcn-inspired custom elements over those Base UI web components.
 
