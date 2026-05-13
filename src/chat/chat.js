@@ -29,8 +29,9 @@ const transcriptStyles = String.raw`
     box-sizing: border-box;
     display: grid;
     gap: clamp(1rem, 2vw, 1.5rem);
-    margin-inline: auto;
-    max-width: 76rem;
+    inline-size: 100%;
+    margin: 0;
+    max-inline-size: none;
     padding: clamp(1rem, 3vw, 2.5rem);
   }
 
