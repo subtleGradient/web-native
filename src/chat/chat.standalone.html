@@ -1,25 +1,32 @@
 <!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="light dark" />
-    <link rel="icon" href="data:," />
-    <title>standalone chat transcript demo</title>
-    <script type="module" src="https://cdn.jsdelivr.net/gh/subtleGradient/web-native@web-native-shadcn-components/src/chat/define.js"></script>
-  </head>
-  <body>
-    <topic-transcript data-index="001" data-topic="standalone-demo" data-start-message="0001" data-end-message="0001" data-message-count="1">
-      <header>
-        <h1>001 Standalone Demo</h1>
-        <p>Loads the chat transcript components from GitHub.</p>
-      </header>
-      <chat-summary data-scope="previous">
-        <p>No previous topic.</p>
-      </chat-summary>
-      <chat-message data-source="0001-user.md" data-turn="1" data-role="user">
-        <pre>Standalone transcript pages can stay almost entirely semantic source markup while the component renders the readable view.</pre>
-      </chat-message>
-    </topic-transcript>
-  </body>
-</html>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>standalone chat transcript demo</title>
+<script type=module>
+  import { defineChatTranscriptElements } from "https://cdn.jsdelivr.net/gh/subtleGradient/web-native@chat-transcript-v0.1.1/src/chat/chat.js"
+
+  defineChatTranscriptElements()
+</script>
+
+<topic-transcript
+  data-index="001"
+  data-topic="standalone-demo"
+  data-start-message="0001"
+  data-end-message="0001"
+  data-message-count="1"
+>
+  <header>
+    <h1>001 Standalone Demo</h1>
+    <p>Loads the chat transcript components from GitHub.</p>
+  </header>
+  <chat-summary data-scope="previous">
+    <p>No previous topic.</p>
+  </chat-summary>
+  <chat-message data-source="0001-user.md" data-turn="1" data-role="user">
+    <pre>
+Standalone transcript pages can stay almost entirely semantic source markup while the component renders the readable view.</pre
+    >
+  </chat-message>
+</topic-transcript>

@@ -1,33 +1,55 @@
 <!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="light dark" />
-    <link rel="icon" href="data:," />
-    <title>chat transcript demo</title>
-    <script type="module" src="./define.js"></script>
-  </head>
-  <body>
-    <topic-transcript data-index="001" data-topic="demo" data-start-message="0001" data-end-message="0002" data-message-count="2">
-      <header>
-        <h1>001 Demo Topic</h1>
-        <p>Messages 0001 through 0002.</p>
-      </header>
-      <chat-summary data-scope="previous">
-        <p>The earlier topic established that compact summaries should preserve enough context for the next topic without copying the full previous thread.</p>
-      </chat-summary>
-      <chat-message data-source="0001-user.md" data-turn="1" data-role="user" data-created="2026-05-13T20:36:49.063Z">
-        <pre># Can this render raw message innards?
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>chat transcript demo</title>
+<script type="module" src="./define.js"></script>
+
+<topic-transcript
+  data-index="001"
+  data-topic="demo"
+  data-start-message="0001"
+  data-end-message="0002"
+  data-message-count="2"
+>
+  <header>
+    <h1>001 Demo Topic</h1>
+    <p>Messages 0001 through 0002.</p>
+  </header>
+  <chat-summary data-scope="previous">
+    <p>
+      The earlier topic established that compact summaries should preserve
+      enough context for the next topic without copying the full previous
+      thread.
+    </p>
+  </chat-summary>
+  <chat-message
+    data-source="0001-user.md"
+    data-turn="1"
+    data-role="user"
+    data-created="2026-05-13T20:36:49.063Z"
+  >
+    <pre>
+# Can this render raw message innards?
 
 Please keep the source light, but make it readable.
 
 - preserve the raw text
 - render common Markdown
-- show message metadata</pre>
-      </chat-message>
-      <chat-message data-source="0002-assistant.md" data-turn="2" data-role="assistant" data-model="gpt-test" data-created="2026-05-13T20:40:15.673Z" data-channel="final">
-        <pre>Yes. Tables and code fences render too.
+- show message metadata</pre
+    >
+  </chat-message>
+  <chat-message
+    data-source="0002-assistant.md"
+    data-turn="2"
+    data-role="assistant"
+    data-model="gpt-test"
+    data-created="2026-05-13T20:40:15.673Z"
+    data-channel="final"
+  >
+    <pre>
+Yes. Tables and code fences render too.
 
 | Surface | Behavior |
 |---|---|
@@ -37,8 +59,7 @@ Please keep the source light, but make it readable.
 
 ```js
 customElements.define("chat-message", ChatMessage)
-```</pre>
-      </chat-message>
-    </topic-transcript>
-  </body>
-</html>
+```</pre
+    >
+  </chat-message>
+</topic-transcript>
