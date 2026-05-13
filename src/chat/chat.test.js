@@ -15,7 +15,9 @@ describe("chat transcript elements", () => {
       <chat-message data-turn="42" data-role="assistant" data-model="gpt-test" data-created="2026-05-13T20:40:15.673Z" data-channel="final">
         <pre># Heading
 
-Paragraph with **bold** and \`code\`.
+Paragraph with **bold** and &#96;code&#96;.
+
+Citation token citeturn289313search1turn289313search21 and literal &#96;citeturn289313search7&#96;.
 
 - one
 - two
@@ -38,6 +40,11 @@ const ok = true
     expect(shadow?.querySelector(".badge")?.textContent).to.equal("assistant")
     expect(shadow?.querySelector("h1")?.textContent).to.equal("Heading")
     expect(shadow?.querySelector(".content strong")?.textContent).to.equal("bold")
+    expect(Array.from(shadow?.querySelectorAll(".citation-ref") ?? []).map((ref) => ref.textContent)).to.deep.equal(["1", "21"])
+    expect(shadow?.querySelector(".citation")?.getAttribute("data-citation-refs")).to.equal("turn289313search1 turn289313search21")
+    expect(shadow?.querySelector(".citation")?.getAttribute("aria-label")).to.equal("Citations: turn289313search1, turn289313search21")
+    expect(shadow?.querySelector("code")?.textContent).to.equal("code")
+    expect(Array.from(shadow?.querySelectorAll("code") ?? []).some((code) => code.textContent?.includes("turn289313search7"))).to.equal(true)
     expect(shadow?.querySelector("li")?.textContent).to.equal("one")
     expect(shadow?.querySelector("table")?.textContent).to.include("Space")
     expect(shadow?.querySelector("blockquote")?.textContent?.trim()).to.equal("quoted")

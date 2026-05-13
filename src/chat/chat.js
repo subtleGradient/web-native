@@ -255,6 +255,30 @@ const messageStyles = String.raw`
   a {
     color: LinkText;
   }
+
+  .citation {
+    display: inline-flex;
+    flex-wrap: wrap;
+    font-style: normal;
+    gap: 0.125rem;
+    margin-inline: 0.1rem;
+    vertical-align: 0.12em;
+  }
+
+  .citation-ref {
+    align-items: center;
+    background: color-mix(in oklch, Highlight 16%, Canvas);
+    border: 1px solid color-mix(in oklch, Highlight 42%, transparent);
+    border-radius: 999px;
+    color: LinkText;
+    display: inline-flex;
+    font-size: 0.72em;
+    font-weight: 700;
+    justify-content: center;
+    line-height: 1;
+    min-width: 1.15rem;
+    padding: 0.18rem 0.34rem;
+  }
 `
 
 export class TopicTranscript extends HTMLElement {
@@ -593,12 +617,58 @@ function splitTableRow(line) {
 /** @param {string} text */
 function renderInline(text) {
   let html = escapeHtml(text)
-  html = html.replace(/`([^`]+)`/g, "<code>$1</code>")
+  /** @type {string[]} */
+  const placeholders = []
+  html = html.replace(/`([^`]+)`/g, (_, code) => stashInlineHtml(placeholders, `<code>${code}</code>`))
+  html = html.replace(/\uE200cite(?:\uE202[^\uE201\uE202]+)+\uE201/g, renderCitation)
   html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
   html = html.replace(/__([^_]+)__/g, "<strong>$1</strong>")
   html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" rel="noreferrer" target="_blank">$1</a>')
   html = html.replace(/(^|[\s(])(https?:\/\/[^\s)<]+)/g, '$1<a href="$2" rel="noreferrer" target="_blank">$2</a>')
+  html = restoreInlineHtml(html, placeholders)
   return html
+}
+
+/**
+ * @param {string[]} placeholders
+ * @param {string} html
+ */
+function stashInlineHtml(placeholders, html) {
+  const index = placeholders.push(html) - 1
+  return `\uE000${index}\uE001`
+}
+
+/**
+ * @param {string} html
+ * @param {string[]} placeholders
+ */
+function restoreInlineHtml(html, placeholders) {
+  return html.replace(/\uE000(\d+)\uE001/g, (_, index) => placeholders[Number(index)] ?? "")
+}
+
+/** @param {string} citation */
+function renderCitation(citation) {
+  const refs = citation
+    .slice("\uE200cite".length, -"\uE201".length)
+    .split("\uE202")
+    .filter(Boolean)
+
+  if (!refs.length) return ""
+
+  const label = `Citations: ${refs.join(", ")}`
+  const renderedRefs = refs.map((ref) => {
+    const visible = formatCitationRef(ref)
+    return `<span class="citation-ref" title="${escapeAttribute(ref)}">${escapeHtml(visible)}</span>`
+  }).join("")
+
+  return `<cite class="citation" data-citation-refs="${escapeAttribute(refs.join(" "))}" aria-label="${escapeAttribute(label)}">${renderedRefs}</cite>`
+}
+
+/** @param {string} ref */
+function formatCitationRef(ref) {
+  return ref.match(/(?:search|source|result|view|fetch|open)(\d+)$/i)?.[1]
+    ?? ref.match(/(\d+)$/)?.[1]
+    ?? ref
 }
 
 /** @param {string} text */
