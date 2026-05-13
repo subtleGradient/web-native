@@ -67,12 +67,38 @@ const summaryStyles = String.raw`
     padding: 0.875rem 1rem;
   }
 
+  .summary-header {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: space-between;
+  }
+
   .label {
     color: CanvasText;
     font-size: 0.75rem;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
+  }
+
+  .previous-link {
+    align-items: center;
+    background: color-mix(in oklch, Highlight 11%, Canvas);
+    border: 1px solid color-mix(in oklch, Highlight 28%, transparent);
+    border-radius: 999px;
+    color: LinkText;
+    display: inline-flex;
+    font-size: 0.78rem;
+    font-weight: 650;
+    line-height: 1.2;
+    padding: 0.28rem 0.55rem;
+    text-decoration: none;
+  }
+
+  .previous-link:hover {
+    text-decoration: underline;
   }
 
   p {
@@ -450,11 +476,16 @@ export class ChatSummary extends HTMLElement {
 
   #render() {
     const text = this.textContent?.trim() ?? ""
+    const previousHref = this.dataset.previousHref
+    const previousTitle = this.dataset.previousTitle ?? "Previous topic"
     const shadow = this.shadowRoot ?? this.attachShadow({ mode: "open" })
     shadow.innerHTML = String.raw`
       <style>${summaryStyles}</style>
       <aside class="summary">
-        <strong class="label">Previous context</strong>
+        <header class="summary-header">
+          <strong class="label">Previous context</strong>
+          ${previousHref ? `<a class="previous-link" href="${escapeAttribute(previousHref)}">Back to ${escapeHtml(previousTitle)}</a>` : ""}
+        </header>
         ${text ? `<p>${renderInline(text)}</p>` : ""}
       </aside>
     `

@@ -94,7 +94,7 @@ const ok = true
     const root = mount(html`
       <topic-transcript data-index="001">
         <header><h1>Topic</h1></header>
-        <chat-summary><p>Previous context.</p></chat-summary>
+        <chat-summary data-previous-href="001-previous.topic.htm" data-previous-title="001 Previous Topic"><p>Previous context.</p></chat-summary>
       </topic-transcript>
     `)
 
@@ -104,6 +104,8 @@ const ok = true
     const summary = root.querySelector("chat-summary")
     expect(transcript?.shadowRoot?.querySelector("slot")).to.not.equal(null)
     expect(summary?.shadowRoot?.textContent).to.include("Previous context.")
+    expect(summary?.shadowRoot?.querySelector(".previous-link")?.getAttribute("href")).to.equal("001-previous.topic.htm")
+    expect(summary?.shadowRoot?.querySelector(".previous-link")?.textContent).to.equal("Back to 001 Previous Topic")
   })
 
   it("passes automated accessibility checks", async () => {

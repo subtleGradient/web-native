@@ -9,7 +9,7 @@ Plain custom elements for rendering lightweight archived chat transcripts.
   <header>
     <h1>001 Example</h1>
   </header>
-  <chat-summary data-scope=previous>
+  <chat-summary data-scope=previous data-previous-href=000-previous.topic.htm data-previous-title="000 Previous Topic">
     <p>No previous topic.</p>
   </chat-summary>
   <chat-message data-turn=1 data-role=user data-created=2026-05-13T20:36:49.063Z>
@@ -24,3 +24,5 @@ Plain custom elements for rendering lightweight archived chat transcripts.
 `chat-message` reads its light DOM body, preferring a nested `pre`, then renders common Markdown-like structures in shadow DOM: headings, paragraphs, lists, blockquotes, fenced code blocks, inline code, links, horizontal rules, simple pipe tables, and ChatGPT-style citation tokens like `citeturn289313search1turn289313search21`.
 
 User and assistant messages are visually distinct without surfacing archival noise like turn numbers or model ids. Messages with `data-recipient` render as tool events; JSON payloads are parsed into action summaries instead of being dumped as raw JSON. The original light DOM is left in place so transcript source remains portable and inspectable.
+
+When `chat-summary` has `data-previous-href`, it renders a compact link back to the previous topic.
