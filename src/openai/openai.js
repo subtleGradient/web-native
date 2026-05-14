@@ -138,9 +138,14 @@ export class OpenAIClientElement extends HTMLElement {
   /** @param {SubmitEvent | Event} event */
   respond(event) {
     event.preventDefault()
+    const target = /** @type {HTMLFormElement | null} */ (event.target instanceof HTMLFormElement ? event.target : null)
+    const data = target === null ? undefined : new FormData(target)
     const prompt = promptFromEvent(event)
     return this.#run(async () => {
-      const text = await this.client.text(prompt, { model: this.model })
+      const text = await this.client.text(prompt, {
+        instructions: stringFromFormData(data, "instructions") ?? undefined,
+        model: this.model,
+      })
       return { kind: "text", text, raw: text }
     })
   }

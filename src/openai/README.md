@@ -9,6 +9,7 @@ Browser-native OpenAI client helpers and custom elements for BYOK workflows.
 <openai-client id="ai" model="gpt-5.5"></openai-client>
 
 <form onsubmit="ai.respond(event)">
+  <textarea name="instructions">Answer clearly and briefly.</textarea>
   <textarea name="prompt">Say hello.</textarea>
   <button>Ask</button>
 </form>

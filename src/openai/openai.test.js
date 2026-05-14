@@ -162,22 +162,29 @@ describe("openai browser client", () => {
   })
 
   it("drives one-off calls from form markup through openai-client", async () => {
+    /** @type {unknown[]} */
+    const bodies = []
     const root = mount(html`
       <openai-client id="ai" model="gpt-test"></openai-client>
       <form onsubmit="ai.respond(event)">
+        <textarea name="instructions">Be brief</textarea>
         <textarea name="prompt">Hello</textarea>
       </form>
       <openai-result for="ai"></openai-result>
     `)
     const controller = /** @type {import("./openai.js").OpenAIClientElement} */ (root.querySelector("openai-client"))
     controller.apiKey = "sk-test"
-    controller.client.fetchFn = async () => new Response(JSON.stringify({ output_text: "Hi" }), { status: 200 })
+    controller.client.fetchFn = async (_input, init) => {
+      bodies.push(JSON.parse(String(init?.body)))
+      return new Response(JSON.stringify({ output_text: "Hi" }), { status: 200 })
+    }
 
     const result = once(controller, "openai:result")
     root.querySelector("form")?.requestSubmit()
     await result
 
     expect(controller.lastResult?.text).to.equal("Hi")
+    expect(bodies[0]).to.deep.equal(buildTextRequest("Hello", { model: "gpt-test", instructions: "Be brief" }))
     expect(root.querySelector("openai-result")?.shadowRoot?.textContent).to.contain("Hi")
   })
 
