@@ -12,5 +12,6 @@ export { BaseProgress, BaseProgressIndicator, BaseProgressLabel, BaseProgressTra
 export { BaseRadio, BaseRadioGroup, defineBaseRadioGroup } from "./radio-group/index.js"
 export { ChatMessage, ChatSummary, TopicTranscript, defineChatMessage, defineChatSummary, defineChatTranscriptElements, defineTopicTranscript } from "./chat/index.js"
 export { DeckDetailsPanel, DeckGlElement, DeckLayerList, defineDeckDetailsPanel, defineDeckElements, defineDeckGl, defineDeckLayerList } from "./deck-gl/index.js"
+export { JsonEditor, defineJsonEditor } from "./json-editor/index.js"
 export { OpenAIClient, OpenAIClientElement, OpenAIKeyField, OpenAIResultElement, defineOpenAIClient, defineOpenAIElements, defineOpenAIKeyField, defineOpenAIResult } from "./openai/index.js"
 export * from "./shadcn/index.js"
