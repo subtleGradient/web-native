@@ -188,6 +188,40 @@ describe("openai browser client", () => {
     expect(root.querySelector("openai-result")?.shadowRoot?.textContent).to.contain("Hi")
   })
 
+  it("drives raw Responses built-in tool demos from form markup", async () => {
+    /** @type {unknown[]} */
+    const bodies = []
+    const root = mount(html`
+      <openai-client id="ai" model="gpt-5.5"></openai-client>
+      <form onsubmit="ai.respondWithTools(event)">
+        <textarea name="instructions">Use the supplied hosted tool when it helps.</textarea>
+        <textarea name="prompt">What was a positive news story from today?</textarea>
+        <textarea name="tools">[{"type":"web_search"}]</textarea>
+        <textarea name="include">["web_search_call.action.sources"]</textarea>
+      </form>
+    `)
+    const controller = /** @type {import("./openai.js").OpenAIClientElement} */ (root.querySelector("openai-client"))
+    controller.apiKey = "sk-test"
+    controller.client.fetchFn = async (_input, init) => {
+      bodies.push(JSON.parse(String(init?.body)))
+      return new Response(JSON.stringify({ output_text: "Sourced result" }), { status: 200 })
+    }
+
+    const result = once(controller, "openai:result")
+    root.querySelector("form")?.requestSubmit()
+    await result
+
+    expect(controller.lastResult?.json).to.deep.equal({ output_text: "Sourced result" })
+    expect(bodies[0]).to.deep.equal({
+      model: "gpt-5.5",
+      instructions: "Use the supplied hosted tool when it helps.",
+      input: "What was a positive news story from today?",
+      tools: [{ type: "web_search" }],
+      include: ["web_search_call.action.sources"],
+      store: false,
+    })
+  })
+
   it("extracts output text from common streamed and JSON response shapes", () => {
     expect(extractOutputText([
       'data: {"type":"response.output_text.delta","delta":"a"}',

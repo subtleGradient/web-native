@@ -1,6 +1,6 @@
 // @ts-check
 
-import { OpenAIClient } from "./client.js"
+import { DEFAULT_TEXT_MODEL, OpenAIClient } from "./client.js"
 
 const statusEventName = "openai:status"
 const resultEventName = "openai:result"
@@ -172,6 +172,18 @@ export class OpenAIClientElement extends HTMLElement {
     const prompt = promptFromEvent(event)
     return this.#run(async () => {
       const json = await this.client.embeddings([prompt])
+      return { kind: "json", json, raw: json }
+    })
+  }
+
+  /** @param {SubmitEvent | Event} event */
+  respondWithTools(event) {
+    event.preventDefault()
+    const target = /** @type {HTMLFormElement | null} */ (event.target instanceof HTMLFormElement ? event.target : null)
+    const data = target === null ? undefined : new FormData(target)
+    const prompt = promptFromEvent(event)
+    return this.#run(async () => {
+      const json = await this.client.response(responseToolRequestFromForm(data, prompt, this.model))
       return { kind: "json", json, raw: json }
     })
   }
@@ -379,6 +391,58 @@ function promptFromEvent(event) {
 function stringFromFormData(data, name) {
   const value = data?.get(name)
   return typeof value === "string" && value.length > 0 ? value : undefined
+}
+
+/**
+ * @param {FormData | undefined} data
+ * @param {string} prompt
+ * @param {string | undefined} model
+ */
+function responseToolRequestFromForm(data, prompt, model) {
+  /** @type {Record<string, unknown>} */
+  const request = {
+    model: stringFromFormData(data, "model") ?? model ?? DEFAULT_TEXT_MODEL,
+    input: prompt,
+    tools: jsonFromFormData(data, "tools") ?? [],
+    store: booleanFromFormData(data, "store") ?? false,
+  }
+  const instructions = stringFromFormData(data, "instructions")
+  if (instructions !== undefined) request.instructions = instructions
+  const include = jsonFromFormData(data, "include")
+  if (include !== undefined) request.include = include
+  const reasoning = jsonFromFormData(data, "reasoning")
+  if (reasoning !== undefined) request.reasoning = reasoning
+  const toolChoice = jsonFromFormData(data, "tool_choice") ?? jsonFromFormData(data, "toolChoice")
+  if (toolChoice !== undefined) request.tool_choice = toolChoice
+  const parallelToolCalls = booleanFromFormData(data, "parallel_tool_calls") ?? booleanFromFormData(data, "parallelToolCalls")
+  if (parallelToolCalls !== undefined) request.parallel_tool_calls = parallelToolCalls
+  const background = booleanFromFormData(data, "background")
+  if (background !== undefined) request.background = background
+  return request
+}
+
+/**
+ * @param {FormData | undefined} data
+ * @param {string} name
+ */
+function jsonFromFormData(data, name) {
+  const value = stringFromFormData(data, name)
+  if (value === undefined) return undefined
+  try {
+    return JSON.parse(value)
+  } catch (error) {
+    throw new Error(`${name} must be valid JSON: ${error instanceof Error ? error.message : String(error)}`)
+  }
+}
+
+/**
+ * @param {FormData | undefined} data
+ * @param {string} name
+ */
+function booleanFromFormData(data, name) {
+  const value = stringFromFormData(data, name)
+  if (value === undefined) return undefined
+  return value === "true" || value === "1" || value === "on"
 }
 
 /** @param {HTMLElement | null} target */

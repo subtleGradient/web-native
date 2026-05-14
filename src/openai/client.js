@@ -3,7 +3,7 @@
 export const OPENAI_API_BASE_URL = "https://api.openai.com/v1"
 export const DEFAULT_BROKER_URL = "/__web-native-openai"
 export const DEFAULT_TEXT_MODEL = "gpt-5.5"
-export const DEFAULT_IMAGE_TEXT_MODEL = "gpt-5.2"
+export const DEFAULT_IMAGE_TEXT_MODEL = DEFAULT_TEXT_MODEL
 export const DEFAULT_IMAGE_MODEL = "gpt-image-2"
 export const DEFAULT_EMBEDDING_MODEL = "text-embedding-3-small"
 

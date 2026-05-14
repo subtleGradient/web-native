@@ -17,7 +17,7 @@ Browser-native OpenAI client helpers and custom elements for BYOK workflows.
 <openai-result for="ai"></openai-result>
 ```
 
-`OpenAIClient` supports direct official API-key calls for Responses, image generation through the Responses `image_generation` tool, embeddings, and streamed response events as async generators.
+`OpenAIClient` supports direct official API-key calls for Responses, hosted tool calls through raw Responses requests, image generation through the Responses `image_generation` tool, embeddings, and streamed response events as async generators.
 
 ```js
 import { OpenAIClient } from "./client.js"
@@ -32,6 +32,18 @@ for await (const event of client.streamResponse({
   console.log(event)
 }
 ```
+
+The demo page includes executable Responses examples for the current hosted tool shapes: `web_search`, `file_search`, `computer`, `code_interpreter`, `mcp` remote servers/connectors, `image_generation`, and `tool_search`. Use `respondWithTools(event)` from markup when a demo should pass a raw `tools` array to `/v1/responses`:
+
+```html
+<form onsubmit="ai.respondWithTools(event)">
+  <textarea name="prompt">What was a positive news story from today?</textarea>
+  <textarea name="tools">[{"type":"web_search"}]</textarea>
+  <button>Search</button>
+</form>
+```
+
+Optional form fields map directly to Responses parameters: `instructions`, `include` JSON, `reasoning` JSON, `tool_choice` JSON, `parallel_tool_calls`, `background`, `store`, and `model`. Demos default `store` to `false`.
 
 Local function tools are registered as handlers and executed through async generators:
 

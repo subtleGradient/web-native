@@ -50,6 +50,8 @@ Security: only run demos you trust. API keys entered here are visible to this pa
       textarea { min-block-size: 8rem; resize: vertical; }
       button { background: Highlight; color: HighlightText; font-weight: 750; width: fit-content; }
       .grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); }
+      .wide { grid-column: 1 / -1; }
+      .note { color: color-mix(in oklch, CanvasText 62%, transparent); font-size: 0.925rem; margin: 0; }
       code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
     </style>
   </head>
@@ -94,6 +96,90 @@ Security: only run demos you trust. API keys entered here are visible to this pa
           <h2>Embedding</h2>
           <label>Input<textarea name="prompt">hello vector space</textarea></label>
           <button>Embed</button>
+        </form>
+
+        <form class="panel" onsubmit="ai.respondWithTools(event)">
+          <h2>Web search</h2>
+          <p class="note">Uses the current Responses <code>web_search</code> hosted tool, not the legacy preview tool.</p>
+          <label>Prompt<textarea name="prompt">What was a positive news story from today? Include citations.</textarea></label>
+          <label>Tools JSON<textarea name="tools">[{"type":"web_search","search_context_size":"low"}]</textarea></label>
+          <label>Include JSON<textarea name="include">["web_search_call.action.sources"]</textarea></label>
+          <button>Search web</button>
+        </form>
+
+        <form class="panel" onsubmit="ai.respondWithTools(event)">
+          <h2>File search</h2>
+          <p class="note">Requires a vector store that already has uploaded files.</p>
+          <label>Prompt<textarea name="prompt">What are the most important facts in this knowledge base?</textarea></label>
+          <label>Tools JSON<textarea name="tools">[{"type":"file_search","vector_store_ids":["vs_replace_me"],"max_num_results":3}]</textarea></label>
+          <label>Include JSON<textarea name="include">["file_search_call.results"]</textarea></label>
+          <button>Search files</button>
+        </form>
+
+        <form class="panel" onsubmit="ai.respondWithTools(event)">
+          <h2>Code interpreter</h2>
+          <p class="note">Creates or reuses an ephemeral hosted Python container with auto mode.</p>
+          <label>Instructions<textarea name="instructions">Use the python tool to calculate, verify, and then explain the result briefly.</textarea></label>
+          <label>Prompt<textarea name="prompt">Solve 3x + 11 = 14, then verify the answer in Python.</textarea></label>
+          <label>Tools JSON<textarea name="tools">[{"type":"code_interpreter","container":{"type":"auto","memory_limit":"1g"}}]</textarea></label>
+          <button>Run Python</button>
+        </form>
+
+        <form class="panel" onsubmit="ai.respondWithTools(event)">
+          <h2>Computer use</h2>
+          <p class="note">Returns <code>computer_call</code> actions for a harness to execute; this page intentionally does not operate your UI.</p>
+          <label>Prompt<textarea name="prompt">Ask for a screenshot, then describe the next UI action you would take to find the search field.</textarea></label>
+          <label>Tools JSON<textarea name="tools">[{"type":"computer"}]</textarea></label>
+          <button>Request UI actions</button>
+        </form>
+
+        <form class="panel" onsubmit="ai.respondWithTools(event)">
+          <h2>Remote MCP</h2>
+          <p class="note">Calls a public demo MCP server. Only use trusted MCP servers with real data.</p>
+          <label>Prompt<textarea name="prompt">Roll 2d4+1.</textarea></label>
+          <label>Tools JSON<textarea name="tools">[{"type":"mcp","server_label":"dmcp","server_description":"A Dungeons and Dragons MCP server to assist with dice rolling.","server_url":"https://dmcp-server.deno.dev/sse","require_approval":"never","allowed_tools":["roll"]}]</textarea></label>
+          <button>Call MCP</button>
+        </form>
+
+        <form class="panel wide" onsubmit="ai.respondWithTools(event)">
+          <h2>Tool search</h2>
+          <p class="note">Demonstrates deferred tool loading with <code>tool_search</code>; supported by GPT-5.4 and later models.</p>
+          <label>Prompt<textarea name="prompt">List open orders for customer CUST-12345.</textarea></label>
+          <label>Tools JSON<textarea name="tools">[
+  {
+    "type": "namespace",
+    "name": "crm",
+    "description": "CRM tools for customer lookup and order management.",
+    "tools": [
+      {
+        "type": "function",
+        "name": "get_customer_profile",
+        "description": "Fetch a customer profile by customer ID.",
+        "parameters": {
+          "type": "object",
+          "properties": { "customer_id": { "type": "string" } },
+          "required": ["customer_id"],
+          "additionalProperties": false
+        }
+      },
+      {
+        "type": "function",
+        "name": "list_open_orders",
+        "description": "List open orders for a customer ID.",
+        "defer_loading": true,
+        "parameters": {
+          "type": "object",
+          "properties": { "customer_id": { "type": "string" } },
+          "required": ["customer_id"],
+          "additionalProperties": false
+        }
+      }
+    ]
+  },
+  { "type": "tool_search" }
+]</textarea></label>
+          <input type="hidden" name="parallel_tool_calls" value="false" />
+          <button>Search tools</button>
         </form>
       </section>
 
