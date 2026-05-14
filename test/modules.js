@@ -11,6 +11,7 @@ export const testModules = [
   "/src/progress/progress.test.js",
   "/src/radio-group/radio-group.test.js",
   "/src/chat/chat.test.js",
+  "/src/openai/openai.test.js",
   "/src/deck-gl/deck-gl.test.js",
   "/src/shadcn/shadcn.test.js",
 ]

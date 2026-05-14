@@ -1,0 +1,102 @@
+<!doctype html>
+<!--
+Run from GitHub:
+bunx --bun -p https://github.com/subtleGradient/web-native/archive/refs/heads/openai.tar.gz web-native-openai src/openai/openai.demo.html
+
+Run from a local checkout:
+bun ./src/openai/scripts/openai-runner.ts src/openai/openai.demo.html
+
+Security: only run demos you trust. API keys entered here are visible to this page's JavaScript.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>OpenAI BYOK demo</title>
+    <script type="module" src="./define.js"></script>
+    <style>
+      :root { color-scheme: light dark; }
+      body {
+        background: color-mix(in oklch, Canvas 95%, CanvasText 5%);
+        color: CanvasText;
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        line-height: 1.5;
+        margin: 0;
+      }
+      main {
+        display: grid;
+        gap: 1rem;
+        margin-inline: auto;
+        max-inline-size: 56rem;
+        padding: clamp(1rem, 4vw, 3rem);
+      }
+      .panel {
+        background: Canvas;
+        border: 1px solid color-mix(in oklch, CanvasText 14%, transparent);
+        border-radius: 1rem;
+        display: grid;
+        gap: 0.875rem;
+        padding: 1rem;
+      }
+      label { display: grid; gap: 0.35rem; font-weight: 650; }
+      input, select, textarea, button {
+        border: 1px solid color-mix(in oklch, CanvasText 22%, transparent);
+        border-radius: 0.5rem;
+        font: inherit;
+        padding: 0.6rem 0.7rem;
+      }
+      textarea { min-block-size: 8rem; resize: vertical; }
+      button { background: Highlight; color: HighlightText; font-weight: 750; width: fit-content; }
+      .grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); }
+      code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>OpenAI BYOK</h1>
+        <p>One client element can call the official OpenAI API directly or use the local runner as a broker for API-key/Codex auth.</p>
+      </header>
+
+      <openai-client id="ai" model="gpt-5.5"></openai-client>
+
+      <section class="panel">
+        <openai-key-field target="ai"></openai-key-field>
+        <label>
+          Transport
+          <select onchange="ai.setAttribute('transport', this.value)">
+            <option value="api-key-direct">API key direct</option>
+            <option value="api-key-broker">API key broker</option>
+            <option value="codex-broker">Codex broker</option>
+          </select>
+        </label>
+        <p>For broker mode, run this page with <code>web-native-openai</code>. For API-key broker without typing a key, set <code>OPENAI_API_KEY</code>.</p>
+      </section>
+
+      <section class="grid">
+        <form class="panel" onsubmit="ai.respond(event)">
+          <h2>Text</h2>
+          <label>Prompt<textarea name="prompt">Say hello in one sentence.</textarea></label>
+          <button>Ask</button>
+        </form>
+
+        <form class="panel" onsubmit="ai.generateImage(event)">
+          <h2>Image</h2>
+          <label>Prompt<textarea name="prompt">tiny watercolor robot on a white background</textarea></label>
+          <label>Format<select name="outputFormat"><option>png</option><option>webp</option><option>jpeg</option></select></label>
+          <button>Generate image</button>
+        </form>
+
+        <form class="panel" onsubmit="ai.embed(event)">
+          <h2>Embedding</h2>
+          <label>Input<textarea name="prompt">hello vector space</textarea></label>
+          <button>Embed</button>
+        </form>
+      </section>
+
+      <openai-result for="ai"></openai-result>
+    </main>
+  </body>
+</html>
