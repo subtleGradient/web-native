@@ -481,13 +481,13 @@ export class ChatSummary extends HTMLElement {
     const shadow = this.shadowRoot ?? this.attachShadow({ mode: "open" })
     shadow.innerHTML = String.raw`
       <style>${summaryStyles}</style>
-      <aside class="summary">
+      <section class="summary" aria-label="Previous context">
         <header class="summary-header">
           <strong class="label">Previous context</strong>
           ${previousHref ? `<a class="previous-link" href="${escapeAttribute(previousHref)}">Back to ${escapeHtml(previousTitle)}</a>` : ""}
         </header>
         ${text ? `<p>${renderInline(text)}</p>` : ""}
-      </aside>
+      </section>
     `
   }
 }

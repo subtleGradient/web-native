@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>base-progress stories</title>
+    <script type="module" src="./define.js"></script>
+    <style>
+      :root { color-scheme: light dark; }
+      * { box-sizing: border-box; }
+      body { background: Canvas; color: CanvasText; font-family: ui-sans-serif, system-ui, sans-serif; margin: 0; }
+      main { display: grid; gap: 1rem; margin-inline: auto; max-width: 56rem; padding: clamp(1rem, 4vw, 3rem); }
+      h1 { font-size: clamp(2rem, 7vw, 4rem); letter-spacing: -0.06em; line-height: 0.9; margin: 0; }
+      h2, p { margin-block: 0; }
+      .grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); }
+      [data-story] { background: color-mix(in oklch, Canvas 92%, CanvasText 8%); border: 1px solid color-mix(in oklch, CanvasText 14%, transparent); border-radius: 1rem; display: grid; gap: 0.75rem; padding: 1rem; }
+      base-progress { display: grid; gap: 0.4rem; }
+      base-progress-track { background: color-mix(in oklch, Canvas 84%, CanvasText 16%); border-radius: 999px; display: block; height: 0.75rem; overflow: hidden; }
+      base-progress-indicator { background: Highlight; display: block; height: 100%; }
+      base-progress[data-state="indeterminate"] base-progress-indicator { animation: sweep 1.2s linear infinite; width: 42%; }
+      @keyframes sweep { from { transform: translateX(-100%); } to { transform: translateX(240%); } }
+      button:focus-visible { outline: 3px solid Highlight; outline-offset: 2px; }
+      button { background: CanvasText; border: 0; border-radius: 0.65rem; color: Canvas; font: inherit; font-weight: 700; min-height: 2.4rem; padding-inline: 0.85rem; width: fit-content; }
+      output { color: color-mix(in oklch, CanvasText 62%, transparent); min-height: 1.5rem; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>base-progress</h1>
+        <p>Local stories for determinate, complete, indeterminate, clamped, custom range, custom value text, labels, and parts.</p>
+      </header>
+      <div class="grid">
+        <section data-story="determinate-live">
+          <h2>Determinate live</h2>
+          <base-progress id="progress-live" value="35" value-text="35 of 100 tasks">
+            <base-progress-label>Live import</base-progress-label>
+            <base-progress-value></base-progress-value>
+            <base-progress-track><base-progress-indicator></base-progress-indicator></base-progress-track>
+          </base-progress>
+          <button type="button" onclick="ProgressStories.advance()">Advance progress</button>
+          <output id="progress-output">35</output>
+        </section>
+        <section data-story="complete-and-indeterminate">
+          <h2>Complete and indeterminate</h2>
+          <base-progress value="100"><base-progress-label>Complete</base-progress-label><base-progress-value></base-progress-value><base-progress-track><base-progress-indicator></base-progress-indicator></base-progress-track></base-progress>
+          <base-progress><base-progress-label>Indeterminate</base-progress-label><base-progress-track><base-progress-indicator></base-progress-indicator></base-progress-track></base-progress>
+        </section>
+        <section data-story="ranges-and-clamping">
+          <h2>Ranges and clamping</h2>
+          <base-progress min="10" max="20" value="18"><base-progress-label>Custom range</base-progress-label><base-progress-value></base-progress-value><base-progress-track><base-progress-indicator></base-progress-indicator></base-progress-track></base-progress>
+          <base-progress value="-10"><base-progress-label>Clamped low</base-progress-label><base-progress-value></base-progress-value><base-progress-track><base-progress-indicator></base-progress-indicator></base-progress-track></base-progress>
+          <base-progress value="120"><base-progress-label>Clamped high</base-progress-label><base-progress-value></base-progress-value><base-progress-track><base-progress-indicator></base-progress-indicator></base-progress-track></base-progress>
+        </section>
+      </div>
+    </main>
+    <script type="module">
+      await customElements.whenDefined("base-progress")
+      globalThis.ProgressStories = {
+        advance() {
+          const progress = document.querySelector("#progress-live")
+          progress.value = 80
+          document.querySelector("#progress-output").textContent = progress.getAttribute("aria-valuenow") ?? ""
+        },
+      }
+      globalThis.__webNativeProgressStoriesReady = true
+    </script>
+  </body>
+</html>

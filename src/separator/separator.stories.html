@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>base-separator stories</title>
+    <script type="module" src="./define.js"></script>
+    <style>
+      :root { color-scheme: light dark; }
+      * { box-sizing: border-box; }
+      body { background: Canvas; color: CanvasText; font-family: ui-sans-serif, system-ui, sans-serif; margin: 0; }
+      main { display: grid; gap: 1rem; margin-inline: auto; max-width: 48rem; padding: clamp(1rem, 4vw, 3rem); }
+      h1 { font-size: clamp(2rem, 7vw, 4rem); letter-spacing: -0.06em; line-height: 0.9; margin: 0; }
+      h2, p { margin-block: 0; }
+      .grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); }
+      [data-story] { background: color-mix(in oklch, Canvas 92%, CanvasText 8%); border: 1px solid color-mix(in oklch, CanvasText 14%, transparent); border-radius: 1rem; display: grid; gap: 0.75rem; padding: 1rem; }
+      .row { align-items: stretch; display: flex; flex-wrap: wrap; gap: 0.75rem; }
+      base-separator { background: color-mix(in oklch, CanvasText 24%, transparent); display: block; }
+      base-separator[orientation="horizontal"] { height: 1px; width: 100%; }
+      base-separator[orientation="vertical"] { min-height: 4rem; width: 1px; }
+      button:focus-visible { outline: 3px solid Highlight; outline-offset: 2px; }
+      button { background: CanvasText; border: 0; border-radius: 0.65rem; color: Canvas; font: inherit; font-weight: 700; min-height: 2.4rem; padding-inline: 0.85rem; width: fit-content; }
+      output { color: color-mix(in oklch, CanvasText 62%, transparent); min-height: 1.5rem; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>base-separator</h1>
+        <p>Local stories for horizontal, vertical, invalid orientation normalization, and runtime orientation changes.</p>
+      </header>
+      <div class="grid">
+        <section data-story="horizontal">
+          <h2>Horizontal</h2>
+          <p>Section one</p>
+          <base-separator id="separator-live"></base-separator>
+          <p>Section two</p>
+          <button type="button" onclick="SeparatorStories.flip()">Flip orientation</button>
+          <output id="separator-output">horizontal</output>
+        </section>
+        <section data-story="vertical">
+          <h2>Vertical</h2>
+          <div class="row"><span>Left</span><base-separator orientation="vertical"></base-separator><span>Right</span></div>
+        </section>
+        <section data-story="normalized">
+          <h2>Invalid normalizes</h2>
+          <base-separator id="separator-invalid" orientation="diagonal"></base-separator>
+        </section>
+      </div>
+    </main>
+    <script type="module">
+      await customElements.whenDefined("base-separator")
+      globalThis.SeparatorStories = {
+        flip() {
+          const separator = document.querySelector("#separator-live")
+          separator.orientation = separator.orientation === "vertical" ? "horizontal" : "vertical"
+          document.querySelector("#separator-output").textContent = separator.orientation
+        },
+      }
+      globalThis.__webNativeSeparatorStoriesReady = true
+    </script>
+  </body>
+</html>

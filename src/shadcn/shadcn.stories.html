@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>shadcn component stories</title>
+    <script>
+      ;(() => {
+        const media = matchMedia("(prefers-color-scheme: dark)")
+        const syncTheme = () => {
+          document.documentElement.dataset.theme = media.matches ? "dark" : "light"
+        }
+
+        syncTheme()
+        media.addEventListener("change", syncTheme)
+      })()
+    </script>
+    <link rel="stylesheet" href="/src/shadcn/themes/neutral.css" />
+    <link rel="stylesheet" href="/src/shadcn/styles/base-nova.css" />
+    <script type="module" src="/src/shadcn/define.js"></script>
+    <style>
+      * { box-sizing: border-box; }
+
+      body {
+        background:
+          linear-gradient(135deg, color-mix(in oklch, Canvas 90%, CanvasText 10%), Canvas 42%),
+          Canvas;
+        color: CanvasText;
+        margin: 0;
+      }
+
+      main {
+        display: grid;
+        gap: clamp(1.25rem, 3vw, 2rem);
+        margin-inline: auto;
+        max-width: 78rem;
+        padding: clamp(1rem, 4vw, 3rem);
+      }
+
+      header.hero {
+        display: grid;
+        gap: 0.5rem;
+      }
+
+      h1 {
+        font-size: clamp(2.2rem, 7vw, 5rem);
+        letter-spacing: -0.075em;
+        line-height: 0.88;
+        margin: 0;
+      }
+
+      h2, h3, p { margin-block: 0; }
+
+      .muted { color: color-mix(in oklch, CanvasText 60%, transparent); }
+
+      .story-grid {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+      }
+
+      section[data-story] {
+        background: color-mix(in oklch, Canvas 95%, CanvasText 5%);
+        border: 1px solid color-mix(in oklch, CanvasText 12%, transparent);
+        border-radius: 1.1rem;
+        display: grid;
+        gap: 1rem;
+        padding: 1rem;
+      }
+
+      .row, .stack {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .stack { flex-direction: column; }
+
+      .matrix {
+        display: grid;
+        gap: 0.5rem;
+        grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+      }
+
+      shadcn-progress {
+        min-width: min(100%, 20rem);
+      }
+
+      shadcn-progress + shadcn-progress { margin-block-start: 0.75rem; }
+
+      shadcn-separator[orientation="vertical"] {
+        min-height: 4rem;
+      }
+
+      shadcn-skeleton {
+        height: 1rem;
+        width: min(16rem, 100%);
+      }
+
+      .form-grid {
+        display: grid;
+        gap: 1rem;
+      }
+
+      output {
+        color: color-mix(in oklch, CanvasText 62%, transparent);
+        min-height: 1.5rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header class="hero">
+        <h1>shadcn stories</h1>
+        <p class="muted">Styled custom element variants, sizes, state attributes, forms, and composed layouts.</p>
+      </header>
+
+      <div class="story-grid">
+        <section data-story="button-variants">
+          <h2>Button variants and sizes</h2>
+          <div class="matrix" onclick="if (event.target.id === 'shadcn-action-button') ShadcnStories.bumpAction()">
+            <shadcn-button id="shadcn-action-button">Default</shadcn-button>
+            <shadcn-button variant="outline">Outline</shadcn-button>
+            <shadcn-button variant="secondary">Secondary</shadcn-button>
+            <shadcn-button variant="ghost">Ghost</shadcn-button>
+            <shadcn-button variant="destructive">Destructive</shadcn-button>
+            <shadcn-button variant="link">Link</shadcn-button>
+            <shadcn-button size="xs">XS</shadcn-button>
+            <shadcn-button size="sm">Small</shadcn-button>
+            <shadcn-button size="lg">Large</shadcn-button>
+            <shadcn-button size="icon" aria-label="Icon button">*</shadcn-button>
+            <shadcn-button size="icon-xs" aria-label="Tiny icon">K</shadcn-button>
+            <shadcn-button size="icon-lg" aria-label="Large icon">Go</shadcn-button>
+            <shadcn-button disabled>Disabled</shadcn-button>
+          </div>
+          <output id="shadcn-action-output">0 actions</output>
+        </section>
+
+        <section data-story="toggle-controls">
+          <h2>Toggles</h2>
+          <div class="row">
+            <shadcn-toggle id="shadcn-toggle-interactive">Bold</shadcn-toggle>
+            <shadcn-toggle pressed variant="outline">Pressed outline</shadcn-toggle>
+            <shadcn-toggle size="sm">Small</shadcn-toggle>
+            <shadcn-toggle size="lg">Large</shadcn-toggle>
+            <shadcn-toggle disabled>Disabled</shadcn-toggle>
+          </div>
+          <shadcn-toggle-group id="shadcn-toggle-group-single" value="left" variant="outline" size="sm" spacing="1" aria-label="Alignment">
+            <shadcn-toggle-group-item value="left">Left</shadcn-toggle-group-item>
+            <shadcn-toggle-group-item value="center">Center</shadcn-toggle-group-item>
+            <shadcn-toggle-group-item value="right">Right</shadcn-toggle-group-item>
+          </shadcn-toggle-group>
+          <shadcn-toggle-group id="shadcn-toggle-group-multiple" multiple value="bold" orientation="vertical" size="lg" aria-label="Formatting">
+            <shadcn-toggle-group-item value="bold">Bold</shadcn-toggle-group-item>
+            <shadcn-toggle-group-item value="italic">Italic</shadcn-toggle-group-item>
+            <shadcn-toggle-group-item value="underline" disabled>Underline disabled</shadcn-toggle-group-item>
+          </shadcn-toggle-group>
+        </section>
+
+        <section data-story="selection-controls">
+          <h2>Checkbox, switch, radio</h2>
+          <div class="stack">
+            <shadcn-checkbox id="shadcn-checkbox-interactive" aria-label="Select row"></shadcn-checkbox>
+            <shadcn-checkbox checked size="sm" aria-label="Checked small"></shadcn-checkbox>
+            <shadcn-checkbox indeterminate size="lg" aria-label="Indeterminate large"></shadcn-checkbox>
+            <shadcn-checkbox disabled aria-label="Disabled checkbox"></shadcn-checkbox>
+            <shadcn-switch id="shadcn-switch-interactive" aria-label="Enable alerts"></shadcn-switch>
+            <shadcn-switch checked size="sm" aria-label="Checked switch"></shadcn-switch>
+            <shadcn-switch disabled size="lg" aria-label="Disabled switch"></shadcn-switch>
+          </div>
+          <shadcn-radio-group id="shadcn-radio-group" value="email" aria-label="Contact method">
+            <shadcn-radio-group-item value="email">Email</shadcn-radio-group-item>
+            <shadcn-radio-group-item value="sms">SMS</shadcn-radio-group-item>
+            <shadcn-radio-group-item value="push" disabled>Push disabled</shadcn-radio-group-item>
+          </shadcn-radio-group>
+          <shadcn-radio-group orientation="vertical" value="compact" aria-label="Density">
+            <shadcn-radio-group-item value="compact">Compact</shadcn-radio-group-item>
+            <shadcn-radio-group-item value="comfortable">Comfortable</shadcn-radio-group-item>
+          </shadcn-radio-group>
+        </section>
+
+        <section data-story="tabs-progress-separator">
+          <h2>Tabs, progress, separator</h2>
+          <shadcn-tabs id="shadcn-tabs" value="profile">
+            <shadcn-tabs-list variant="line" aria-label="Account sections">
+              <shadcn-tabs-trigger value="profile">Profile</shadcn-tabs-trigger>
+              <shadcn-tabs-trigger value="security">Security</shadcn-tabs-trigger>
+              <shadcn-tabs-trigger value="billing" disabled>Billing disabled</shadcn-tabs-trigger>
+            </shadcn-tabs-list>
+            <shadcn-tabs-content value="profile">Profile details</shadcn-tabs-content>
+            <shadcn-tabs-content value="security">Security details</shadcn-tabs-content>
+            <shadcn-tabs-content value="billing">Billing details</shadcn-tabs-content>
+          </shadcn-tabs>
+          <shadcn-progress id="shadcn-progress-live" value="42" value-text="42 percent loaded">
+            <shadcn-progress-label>Upload</shadcn-progress-label>
+            <shadcn-progress-value></shadcn-progress-value>
+          </shadcn-progress>
+          <shadcn-progress><shadcn-progress-label>Indeterminate</shadcn-progress-label></shadcn-progress>
+          <div class="row">
+            <span>Horizontal</span>
+            <shadcn-separator></shadcn-separator>
+            <span>Vertical</span>
+            <shadcn-separator orientation="vertical"></shadcn-separator>
+          </div>
+          <shadcn-button size="sm" onclick="ShadcnStories.advanceProgress()">Advance progress</shadcn-button>
+          <output id="shadcn-progress-output">42</output>
+        </section>
+
+        <section data-story="presentational">
+          <h2>Badges, alerts, card</h2>
+          <div class="row">
+            <shadcn-badge>Default</shadcn-badge>
+            <shadcn-badge variant="secondary">Secondary</shadcn-badge>
+            <shadcn-badge variant="destructive">Destructive</shadcn-badge>
+            <shadcn-badge variant="outline">Outline</shadcn-badge>
+            <shadcn-badge variant="ghost">Ghost</shadcn-badge>
+            <shadcn-badge variant="link">Link</shadcn-badge>
+          </div>
+          <shadcn-alert>
+            <shadcn-alert-title>Default alert</shadcn-alert-title>
+            <shadcn-alert-description>Neutral notice with a title and description.</shadcn-alert-description>
+          </shadcn-alert>
+          <shadcn-alert variant="destructive">
+            <shadcn-alert-title>Destructive alert</shadcn-alert-title>
+            <shadcn-alert-description>Something needs immediate attention.</shadcn-alert-description>
+          </shadcn-alert>
+          <shadcn-card size="sm">
+            <shadcn-card-header>
+              <shadcn-card-title>Compact card</shadcn-card-title>
+              <shadcn-card-description>Header, description, action, content, and footer parts.</shadcn-card-description>
+              <shadcn-card-action><shadcn-badge variant="outline">Action</shadcn-badge></shadcn-card-action>
+            </shadcn-card-header>
+            <shadcn-card-content>Card content sits here.</shadcn-card-content>
+            <shadcn-card-footer><shadcn-button size="sm">Footer action</shadcn-button></shadcn-card-footer>
+          </shadcn-card>
+        </section>
+
+        <section data-story="forms-fields">
+          <h2>Fields and form controls</h2>
+          <form class="form-grid" id="shadcn-profile-form" onsubmit="ShadcnStories.readProfile(event)" onreset="ShadcnStories.resetProfile()">
+            <shadcn-field-set>
+              <shadcn-field-legend>Profile</shadcn-field-legend>
+              <shadcn-field-group>
+                <shadcn-field orientation="responsive">
+                  <shadcn-field-label for="profile-email">Email</shadcn-field-label>
+                  <shadcn-input name="email" value="team@example.com"><input id="profile-email" type="email" placeholder="team@example.com" aria-label="Email" /></shadcn-input>
+                  <shadcn-field-description>Used for deploy notifications.</shadcn-field-description>
+                </shadcn-field>
+                <shadcn-field orientation="horizontal">
+                  <shadcn-field-label for="profile-role">Role</shadcn-field-label>
+                  <shadcn-native-select size="sm">
+                    <select id="profile-role" name="role" aria-label="Role">
+                      <option value="viewer">Viewer</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </shadcn-native-select>
+                </shadcn-field>
+                <shadcn-field>
+                  <shadcn-field-label for="profile-notes">Notes</shadcn-field-label>
+                  <shadcn-textarea name="notes"><textarea id="profile-notes" rows="3" placeholder="Add notes" aria-label="Notes">Ready</textarea></shadcn-textarea>
+                  <shadcn-field-error>Shown when validation fails.</shadcn-field-error>
+                </shadcn-field>
+                <shadcn-field-separator></shadcn-field-separator>
+                <shadcn-field>
+                  <shadcn-field-title>Readonly and disabled states</shadcn-field-title>
+                  <shadcn-input value="Readonly" readonly><input aria-label="Readonly input" /></shadcn-input>
+                  <shadcn-input value="Disabled" disabled><input aria-label="Disabled input" /></shadcn-input>
+                </shadcn-field>
+              </shadcn-field-group>
+            </shadcn-field-set>
+            <div class="row">
+              <button>Submit native form</button>
+              <button type="reset">Reset</button>
+            </div>
+          </form>
+          <output id="shadcn-form-output">Submit to inspect values.</output>
+        </section>
+
+        <section data-story="table-avatar-skeleton">
+          <h2>Table, avatar, skeleton, keyboard</h2>
+          <div class="row">
+            <shadcn-avatar size="lg"><shadcn-avatar-fallback>TN</shadcn-avatar-fallback><shadcn-avatar-badge></shadcn-avatar-badge></shadcn-avatar>
+            <shadcn-avatar size="sm"><shadcn-avatar-image src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Crect width='10' height='10' fill='%232563eb'/%3E%3C/svg%3E"></shadcn-avatar-image><shadcn-avatar-fallback>AI</shadcn-avatar-fallback></shadcn-avatar>
+            <shadcn-avatar-group>
+              <shadcn-avatar size="sm"><shadcn-avatar-fallback>A</shadcn-avatar-fallback></shadcn-avatar>
+              <shadcn-avatar size="sm"><shadcn-avatar-fallback>B</shadcn-avatar-fallback></shadcn-avatar>
+              <shadcn-avatar-group-count>+3</shadcn-avatar-group-count>
+            </shadcn-avatar-group>
+          </div>
+          <shadcn-table>
+            <table is="shadcn-table-element">
+              <caption is="shadcn-table-caption">Story rows</caption>
+              <thead is="shadcn-table-header">
+                <tr is="shadcn-table-row"><th is="shadcn-table-head">Name</th><th is="shadcn-table-head">State</th></tr>
+              </thead>
+              <tbody is="shadcn-table-body">
+                <tr is="shadcn-table-row" data-state="selected"><td is="shadcn-table-cell">Selected</td><td is="shadcn-table-cell"><shadcn-badge>Live</shadcn-badge></td></tr>
+                <tr is="shadcn-table-row"><td is="shadcn-table-cell">Queued</td><td is="shadcn-table-cell"><shadcn-badge variant="outline">Pending</shadcn-badge></td></tr>
+              </tbody>
+              <tfoot is="shadcn-table-footer">
+                <tr is="shadcn-table-row"><td is="shadcn-table-cell">Total</td><td is="shadcn-table-cell">2</td></tr>
+              </tfoot>
+            </table>
+          </shadcn-table>
+          <shadcn-skeleton></shadcn-skeleton>
+          <shadcn-kbd-group><shadcn-kbd>Ctrl</shadcn-kbd><shadcn-kbd>K</shadcn-kbd></shadcn-kbd-group>
+        </section>
+      </div>
+    </main>
+
+    <script type="module">
+      const tags = [
+        "shadcn-button",
+        "shadcn-toggle",
+        "shadcn-toggle-group",
+        "shadcn-toggle-group-item",
+        "shadcn-checkbox",
+        "shadcn-switch",
+        "shadcn-radio-group",
+        "shadcn-radio-group-item",
+        "shadcn-tabs",
+        "shadcn-tabs-list",
+        "shadcn-tabs-trigger",
+        "shadcn-tabs-content",
+        "shadcn-progress",
+        "shadcn-separator",
+        "shadcn-badge",
+        "shadcn-alert",
+        "shadcn-card",
+        "shadcn-field",
+        "shadcn-input",
+        "shadcn-textarea",
+        "shadcn-native-select",
+        "shadcn-table",
+        "shadcn-avatar",
+        "shadcn-skeleton",
+        "shadcn-kbd",
+      ]
+
+      await Promise.all(tags.map((tag) => customElements.whenDefined(tag)))
+
+      let actions = 0
+      globalThis.ShadcnStories = {
+        bumpAction() {
+          actions += 1
+          document.querySelector("#shadcn-action-output").textContent = `${actions} actions`
+        },
+        advanceProgress() {
+          const progress = document.querySelector("#shadcn-progress-live")
+          const output = document.querySelector("#shadcn-progress-output")
+          progress.value = 88
+          output.textContent = progress.getAttribute("aria-valuenow") ?? ""
+        },
+        readProfile(event) {
+          event.preventDefault()
+          document.querySelector("#shadcn-form-output").textContent = new URLSearchParams(new FormData(event.currentTarget)).toString()
+        },
+        resetProfile() {
+          requestAnimationFrame(() => {
+            document.querySelector("#shadcn-form-output").textContent = "Form reset."
+          })
+        },
+      }
+
+      globalThis.__webNativeShadcnReady = true
+      globalThis.__webNativeStorybookReady = true
+    </script>
+  </body>
+</html>

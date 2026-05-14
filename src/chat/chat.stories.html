@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>chat component stories</title>
+    <script type="module" src="./define.js"></script>
+    <style>
+      :root { color-scheme: light dark; }
+      * { box-sizing: border-box; }
+      body { background: color-mix(in oklch, Canvas 94%, CanvasText 6%); color: CanvasText; font-family: ui-sans-serif, system-ui, sans-serif; margin: 0; }
+      main { display: grid; gap: 1rem; margin-inline: auto; max-width: 64rem; padding: clamp(1rem, 4vw, 3rem); }
+      h1 { font-size: clamp(2rem, 7vw, 4rem); letter-spacing: -0.06em; line-height: 0.9; margin: 0; }
+      h2, h3, p { margin-block: 0; }
+      [data-story] { background: Canvas; border: 1px solid color-mix(in oklch, CanvasText 14%, transparent); border-radius: 1rem; display: grid; gap: 1rem; padding: 1rem; }
+      topic-transcript { border: 1px solid color-mix(in oklch, CanvasText 12%, transparent); border-radius: 1rem; max-height: 42rem; overflow: auto; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>chat components</h1>
+        <p>Local stories for transcript, summary, user message, assistant message, tool request, and tool result rendering.</p>
+      </header>
+      <section data-story="transcript-states">
+        <h2>Transcript states</h2>
+        <topic-transcript data-index="042" data-topic="e2e-story" data-start-message="0001" data-end-message="0005" data-message-count="5">
+          <header>
+            <h3>042 E2E Story Topic</h3>
+            <p>Rendered from static local markup with summary, user, assistant, tool request, and tool result messages.</p>
+          </header>
+          <chat-summary data-scope="previous" data-previous-href="#previous" data-previous-title="Previous topic">
+            <p>Previous context is compact, linked, and visually distinct from the live transcript.</p>
+          </chat-summary>
+          <chat-message data-source="0001-user.md" data-turn="1" data-role="user" data-created="2026-05-14T12:00:00.000Z">
+            <pre># User request
+
+Render markdown, bullets, and long code safely.
+
+- one
+- two</pre>
+          </chat-message>
+          <chat-message data-source="0002-assistant.md" data-turn="2" data-role="assistant" data-model="gpt-fixture" data-created="2026-05-14T12:00:03.000Z" data-channel="final">
+            <pre>Here is a table and a citation-like token.
+
+| Component | State |
+|---|---|
+| chat-message | rendered |
+
+Citation: turn1search0</pre>
+          </chat-message>
+          <chat-message data-source="0003-tool-call.md" data-turn="3" data-role="assistant" data-recipient="web.run" data-content-type="code" data-created="2026-05-14T12:00:05.000Z">
+            <pre>{"search_query":[{"q":"offline fixture"}],"response_length":"short"}</pre>
+          </chat-message>
+          <chat-message data-source="0004-tool-result.md" data-turn="4" data-role="tool" data-recipient="assistant" data-content-type="json" data-created="2026-05-14T12:00:06.000Z">
+            <pre>{"ok":true,"items":[{"title":"Fixture result","url":"https://example.test"}]}</pre>
+          </chat-message>
+        </topic-transcript>
+      </section>
+    </main>
+    <script type="module">
+      await Promise.all([customElements.whenDefined("topic-transcript"), customElements.whenDefined("chat-summary"), customElements.whenDefined("chat-message")])
+      globalThis.__webNativeChatStoriesReady = true
+    </script>
+  </body>
+</html>

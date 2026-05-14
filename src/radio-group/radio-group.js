@@ -153,7 +153,6 @@ export class BaseRadioGroup extends HTMLElement {
       radio.tabIndex = !disabled && radio === this.#highlightedRadio ? 0 : -1
 
       setOptionalBooleanAria(radio, "aria-disabled", disabled)
-      setOptionalBooleanAria(radio, "aria-readonly", this.readonly)
       setBooleanAttribute(radio, "data-checked", checked)
       setBooleanAttribute(radio, "data-unchecked", !checked)
       setBooleanAttribute(radio, "data-disabled", disabled)

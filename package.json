@@ -11,6 +11,7 @@
     "check": "tsgo --noEmit",
     "dev": "bun run scripts/serve.ts",
     "test": "bun run scripts/test.ts",
+    "test:e2e": "bun run scripts/test.ts && bun run scripts/test-e2e.ts",
     "verify:dark": "bun run scripts/verify-dark-mode.ts",
     "verify:demos": "bun run scripts/verify-composite-demos.ts",
     "verify:github-demo": "bun run scripts/verify-github-demo.ts",
@@ -26,5 +27,8 @@
     "chai": "^6.2.2",
     "mocha": "^11.7.5",
     "puppeteer-core": "^24.42.0"
+  },
+  "prettier": {
+    "semi": false
   }
 }

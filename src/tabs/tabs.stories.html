@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>base-tabs stories</title>
+    <script type="module" src="./define.js"></script>
+    <style>
+      :root { color-scheme: light dark; }
+      * { box-sizing: border-box; }
+      body { background: Canvas; color: CanvasText; font-family: ui-sans-serif, system-ui, sans-serif; margin: 0; }
+      main { display: grid; gap: 1rem; margin-inline: auto; max-width: 56rem; padding: clamp(1rem, 4vw, 3rem); }
+      h1 { font-size: clamp(2rem, 7vw, 4rem); letter-spacing: -0.06em; line-height: 0.9; margin: 0; }
+      h2, p { margin-block: 0; }
+      .grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); }
+      [data-story] { background: color-mix(in oklch, Canvas 92%, CanvasText 8%); border: 1px solid color-mix(in oklch, CanvasText 14%, transparent); border-radius: 1rem; display: grid; gap: 0.75rem; padding: 1rem; }
+      base-tabs-list { display: flex; flex-wrap: wrap; gap: 0.375rem; }
+      base-tabs[orientation="vertical"] base-tabs-list { align-items: flex-start; flex-direction: column; }
+      base-tab { align-items: center; background: Canvas; border: 1px solid color-mix(in oklch, CanvasText 24%, transparent); border-radius: 0.65rem; display: inline-flex; min-height: 2.4rem; padding: 0.45rem 0.75rem; }
+      base-tab[data-active] { background: Highlight; border-color: Highlight; color: HighlightText; }
+      base-tab[data-disabled] { opacity: 0.5; }
+      base-tab:focus-visible { outline: 3px solid Highlight; outline-offset: 2px; }
+      base-tabs-panel { background: Canvas; border: 1px solid color-mix(in oklch, CanvasText 14%, transparent); border-radius: 0.75rem; display: block; margin-block-start: 0.5rem; padding: 0.875rem; }
+      base-tabs-panel[hidden] { display: none; }
+      output { color: color-mix(in oklch, CanvasText 62%, transparent); min-height: 1.5rem; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>base-tabs</h1>
+        <p>Local stories for manual activation, automatic activation, disabled fallback, vertical orientation, nested markup, and cancelation.</p>
+      </header>
+      <div class="grid">
+        <section data-story="manual-tabs">
+          <h2>Manual activation</h2>
+          <base-tabs id="tabs-manual" value="profile">
+            <base-tabs-list aria-label="Manual sections">
+              <base-tab value="profile">Profile</base-tab>
+              <base-tab value="billing">Billing</base-tab>
+              <base-tab value="danger" disabled>Danger disabled</base-tab>
+            </base-tabs-list>
+            <base-tabs-panel value="profile">Profile panel</base-tabs-panel>
+            <base-tabs-panel value="billing">Billing panel</base-tabs-panel>
+            <base-tabs-panel value="danger">Danger panel</base-tabs-panel>
+          </base-tabs>
+        </section>
+        <section data-story="automatic-vertical-tabs">
+          <h2>Automatic vertical</h2>
+          <base-tabs id="tabs-auto" orientation="vertical" value="one">
+            <base-tabs-list activate-on-focus aria-label="Automatic sections">
+              <base-tab value="one">One</base-tab>
+              <base-tab value="two">Two</base-tab>
+            </base-tabs-list>
+            <base-tabs-panel value="one">Automatic one</base-tabs-panel>
+            <base-tabs-panel value="two">Automatic two</base-tabs-panel>
+          </base-tabs>
+        </section>
+        <section data-story="fallback-and-cancelation">
+          <h2>Fallback and cancelation</h2>
+          <base-tabs value="missing">
+            <base-tabs-list aria-label="Fallback sections"><base-tab value="first">Fallback first</base-tab></base-tabs-list>
+            <base-tabs-panel value="first">Fallback panel</base-tabs-panel>
+          </base-tabs>
+          <base-tabs id="tabs-cancel" value="open">
+            <base-tabs-list aria-label="Canceled sections"><base-tab value="open">Open</base-tab><base-tab value="blocked">Blocked</base-tab></base-tabs-list>
+            <base-tabs-panel value="open">Open panel</base-tabs-panel>
+            <base-tabs-panel value="blocked">Blocked panel</base-tabs-panel>
+          </base-tabs>
+          <output id="tabs-output">No canceled event yet.</output>
+        </section>
+      </div>
+    </main>
+    <script type="module">
+      await Promise.all([customElements.whenDefined("base-tabs"), customElements.whenDefined("base-tab")])
+      document.querySelector("#tabs-cancel")?.addEventListener("base-ui:value-change", (event) => {
+        if (event.detail.value === "blocked") {
+          event.preventDefault()
+          document.querySelector("#tabs-output").textContent = "Canceled tab activation."
+        }
+      })
+      globalThis.__webNativeTabsStoriesReady = true
+    </script>
+  </body>
+</html>

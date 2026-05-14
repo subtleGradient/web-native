@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>base-radio-group stories</title>
+    <script type="module" src="./define.js"></script>
+    <style>
+      :root { color-scheme: light dark; }
+      * { box-sizing: border-box; }
+      body { background: Canvas; color: CanvasText; font-family: ui-sans-serif, system-ui, sans-serif; margin: 0; }
+      main { display: grid; gap: 1rem; margin-inline: auto; max-width: 56rem; padding: clamp(1rem, 4vw, 3rem); }
+      h1 { font-size: clamp(2rem, 7vw, 4rem); letter-spacing: -0.06em; line-height: 0.9; margin: 0; }
+      h2, p { margin-block: 0; }
+      .grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); }
+      [data-story] { background: color-mix(in oklch, Canvas 92%, CanvasText 8%); border: 1px solid color-mix(in oklch, CanvasText 14%, transparent); border-radius: 1rem; display: grid; gap: 0.75rem; padding: 1rem; }
+      form { display: grid; gap: 0.5rem; }
+      .row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+      base-radio-group { display: flex; flex-wrap: wrap; gap: 0.375rem; }
+      base-radio-group[orientation="vertical"] { align-items: flex-start; flex-direction: column; }
+      base-radio { align-items: center; background: Canvas; border: 1px solid color-mix(in oklch, CanvasText 24%, transparent); border-radius: 999px; display: inline-flex; gap: 0.5rem; min-height: 2.4rem; padding: 0.45rem 0.75rem; }
+      base-radio::before { background: color-mix(in oklch, Canvas 86%, CanvasText 14%); border: 1px solid color-mix(in oklch, CanvasText 32%, transparent); border-radius: 999px; block-size: 1rem; content: ""; inline-size: 1rem; }
+      base-radio[data-checked]::before { background: Highlight; box-shadow: inset 0 0 0 0.25rem Canvas; }
+      base-radio[data-checked] { border-color: Highlight; }
+      base-radio[data-disabled], base-radio-group[data-disabled] { opacity: 0.5; }
+      base-radio:focus-visible, button:focus-visible { outline: 3px solid Highlight; outline-offset: 2px; }
+      button { background: CanvasText; border: 0; border-radius: 0.65rem; color: Canvas; font: inherit; font-weight: 700; min-height: 2.4rem; padding-inline: 0.85rem; }
+      output { color: color-mix(in oklch, CanvasText 62%, transparent); min-height: 1.5rem; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>base-radio-group</h1>
+        <p>Local stories for required, readonly, disabled, horizontal, vertical, implicit values, keyboard navigation, and forms.</p>
+      </header>
+      <div class="grid">
+        <section data-story="required-selection">
+          <h2>Required selection</h2>
+          <base-radio-group id="radio-group" name="contact" value="email" required aria-label="Contact method">
+            <base-radio value="email">Email</base-radio>
+            <base-radio value="sms">SMS</base-radio>
+            <base-radio value="phone" disabled>Phone disabled</base-radio>
+          </base-radio-group>
+        </section>
+        <section data-story="readonly-vertical">
+          <h2>Readonly vertical</h2>
+          <base-radio-group id="radio-group-readonly" readonly value="compact" orientation="vertical" aria-label="Readonly density">
+            <base-radio value="compact">Compact</base-radio>
+            <base-radio value="comfortable">Comfortable</base-radio>
+          </base-radio-group>
+        </section>
+        <section data-story="implicit-no-loop-disabled">
+          <h2>Implicit values and disabled</h2>
+          <base-radio-group loop-focus="false" aria-label="Implicit values">
+            <base-radio>Implicit 0</base-radio>
+            <base-radio>Implicit 1</base-radio>
+          </base-radio-group>
+          <base-radio-group disabled value="locked" aria-label="Disabled group">
+            <base-radio value="locked">Locked</base-radio>
+          </base-radio-group>
+        </section>
+        <section data-story="form-and-cancelation">
+          <h2>Form and cancelation</h2>
+          <form id="radio-form" onsubmit="RadioStories.readForm(event)" onreset="RadioStories.resetForm()">
+            <base-radio-group name="plan" value="pro" aria-label="Plan">
+              <base-radio value="free">Free</base-radio>
+              <base-radio value="pro">Pro</base-radio>
+            </base-radio-group>
+            <base-radio-group id="radio-group-cancel" aria-label="Canceled radio group">
+              <base-radio value="blocked">Blocked</base-radio>
+            </base-radio-group>
+            <div class="row"><button>Read FormData</button><button type="reset">Reset</button></div>
+          </form>
+          <output id="radio-output">Submit to inspect values.</output>
+        </section>
+      </div>
+    </main>
+    <script type="module">
+      await Promise.all([customElements.whenDefined("base-radio-group"), customElements.whenDefined("base-radio")])
+      document.querySelector("#radio-group-cancel")?.addEventListener("base-ui:value-change", (event) => {
+        event.preventDefault()
+        document.querySelector("#radio-output").textContent = "Canceled value change."
+      })
+      globalThis.RadioStories = {
+        readForm(event) {
+          event.preventDefault()
+          document.querySelector("#radio-output").textContent = new URLSearchParams(new FormData(event.currentTarget)).toString()
+        },
+        resetForm() {
+          requestAnimationFrame(() => {
+            document.querySelector("#radio-output").textContent = "Form reset."
+          })
+        },
+      }
+      globalThis.__webNativeRadioStoriesReady = true
+    </script>
+  </body>
+</html>

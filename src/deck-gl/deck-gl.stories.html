@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>deck-gl component stories</title>
+    <script type="module" src="./define.js"></script>
+    <style>
+      :root { color-scheme: light dark; }
+      * { box-sizing: border-box; }
+      body { background: Canvas; color: CanvasText; font-family: ui-sans-serif, system-ui, sans-serif; margin: 0; }
+      main { display: grid; gap: 1rem; margin-inline: auto; max-width: 72rem; padding: clamp(1rem, 4vw, 3rem); }
+      h1 { font-size: clamp(2rem, 7vw, 4rem); letter-spacing: -0.06em; line-height: 0.9; margin: 0; }
+      h2, p { margin-block: 0; }
+      [data-story] { background: color-mix(in oklch, Canvas 92%, CanvasText 8%); border: 1px solid color-mix(in oklch, CanvasText 14%, transparent); border-radius: 1rem; display: grid; gap: 1rem; padding: 1rem; }
+      .deck-shell { display: grid; gap: 1rem; grid-template-columns: minmax(0, 1fr) minmax(14rem, 18rem); }
+      deck-gl { background: linear-gradient(135deg, #0f172a, #172554 55%, #312e81); border-radius: 1rem; min-height: 18rem; overflow: hidden; }
+      deck-layer-list, deck-details-panel { display: block; }
+      output { color: color-mix(in oklch, CanvasText 62%, transparent); min-height: 1.5rem; }
+      @media (max-width: 760px) { .deck-shell { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>deck-gl elements</h1>
+        <p>Local offline stories for deck readiness, layer visibility, detail panels, inline handlers, and renderer fixtures.</p>
+      </header>
+      <section data-story="fixture-controls">
+        <h2>Fixture controls</h2>
+        <div class="deck-shell">
+          <deck-gl id="storybook-deck" controller initial-view-state='{"longitude":-98,"latitude":39,"zoom":3}'></deck-gl>
+          <div>
+            <deck-layer-list
+              id="storybook-layers"
+              label="Operational layers"
+              items='[
+                {"id":"airports","label":"Airports","visible":true,"swatch":"#22c55e","count":7,"description":"Local fixture points"},
+                {"id":"routes","label":"Routes","visible":true,"swatch":"#f97316","count":6},
+                {"id":"weather","label":"Weather","visible":false,"swatch":"#38bdf8","count":3}
+              ]'
+              onlayervisibilitychange="DeckStories.layerChanged(event)"
+            ></deck-layer-list>
+            <deck-details-panel id="storybook-details" for="storybook-deck" empty="Click the fixture map to select an airport." ondetailschange="DeckStories.detailsChanged(event)"></deck-details-panel>
+            <output id="deck-output">No layer changes yet.</output>
+          </div>
+        </div>
+      </section>
+    </main>
+    <script type="module">
+      await Promise.all([customElements.whenDefined("deck-gl"), customElements.whenDefined("deck-layer-list"), customElements.whenDefined("deck-details-panel")])
+
+      class StoryDeck {
+        constructor(props) {
+          this.props = {}
+          this.parent = props.parent
+          this.button = document.createElement("button")
+          this.button.type = "button"
+          this.button.textContent = "Select fixture airport"
+          this.button.style.cssText = "align-items:center;background:rgba(255,255,255,.92);border:0;border-radius:999px;color:#0f172a;display:flex;font:700 1rem system-ui;inset:auto 1rem 1rem auto;min-height:2.75rem;padding-inline:1rem;position:absolute;"
+          this.button.onclick = () => {
+            this.props.onClick?.({ object: { name: "Fixture airport", code: "FX1", status: "ready" }, picked: true }, new MouseEvent("click"))
+          }
+          this.parent.append(this.button)
+          this.setProps(props)
+          this.props.onLoad?.()
+        }
+
+        setProps(props) {
+          Object.assign(this.props, props)
+        }
+
+        finalize() {
+          this.button.remove()
+        }
+      }
+
+      document.querySelector("#storybook-deck").deckConstructor = StoryDeck
+
+      globalThis.DeckStories = {
+        layerChanged(event) {
+          document.querySelector("#deck-output").textContent = `${event.detail.id}: ${event.detail.visible ? "visible" : "hidden"}`
+        },
+        detailsChanged(event) {
+          document.querySelector("#deck-output").textContent = `Selected ${event.detail.object.name}`
+        },
+      }
+
+      await new Promise((resolve) => requestAnimationFrame(resolve))
+      globalThis.__webNativeDeckStoriesReady = true
+    </script>
+  </body>
+</html>
