@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>base-toggle-group demo</title>
+    <script type="module" src="./define.js"></script>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 2rem; }
+      main, form { display: grid; gap: 1rem; max-width: 32rem; }
+      base-toggle-group { display: inline-flex; gap: 0.25rem; }
+      base-toggle-group-item { border: 1px solid #d1d5db; border-radius: 0.5rem; padding: 0.5rem 0.75rem; }
+      base-toggle-group-item[aria-pressed="true"] { background: #111827; color: white; }
+      base-toggle-group-item:focus-visible { outline: 3px solid #93c5fd; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>base-toggle-group</h1>
+      <form onsubmit="event.preventDefault(); result.textContent = new URLSearchParams(new FormData(event.currentTarget)).toString()">
+        <base-toggle-group name="format" multiple value="bold" aria-label="Formatting">
+          <base-toggle-group-item value="bold">Bold</base-toggle-group-item>
+          <base-toggle-group-item value="italic">Italic</base-toggle-group-item>
+          <base-toggle-group-item value="underline">Underline</base-toggle-group-item>
+        </base-toggle-group>
+        <button>Read FormData</button>
+      </form>
+      <output id="result"></output>
+    </main>
+  </body>
+</html>

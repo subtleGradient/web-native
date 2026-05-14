@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>base-toggle demo</title>
+    <script>
+      (() => {
+        const media = matchMedia("(prefers-color-scheme: dark)")
+        const syncTheme = () => {
+          document.documentElement.dataset.theme = media.matches ? "dark" : "light"
+        }
+
+        syncTheme()
+        media.addEventListener("change", syncTheme)
+      })()
+    </script>
+    <script type="module" src="./define.js"></script>
+    <style>
+      :root { color-scheme: light dark; }
+      :root[data-theme="light"] { color-scheme: light; }
+      :root[data-theme="dark"] { color-scheme: dark; }
+
+      body {
+        background: canvas;
+        color: canvastext;
+        font-family: system-ui, sans-serif;
+        margin: 2rem;
+      }
+
+      base-toggle {
+        border: 1px solid color-mix(in oklch, canvastext 28%, transparent);
+        border-radius: 0.5rem;
+        cursor: default;
+        display: inline-flex;
+        font: inherit;
+        padding: 0.5rem 0.75rem;
+        user-select: none;
+      }
+
+      base-toggle:focus-visible {
+        outline: 2px solid Highlight;
+        outline-offset: 2px;
+      }
+
+      base-toggle[data-pressed] {
+        background: canvastext;
+        color: canvas;
+      }
+
+      base-toggle[data-disabled] {
+        opacity: 0.45;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>base-toggle</h1>
+    <base-toggle id="bold-toggle">Bold</base-toggle>
+    <base-toggle pressed>Already pressed</base-toggle>
+    <base-toggle disabled>Disabled</base-toggle>
+
+    <p id="log">Toggle Bold to see event output.</p>
+
+    <script type="module">
+      const toggle = document.querySelector('#bold-toggle')
+      const log = document.querySelector('#log')
+
+      toggle.onbaseUIPressedChange = null
+      toggle.addEventListener('base-ui:pressed-change', (event) => {
+        log.textContent = `Pressed: ${event.detail.pressed}`
+      })
+    </script>
+  </body>
+</html>

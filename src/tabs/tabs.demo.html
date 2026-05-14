@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>base-tabs demo</title>
+    <script>
+      (() => {
+        const media = matchMedia("(prefers-color-scheme: dark)")
+        const syncTheme = () => {
+          document.documentElement.dataset.theme = media.matches ? "dark" : "light"
+        }
+
+        syncTheme()
+        media.addEventListener("change", syncTheme)
+      })()
+    </script>
+    <script type="module" src="./define.js"></script>
+    <style>
+      :root { color-scheme: light dark; }
+      :root[data-theme="light"] { color-scheme: light; }
+      :root[data-theme="dark"] { color-scheme: dark; }
+
+      body {
+        background: canvas;
+        color: canvastext;
+        font-family: system-ui, sans-serif;
+        margin: 2rem;
+      }
+
+      base-tabs-list {
+        border-bottom: 1px solid color-mix(in oklch, canvastext 20%, transparent);
+        display: flex;
+        gap: 0.25rem;
+      }
+
+      base-tab {
+        border-radius: 0.5rem 0.5rem 0 0;
+        cursor: default;
+        display: inline-flex;
+        padding: 0.5rem 0.75rem;
+        user-select: none;
+      }
+
+      base-tab:focus-visible {
+        outline: 2px solid Highlight;
+        outline-offset: 2px;
+      }
+
+      base-tab[data-active] {
+        background: canvastext;
+        color: canvas;
+      }
+
+      base-tab[data-disabled] {
+        opacity: 0.45;
+      }
+
+      base-tabs-panel {
+        display: block;
+        padding: 1rem 0;
+      }
+
+      base-tabs-panel[hidden] {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>base-tabs</h1>
+
+    <base-tabs value="account">
+      <base-tabs-list aria-label="Settings sections">
+        <base-tab value="account">Account</base-tab>
+        <base-tab value="security">Security</base-tab>
+        <base-tab value="billing" disabled>Billing</base-tab>
+      </base-tabs-list>
+
+      <base-tabs-panel value="account">Account settings</base-tabs-panel>
+      <base-tabs-panel value="security">Security settings</base-tabs-panel>
+      <base-tabs-panel value="billing">Billing settings</base-tabs-panel>
+    </base-tabs>
+  </body>
+</html>

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>standalone shadcn-separator demo</title>
+    <script>
+      (() => {
+        const media = matchMedia("(prefers-color-scheme: dark)")
+        const syncTheme = () => {
+          document.documentElement.dataset.theme = media.matches ? "dark" : "light"
+        }
+
+        syncTheme()
+        media.addEventListener("change", syncTheme)
+      })()
+    </script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/subtleGradient/web-native@web-native-shadcn-components/src/shadcn/themes/neutral.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/subtleGradient/web-native@web-native-shadcn-components/src/shadcn/styles/base-nova.css" />
+    <script type="importmap">{ "imports": { "web-native/": "https://cdn.jsdelivr.net/gh/subtleGradient/web-native@web-native-shadcn-components/src/" } }</script>
+    <script type="module">
+      import "web-native/shadcn/separator/define.js"
+      await customElements.whenDefined("shadcn-separator")
+      Reflect.set(globalThis, "__webNativeStandaloneDemoReady", true)
+    </script>
+    <style>body { margin: 2rem; } main { display: grid; gap: 1rem; max-width: 40rem; } .row { align-items: center; display: flex; gap: 1rem; min-height: 4rem; }</style>
+  </head>
+  <body>
+    <main>
+      <h1>standalone shadcn-separator</h1>
+      <p>Open this file directly. CSS and ESM load from GitHub through jsDelivr.</p>
+      <span>Above</span>
+      <shadcn-separator></shadcn-separator>
+      <span>Below</span>
+      <div class="row"><span>Left</span><shadcn-separator orientation="vertical"></shadcn-separator><span>Right</span></div>
+    </main>
+  </body>
+</html>

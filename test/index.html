@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>web-native tests</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/node_modules/mocha/mocha.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "chai": "/node_modules/chai/index.js",
+          "web-native/": "/src/"
+        }
+      }
+    </script>
+    <script src="/node_modules/mocha/mocha.js"></script>
+    <script src="/node_modules/axe-core/axe.min.js"></script>
+  </head>
+  <body>
+    <main id="mocha"></main>
+    <script type="module" src="./setup.js"></script>
+  </body>
+</html>

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>base-switch demo</title>
+    <script>
+      (() => {
+        const media = matchMedia("(prefers-color-scheme: dark)")
+        const syncTheme = () => {
+          document.documentElement.dataset.theme = media.matches ? "dark" : "light"
+        }
+
+        syncTheme()
+        media.addEventListener("change", syncTheme)
+      })()
+    </script>
+    <script type="module" src="./define.js"></script>
+    <style>
+      :root { color-scheme: light dark; }
+      :root[data-theme="light"] { color-scheme: light; }
+      :root[data-theme="dark"] { color-scheme: dark; }
+
+      body {
+        background: Canvas;
+        color: CanvasText;
+        font-family: system-ui, sans-serif;
+        margin: 2rem;
+      }
+
+      main {
+        display: grid;
+        gap: 1rem;
+        max-width: 32rem;
+      }
+
+      base-switch {
+        align-items: center;
+        border: 1px solid CanvasText;
+        border-radius: 999px;
+        display: inline-flex;
+        gap: 0.5rem;
+        min-height: 2rem;
+        padding: 0.25rem 0.75rem;
+        width: fit-content;
+      }
+
+      base-switch:focus-visible {
+        outline: 2px solid Highlight;
+        outline-offset: 2px;
+      }
+
+      base-switch[data-active] {
+        transform: translateY(1px);
+      }
+
+      base-switch[data-checked] {
+        background: Highlight;
+        color: HighlightText;
+      }
+
+      base-switch[data-disabled] {
+        opacity: 0.5;
+      }
+
+      #event-log {
+        color: GrayText;
+        min-height: 1.5rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>base-switch</h1>
+      <base-switch id="alerts">Security alerts</base-switch>
+      <base-switch checked>Sync enabled</base-switch>
+      <base-switch disabled>Disabled option</base-switch>
+      <p id="event-log" aria-live="polite"></p>
+    </main>
+
+    <script type="module">
+      const log = document.querySelector("#event-log")
+      document.querySelector("#alerts")?.addEventListener("base-ui:checked-change", (event) => {
+        log.textContent = `Checked: ${event.detail.checked}`
+      })
+    </script>
+  </body>
+</html>

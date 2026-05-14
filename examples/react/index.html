@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>React without a build step</title>
+    <link rel="icon" href="data:," />
+    <script>
+      (() => {
+        const media = matchMedia("(prefers-color-scheme: dark)")
+        const syncTheme = () => {
+          document.documentElement.dataset.theme = media.matches ? "dark" : "light"
+        }
+
+        syncTheme()
+        media.addEventListener("change", syncTheme)
+      })()
+    </script>
+    <link rel="stylesheet" href="./react-no-build.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero" aria-labelledby="title">
+        <span class="eyebrow">React ESM import maps</span>
+        <h1 id="title">React, no build step.</h1>
+        <p class="lead">
+          These standalone pages demonstrate the 2026 browser-native path: import-map React 19 from an ESM CDN, keep modules native, and transform JSX just in time in the browser when you want the old 2014 ergonomics back.
+        </p>
+      </section>
+
+      <section class="grid" aria-label="React no-build demos">
+        <a class="card" href="./inline-jsx.html">
+          <span class="pill">File-friendly</span>
+          <h2>Inline JSX</h2>
+          <p>One HTML file with an import map, React ESM, Babel standalone, and `data-type="module"`.</p>
+        </a>
+        <a class="card" href="./service-worker-jsx.html">
+          <span class="pill">HTTP server</span>
+          <h2>Multi-file JSX</h2>
+          <p>A service worker transforms `.jsx` modules in-browser so native ESM can import them directly.</p>
+        </a>
+        <a class="card" href="./deckgl-sqlite-opfs.html">
+          <span class="pill">No bundle</span>
+          <h2>React deck.gl OPFS</h2>
+          <p>DeckGL's React component renders SQLite-backed sites and cargo arcs from an OPFS worker.</p>
+        </a>
+      </section>
+
+      <section class="two-column" aria-labelledby="recipe-title">
+        <article class="demo-frame">
+          <h2 id="recipe-title">The recipe</h2>
+          <p>
+            Import maps resolve bare specifiers like <code>react</code>. Babel standalone transforms JSX. The transformed script runs as a native browser module because the script uses <code>data-type="module"</code>.
+          </p>
+          <pre><code>&lt;script type="importmap"&gt;
+{
+  "imports": {
+    "react": "https://esm.sh/react@19.2.0?dev",
+    "react/jsx-dev-runtime": "https://esm.sh/react@19.2.0/jsx-dev-runtime?dev",
+    "react/jsx-runtime": "https://esm.sh/react@19.2.0/jsx-runtime?dev",
+    "react-dom/client": "https://esm.sh/react-dom@19.2.0/client?dev"
+  }
+}
+&lt;/script&gt;
+&lt;script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.28.5/babel.min.js"&gt;&lt;/script&gt;
+&lt;script type="text/babel" data-type="module" data-presets="react-automatic"&gt;
+  import { createRoot } from "react-dom/client"
+  createRoot(root).render(&lt;h1&gt;Hello&lt;/h1&gt;)
+&lt;/script&gt;</code></pre>
+        </article>
+
+        <aside class="demo-frame" aria-labelledby="notes-title">
+          <h2 id="notes-title">2026 notes</h2>
+          <ul class="source-list">
+            <li>Import maps are native in modern Chromium, Firefox, and Safari.</li>
+            <li>React 19 no-build demos should use ESM CDN URLs rather than old UMD globals.</li>
+            <li>JSX is still syntax, not a browser feature, so the runtime transformer is the explicit tradeoff.</li>
+          </ul>
+        </aside>
+      </section>
+    </main>
+  </body>
+</html>

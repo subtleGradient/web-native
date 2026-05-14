@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>standalone shadcn-checkbox demo</title>
+    <script>
+      (() => {
+        const media = matchMedia("(prefers-color-scheme: dark)")
+        const syncTheme = () => {
+          document.documentElement.dataset.theme = media.matches ? "dark" : "light"
+        }
+
+        syncTheme()
+        media.addEventListener("change", syncTheme)
+      })()
+    </script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/subtleGradient/web-native@web-native-shadcn-components/src/shadcn/themes/neutral.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/subtleGradient/web-native@web-native-shadcn-components/src/shadcn/styles/base-nova.css" />
+    <script type="importmap">{ "imports": { "web-native/": "https://cdn.jsdelivr.net/gh/subtleGradient/web-native@web-native-shadcn-components/src/" } }</script>
+    <script type="module">
+      import "web-native/shadcn/checkbox/define.js"
+      await customElements.whenDefined("shadcn-checkbox")
+      Reflect.set(globalThis, "__webNativeStandaloneDemoReady", true)
+    </script>
+    <style>body { margin: 2rem; } main { display: grid; gap: 1rem; max-width: 40rem; } .row { align-items: center; display: flex; gap: 0.75rem; }</style>
+  </head>
+  <body>
+    <main>
+      <h1>standalone shadcn-checkbox</h1>
+      <p>Open this file directly. CSS and ESM load from GitHub through jsDelivr.</p>
+      <div class="row"><shadcn-checkbox aria-label="Accept terms"></shadcn-checkbox><span>Accept terms</span></div>
+      <div class="row"><shadcn-checkbox checked aria-label="Email updates"></shadcn-checkbox><span>Email updates</span></div>
+      <div class="row"><shadcn-checkbox indeterminate aria-label="Mixed projects"></shadcn-checkbox><span>Mixed projects</span></div>
+      <div class="row"><shadcn-checkbox disabled aria-label="Disabled option"></shadcn-checkbox><span>Disabled option</span></div>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>web-native dev</title>
+    <script>
+      (() => {
+        const media = matchMedia("(prefers-color-scheme: dark)")
+        const syncTheme = () => {
+          document.documentElement.dataset.theme = media.matches ? "dark" : "light"
+        }
+
+        syncTheme()
+        media.addEventListener("change", syncTheme)
+      })()
+    </script>
+    <link rel="stylesheet" href="/src/shadcn/themes/neutral.css" />
+    <link rel="stylesheet" href="/src/shadcn/styles/base-nova.css" />
+    <style>
+      body {
+        margin: 0;
+      }
+
+      main {
+        display: grid;
+        gap: 2rem;
+        margin-inline: auto;
+        max-width: 64rem;
+        padding: clamp(1rem, 4vw, 3rem);
+      }
+
+      header {
+        display: grid;
+        gap: 0.5rem;
+      }
+
+      h1 {
+        font-size: clamp(2.5rem, 8vw, 5rem);
+        letter-spacing: -0.06em;
+        line-height: 0.9;
+        margin: 0;
+      }
+
+      p {
+        color: var(--muted-foreground);
+        margin: 0;
+        max-width: 42rem;
+      }
+
+      section {
+        display: grid;
+        gap: 0.75rem;
+      }
+
+      .link-grid {
+        display: grid;
+        gap: 0.75rem;
+        grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+      }
+
+      a {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-xl);
+        color: var(--foreground);
+        display: grid;
+        gap: 0.25rem;
+        padding: 1rem;
+        text-decoration: none;
+      }
+
+      a:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 35%, transparent);
+      }
+
+      a:hover {
+        background: var(--muted);
+      }
+
+      small {
+        color: var(--muted-foreground);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>web-native</h1>
+        <p>Development index for demos, composite examples, standalone fixtures, and the browser test harness.</p>
+      </header>
+
+      <section aria-labelledby="composite-title">
+        <h2 id="composite-title">Composite Examples</h2>
+        <div class="link-grid">
+          <a href="/examples/composite/settings-console.html"><strong>Settings console</strong><small>Multi-component shadcn composition</small></a>
+          <a href="/examples/composite/settings-console.standalone.html"><strong>Standalone settings console</strong><small>Loads CSS and ESM from GitHub</small></a>
+          <a href="/examples/deck-gl/cdn-scatterplot-inline.html"><strong>deck.gl CDN scatterplot</strong><small>Inline oninit and layer controls</small></a>
+          <a href="/examples/deck-gl/sqlite-opfs-bulk.html"><strong>deck.gl SQLite OPFS</strong><small>Persistent bulk upload and download</small></a>
+        </div>
+      </section>
+
+      <section aria-labelledby="component-title">
+        <h2 id="component-title">Component Demos</h2>
+        <div class="link-grid">
+          <a href="/src/shadcn/shadcn.demo.html"><strong>shadcn components</strong><small>Styled component overview</small></a>
+          <a href="/src/shadcn/shadcn.standalone.html"><strong>standalone shadcn components</strong><small>GitHub-linked styled overview</small></a>
+          <a href="/src/checkbox/checkbox.demo.html"><strong>base-checkbox</strong><small>Checkbox states and events</small></a>
+          <a href="/src/checkbox/checkbox.standalone.html"><strong>standalone base-checkbox</strong><small>GitHub-linked checkbox demo</small></a>
+          <a href="/src/switch/switch.demo.html"><strong>base-switch</strong><small>Switch states and events</small></a>
+          <a href="/src/switch/switch.standalone.html"><strong>standalone base-switch</strong><small>GitHub-linked switch demo</small></a>
+          <a href="/src/toggle/toggle.demo.html"><strong>base-toggle</strong><small>Toggle states and events</small></a>
+          <a href="/src/toggle/toggle.standalone.html"><strong>standalone base-toggle</strong><small>GitHub-linked toggle demo</small></a>
+          <a href="/src/tabs/tabs.demo.html"><strong>base-tabs</strong><small>Tabs keyboard behavior</small></a>
+          <a href="/src/tabs/tabs.standalone.html"><strong>standalone base-tabs</strong><small>GitHub-linked tabs demo</small></a>
+          <a href="/src/chat/chat.demo.html"><strong>chat transcript</strong><small>Topic transcript, summary, and message rendering</small></a>
+          <a href="/src/chat/chat.standalone.html"><strong>standalone chat transcript</strong><small>GitHub-linked transcript components</small></a>
+          <a href="/src/deck-gl/deck-gl.demo.html"><strong>deck-gl components</strong><small>Offline SVG renderer with inline handlers</small></a>
+          <a href="/src/separator/separator.demo.html"><strong>base-separator</strong><small>Separator orientations</small></a>
+          <a href="/src/separator/separator.standalone.html"><strong>standalone base-separator</strong><small>GitHub-linked separator demo</small></a>
+        </div>
+      </section>
+
+      <section aria-labelledby="shadcn-folder-title">
+        <h2 id="shadcn-folder-title">shadcn Folder Standalone Demos</h2>
+        <div class="link-grid">
+          <a href="/src/shadcn/button/button.standalone.html"><strong>shadcn-button</strong><small>GitHub-linked folder demo</small></a>
+          <a href="/src/shadcn/checkbox/checkbox.standalone.html"><strong>shadcn-checkbox</strong><small>GitHub-linked folder demo</small></a>
+          <a href="/src/shadcn/switch/switch.standalone.html"><strong>shadcn-switch</strong><small>GitHub-linked folder demo</small></a>
+          <a href="/src/shadcn/toggle/toggle.standalone.html"><strong>shadcn-toggle</strong><small>GitHub-linked folder demo</small></a>
+          <a href="/src/shadcn/tabs/tabs.standalone.html"><strong>shadcn-tabs</strong><small>GitHub-linked folder demo</small></a>
+          <a href="/src/shadcn/separator/separator.standalone.html"><strong>shadcn-separator</strong><small>GitHub-linked folder demo</small></a>
+          <a href="/src/shadcn/presentational/presentational.standalone.html"><strong>shadcn presentational</strong><small>GitHub-linked folder demo</small></a>
+        </div>
+      </section>
+
+      <section aria-labelledby="react-title">
+        <h2 id="react-title">React No-Build Research</h2>
+        <div class="link-grid">
+          <a href="/examples/react/"><strong>React no-build overview</strong><small>ESM CDN, import maps, and browser JSX transforms</small></a>
+          <a href="/examples/react/inline-jsx.html"><strong>Inline JSX transform</strong><small>Babel standalone with data-type module</small></a>
+          <a href="/examples/react/service-worker-jsx.html"><strong>Multi-file JSX transform</strong><small>Service worker transforms .jsx modules for native ESM</small></a>
+          <a href="/examples/react/deckgl-sqlite-opfs.html"><strong>React deck.gl SQLite OPFS</strong><small>No-bundle DeckGL component backed by SQLite Wasm OPFS</small></a>
+        </div>
+      </section>
+
+      <section aria-labelledby="fixture-title">
+        <h2 id="fixture-title">Fixtures</h2>
+        <div class="link-grid">
+          <a href="/examples/standalone/sqlite-wasm-cdn.html"><strong>SQLite Wasm CDN example</strong><small>Loads SQLite and sqlite3.wasm from jsDelivr</small></a>
+          <a href="/examples/standalone/shadcn-github.html"><strong>GitHub import-map fixture</strong><small>Loads modules through jsDelivr</small></a>
+          <a href="/test/"><strong>Browser test harness</strong><small>Mocha, Chai, axe, and Puppeteer target</small></a>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

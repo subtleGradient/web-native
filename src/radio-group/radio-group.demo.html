@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>base-radio-group demo</title>
+    <script type="module" src="./define.js"></script>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 2rem; }
+      main, form, base-radio-group { display: grid; gap: 1rem; max-width: 32rem; }
+      base-radio { border: 1px solid #d1d5db; border-radius: 999px; padding: 0.5rem 0.75rem; }
+      base-radio[aria-checked="true"] { background: #111827; color: white; }
+      base-radio:focus-visible { outline: 3px solid #93c5fd; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>base-radio-group</h1>
+      <form onsubmit="event.preventDefault(); result.textContent = new URLSearchParams(new FormData(event.currentTarget)).toString()">
+        <base-radio-group name="contact" value="email" required aria-label="Contact method">
+          <base-radio value="email">Email</base-radio>
+          <base-radio value="sms">SMS</base-radio>
+          <base-radio value="phone">Phone</base-radio>
+        </base-radio-group>
+        <button>Read FormData</button>
+      </form>
+      <output id="result"></output>
+    </main>
+  </body>
+</html>

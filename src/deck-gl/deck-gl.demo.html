@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>deck-gl component demo</title>
+    <script>
+      (() => {
+        const media = matchMedia("(prefers-color-scheme: dark)")
+        const syncTheme = () => {
+          document.documentElement.dataset.theme = media.matches ? "dark" : "light"
+        }
+
+        syncTheme()
+        media.addEventListener("change", syncTheme)
+      })()
+    </script>
+    <style>
+      :root { color-scheme: light dark; }
+      :root[data-theme="light"] { color-scheme: light; }
+      :root[data-theme="dark"] { color-scheme: dark; }
+
+      body {
+        background: Canvas;
+        color: CanvasText;
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        margin: 0;
+      }
+
+      main {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: minmax(0, 1fr) 20rem;
+        min-height: 100vh;
+        padding: clamp(1rem, 4vw, 2rem);
+      }
+
+      header,
+      aside {
+        display: grid;
+        gap: 1rem;
+      }
+
+      h1,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: clamp(2rem, 7vw, 4.5rem);
+        letter-spacing: -0.06em;
+        line-height: 0.9;
+      }
+
+      .muted {
+        color: color-mix(in oklch, CanvasText 62%, transparent);
+      }
+
+      .map-shell {
+        background: color-mix(in oklch, Canvas 88%, CanvasText 12%);
+        border: 1px solid color-mix(in oklch, CanvasText 16%, transparent);
+        border-radius: 1.5rem;
+        min-height: 34rem;
+        overflow: hidden;
+        position: relative;
+      }
+
+      deck-gl {
+        height: 100%;
+        min-height: 34rem;
+      }
+
+      .status {
+        background: color-mix(in oklch, Canvas 85%, CanvasText 15%);
+        border-radius: 999px;
+        bottom: 1rem;
+        color: CanvasText;
+        font-size: 0.875rem;
+        inset-inline: 1rem;
+        padding: 0.625rem 0.875rem;
+        position: absolute;
+      }
+
+      .panel {
+        background: color-mix(in oklch, Canvas 92%, CanvasText 8%);
+        border: 1px solid color-mix(in oklch, CanvasText 14%, transparent);
+        border-radius: 1rem;
+        padding: 1rem;
+      }
+
+      button {
+        background: CanvasText;
+        border: 0;
+        border-radius: 999px;
+        color: Canvas;
+        font: inherit;
+        padding: 0.625rem 0.875rem;
+      }
+
+      @media (max-width: 860px) {
+        main {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section>
+        <header>
+          <h1>Relief flights, no framework.</h1>
+          <p class="muted">A local SVG renderer stands in for deck.gl so the custom elements can be exercised offline. The layer setup and handlers live directly on the elements.</p>
+        </header>
+
+        <div class="map-shell">
+          <deck-gl
+            id="relief-deck"
+            controller
+            initial-view-state='{"longitude":-98,"latitude":39,"zoom":3}'
+            oninit="ReliefMap.init.call(this, event)"
+            onload="ReliefMap.setStatus('Renderer ready. Hover airports, routes, and weather cells.')"
+            onhover="ReliefMap.preview(event)"
+            ondeckclick="ReliefMap.pin(event)"
+            onviewstatechange="ReliefMap.syncView(event)"
+          ></deck-gl>
+          <p class="status" id="status" aria-live="polite">Loading map...</p>
+        </div>
+      </section>
+
+      <aside>
+        <section class="panel">
+          <deck-layer-list
+            label="Operational layers"
+            items='[
+              {"id":"regions","label":"Regions","visible":true,"swatch":"#94a3b8","count":4},
+              {"id":"weather","label":"Weather cells","visible":true,"swatch":"#38bdf8","count":3},
+              {"id":"routes","label":"Priority routes","visible":true,"swatch":"#f97316","count":6},
+              {"id":"airports","label":"Airports","visible":true,"swatch":"#22c55e","count":7}
+            ]'
+            onlayervisibilitychange="ReliefMap.setLayerVisible(event)"
+          ></deck-layer-list>
+        </section>
+
+        <deck-details-panel
+          for="relief-deck"
+          empty="Hover an airport, route, or storm cell."
+          ondetailschange="ReliefMap.describe(event)"
+        ></deck-details-panel>
+
+        <section class="panel">
+          <p class="muted">The button calls a domain method from markup and updates the existing deck instance through properties.</p>
+          <button onclick="ReliefMap.focusIncident()">Focus incident corridor</button>
+        </section>
+      </aside>
+    </main>
+
+    <script type="module">
+      class DemoLayer {
+        constructor(props) {
+          Object.assign(this, props)
+        }
+      }
+
+      class SvgDeck {
+        constructor(props) {
+          this.props = {}
+          this.parent = props.parent
+          this.svg = document.createElementNS("http://www.w3.org/2000/svg", "svg")
+          this.svg.setAttribute("viewBox", "0 0 1000 620")
+          this.svg.setAttribute("role", "img")
+          this.svg.setAttribute("aria-label", "Relief flight operations map")
+          this.svg.style.cssText = "display:block;width:100%;height:100%;background:linear-gradient(135deg,#0f172a,#172554 55%,#312e81);"
+          this.parent.append(this.svg)
+          this.svg.addEventListener("wheel", (event) => this.zoom(event), { passive: false })
+          this.setProps(props)
+          this.props.onLoad?.()
+        }
+
+        setProps(props) {
+          Object.assign(this.props, props)
+          this.draw()
+        }
+
+        redraw() {
+          this.draw()
+        }
+
+        finalize() {
+          this.svg.remove()
+        }
+
+        zoom(event) {
+          event.preventDefault()
+          const base = this.props.viewState ?? this.props.initialViewState ?? { zoom: 3 }
+          const previous = Number(base.zoom ?? 3)
+          const zoom = Math.max(1, Math.min(8, previous + (event.deltaY < 0 ? 0.4 : -0.4)))
+          const viewState = { ...base, zoom: Number(zoom.toFixed(1)) }
+          this.props.viewState = viewState
+          this.props.onViewStateChange?.({ viewState, oldViewState: base })
+        }
+
+        draw() {
+          this.svg.replaceChildren()
+          for (const layer of this.props.layers ?? []) {
+            if (layer.visible === false) continue
+            if (layer.type === "regions") this.drawRegions(layer)
+            if (layer.type === "weather") this.drawWeather(layer)
+            if (layer.type === "routes") this.drawRoutes(layer)
+            if (layer.type === "airports") this.drawAirports(layer)
+          }
+        }
+
+        drawRegions(layer) {
+          for (const region of layer.data) {
+            const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon")
+            polygon.setAttribute("points", region.points.map((point) => project(point).join(",")).join(" "))
+            polygon.setAttribute("fill", region.fill)
+            polygon.setAttribute("stroke", "rgba(255,255,255,.28)")
+            polygon.setAttribute("stroke-width", "2")
+            this.bindFeature(polygon, region, layer)
+            this.svg.append(polygon)
+          }
+        }
+
+        drawWeather(layer) {
+          for (const cell of layer.data) {
+            const [cx, cy] = project(cell.coordinates)
+            const ellipse = document.createElementNS("http://www.w3.org/2000/svg", "ellipse")
+            ellipse.setAttribute("cx", String(cx))
+            ellipse.setAttribute("cy", String(cy))
+            ellipse.setAttribute("rx", String(cell.radius[0]))
+            ellipse.setAttribute("ry", String(cell.radius[1]))
+            ellipse.setAttribute("fill", cell.fill)
+            ellipse.setAttribute("stroke", "rgba(125,211,252,.85)")
+            ellipse.setAttribute("stroke-width", "2")
+            this.bindFeature(ellipse, cell, layer)
+            this.svg.append(ellipse)
+          }
+        }
+
+        drawRoutes(layer) {
+          for (const route of layer.data) {
+            const source = airports.find((airport) => airport.code === route.source)
+            const target = airports.find((airport) => airport.code === route.target)
+            if (!source || !target) continue
+            const [sx, sy] = project(source.coordinates)
+            const [tx, ty] = project(target.coordinates)
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path")
+            const lift = Math.min(160, Math.hypot(tx - sx, ty - sy) * 0.25)
+            path.setAttribute("d", `M ${sx} ${sy} Q ${(sx + tx) / 2} ${Math.min(sy, ty) - lift} ${tx} ${ty}`)
+            path.setAttribute("fill", "none")
+            path.setAttribute("stroke", route.color)
+            path.setAttribute("stroke-linecap", "round")
+            path.setAttribute("stroke-width", String(2 + route.priority))
+            this.bindFeature(path, { ...route, name: `${route.source} to ${route.target}` }, layer)
+            this.svg.append(path)
+          }
+        }
+
+        drawAirports(layer) {
+          for (const airport of layer.data) {
+            const [cx, cy] = project(airport.coordinates)
+            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle")
+            circle.setAttribute("cx", String(cx))
+            circle.setAttribute("cy", String(cy))
+            circle.setAttribute("r", String(6 + airport.capacity / 12))
+            circle.setAttribute("fill", airport.status === "strained" ? "#facc15" : "#22c55e")
+            circle.setAttribute("stroke", "white")
+            circle.setAttribute("stroke-width", "2")
+            this.bindFeature(circle, airport, layer)
+            this.svg.append(circle)
+          }
+        }
+
+        bindFeature(node, object, layer) {
+          node.style.cursor = "default"
+          node.addEventListener("pointerenter", (event) => this.props.onHover?.({ object, layer, picked: true }, event))
+          node.addEventListener("pointerleave", (event) => this.props.onHover?.({ object: null, layer, picked: false }, event))
+          node.addEventListener("click", (event) => this.props.onClick?.({ object, layer, picked: true }, event))
+        }
+      }
+
+      const airports = [
+        { code: "SEA", name: "Seattle Field", coordinates: [-122.3, 47.6], capacity: 76, status: "stable" },
+        { code: "DEN", name: "Denver Hub", coordinates: [-104.9, 39.7], capacity: 88, status: "stable" },
+        { code: "MSP", name: "Twin Cities Depot", coordinates: [-93.2, 44.9], capacity: 58, status: "strained" },
+        { code: "DFW", name: "Dallas Staging", coordinates: [-97, 32.8], capacity: 91, status: "stable" },
+        { code: "ATL", name: "Atlanta Relief", coordinates: [-84.4, 33.6], capacity: 84, status: "stable" },
+        { code: "MIA", name: "Miami Medical", coordinates: [-80.2, 25.8], capacity: 49, status: "strained" },
+        { code: "JFK", name: "New York Intake", coordinates: [-73.8, 40.7], capacity: 67, status: "stable" },
+      ]
+
+      const routes = [
+        { source: "SEA", target: "DEN", priority: 2, cargo: "generators", color: "#fb923c" },
+        { source: "DEN", target: "DFW", priority: 3, cargo: "water", color: "#f97316" },
+        { source: "DFW", target: "ATL", priority: 4, cargo: "medical kits", color: "#ef4444" },
+        { source: "ATL", target: "MIA", priority: 3, cargo: "field beds", color: "#f97316" },
+        { source: "MSP", target: "JFK", priority: 2, cargo: "food pallets", color: "#fb923c" },
+        { source: "JFK", target: "ATL", priority: 1, cargo: "staff", color: "#fdba74" },
+      ]
+
+      const regions = [
+        { name: "Northwest corridor", fill: "rgba(148,163,184,.18)", points: [[-125, 49], [-111, 49], [-107, 42], [-119, 39], [-125, 44]] },
+        { name: "Central staging", fill: "rgba(99,102,241,.2)", points: [[-111, 45], [-91, 48], [-91, 34], [-106, 32], [-112, 38]] },
+        { name: "Southeast response", fill: "rgba(34,197,94,.16)", points: [[-92, 36], [-75, 38], [-78, 25], [-91, 25], [-99, 31]] },
+        { name: "Northeast intake", fill: "rgba(14,165,233,.16)", points: [[-86, 46], [-70, 45], [-67, 39], [-75, 36], [-91, 40]] },
+      ]
+
+      const weather = [
+        { name: "Icing watch", coordinates: [-96, 44], radius: [85, 45], severity: "moderate", fill: "rgba(56,189,248,.16)" },
+        { name: "Thunderstorm cell", coordinates: [-88, 31], radius: [90, 55], severity: "high", fill: "rgba(14,165,233,.24)" },
+        { name: "Crosswind band", coordinates: [-112, 37], radius: [75, 40], severity: "low", fill: "rgba(125,211,252,.14)" },
+      ]
+
+      const activeLayers = new Map([
+        ["regions", true],
+        ["weather", true],
+        ["routes", true],
+        ["airports", true],
+      ])
+
+      globalThis.ReliefMap = {
+        deckElement: null,
+        init(event) {
+          globalThis.ReliefMap.deckElement = this
+          this.deckConstructor = SvgDeck
+          this.getTooltip = ({ object }) => object?.name
+          this.layers = globalThis.ReliefMap.layers()
+        },
+        layers() {
+          return [
+            new DemoLayer({ id: "regions", type: "regions", data: regions, visible: activeLayers.get("regions") }),
+            new DemoLayer({ id: "weather", type: "weather", data: weather, visible: activeLayers.get("weather") }),
+            new DemoLayer({ id: "routes", type: "routes", data: routes, visible: activeLayers.get("routes") }),
+            new DemoLayer({ id: "airports", type: "airports", data: airports, visible: activeLayers.get("airports") }),
+          ]
+        },
+        setLayerVisible(event) {
+          activeLayers.set(event.detail.id, event.detail.visible)
+          this.deckElement.layers = this.layers()
+          this.setStatus(`${event.detail.item.label}: ${event.detail.visible ? "visible" : "hidden"}`)
+        },
+        preview(event) {
+          const object = event.detail.info.object
+          if (object) this.setStatus(`Hovering ${object.name}`)
+        },
+        pin(event) {
+          const object = event.detail.info.object
+          if (object) this.setStatus(`Pinned ${object.name}`)
+        },
+        describe(event) {
+          this.setStatus(`Details panel: ${event.detail.object.name}`)
+        },
+        syncView(event) {
+          this.setStatus(`Wheel zoom: ${event.detail.viewState.zoom}`)
+        },
+        focusIncident() {
+          this.deckElement.setProps({ viewState: { longitude: -88, latitude: 31, zoom: 5 } })
+          this.setStatus("Focused thunderstorm corridor")
+        },
+        setStatus(message) {
+          document.getElementById("status").textContent = message
+        },
+      }
+
+      function project([longitude, latitude]) {
+        return [(longitude + 128) * 16.2, (52 - latitude) * 22.5]
+      }
+
+      await import("./define.js")
+    </script>
+  </body>
+</html>

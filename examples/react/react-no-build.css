@@ -1,0 +1,329 @@
+:root,
+:root[data-theme="light"] {
+  color-scheme: light;
+  --background: oklch(0.985 0.006 95);
+  --foreground: oklch(0.18 0.02 255);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.02 255);
+  --muted: oklch(0.94 0.012 95);
+  --muted-foreground: oklch(0.46 0.02 255);
+  --border: oklch(0.86 0.018 95);
+  --accent: oklch(0.64 0.18 30);
+  --accent-foreground: oklch(0.99 0.01 95);
+  --code: oklch(0.23 0.025 255);
+  --code-foreground: oklch(0.96 0.01 95);
+  --ok: oklch(0.64 0.16 150);
+  --warn: oklch(0.72 0.16 80);
+  --ring: oklch(0.62 0.18 30);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --background: oklch(0.16 0.02 255);
+  --foreground: oklch(0.96 0.01 95);
+  --card: oklch(0.22 0.025 255);
+  --card-foreground: oklch(0.96 0.01 95);
+  --muted: oklch(0.28 0.025 255);
+  --muted-foreground: oklch(0.74 0.02 95);
+  --border: oklch(1 0 0 / 12%);
+  --accent: oklch(0.76 0.16 55);
+  --accent-foreground: oklch(0.18 0.02 255);
+  --code: oklch(0.1 0.012 255);
+  --code-foreground: oklch(0.94 0.01 95);
+  --ok: oklch(0.72 0.16 150);
+  --warn: oklch(0.8 0.15 80);
+  --ring: oklch(0.76 0.16 55);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background:
+    radial-gradient(circle at 12% 16%, color-mix(in oklch, var(--accent) 18%, transparent), transparent 30rem),
+    linear-gradient(135deg, var(--background), color-mix(in oklch, var(--background) 86%, var(--muted)));
+  color: var(--foreground);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.shell {
+  display: grid;
+  gap: clamp(1.25rem, 4vw, 2.5rem);
+  margin-inline: auto;
+  max-width: 76rem;
+  padding: clamp(1rem, 4vw, 3rem);
+}
+
+.hero {
+  display: grid;
+  gap: 0.875rem;
+  max-width: 62rem;
+}
+
+.eyebrow,
+.pill,
+.status {
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  padding: 0.42rem 0.62rem;
+  text-transform: uppercase;
+  width: fit-content;
+}
+
+.eyebrow {
+  background: color-mix(in oklch, var(--accent) 16%, transparent);
+  color: var(--accent);
+}
+
+.pill,
+.status {
+  background: var(--muted);
+  color: var(--muted-foreground);
+  letter-spacing: 0.04em;
+}
+
+.status[data-state="ready"] {
+  background: color-mix(in oklch, var(--ok) 18%, transparent);
+  color: var(--ok);
+}
+
+.status[data-state="working"] {
+  background: color-mix(in oklch, var(--warn) 18%, transparent);
+  color: var(--warn);
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: clamp(3rem, 9vw, 7rem);
+  letter-spacing: -0.085em;
+  line-height: 0.86;
+  max-width: 11ch;
+}
+
+h2 {
+  font-size: clamp(1.5rem, 4vw, 2.8rem);
+  letter-spacing: -0.055em;
+  line-height: 0.95;
+}
+
+h3 {
+  font-size: 1rem;
+}
+
+p,
+li {
+  color: var(--muted-foreground);
+  line-height: 1.65;
+}
+
+.lead {
+  font-size: clamp(1rem, 2vw, 1.22rem);
+  max-width: 58rem;
+}
+
+.grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+}
+
+.card,
+.demo-frame,
+.app-card {
+  background: color-mix(in oklch, var(--card) 92%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 1.35rem;
+  box-shadow: 0 1rem 3rem color-mix(in oklch, var(--foreground) 9%, transparent);
+}
+
+.card {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  text-decoration: none;
+}
+
+a.card:hover {
+  background: var(--muted);
+}
+
+a.card:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 36%, transparent);
+  outline: none;
+}
+
+.demo-frame {
+  display: grid;
+  gap: 1rem;
+  overflow: hidden;
+  padding: clamp(1rem, 3vw, 1.5rem);
+}
+
+.react-mount {
+  min-height: 20rem;
+}
+
+.app-card {
+  display: grid;
+  gap: 1rem;
+  padding: clamp(1rem, 3vw, 1.5rem);
+}
+
+.app-header,
+.toolbar,
+.row,
+.metric-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.app-header,
+.metric-row {
+  justify-content: space-between;
+}
+
+.button {
+  background: var(--accent);
+  border: 0;
+  border-radius: 999px;
+  color: var(--accent-foreground);
+  cursor: pointer;
+  font-weight: 800;
+  padding: 0.72rem 1rem;
+}
+
+.button.secondary {
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.button:active {
+  transform: translateY(1px);
+}
+
+.signal-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+}
+
+.signal {
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.875rem;
+}
+
+.signal strong,
+.metric strong {
+  color: var(--foreground);
+  font-size: 1.75rem;
+  letter-spacing: -0.055em;
+  line-height: 1;
+}
+
+.meter {
+  background: color-mix(in oklch, var(--muted-foreground) 18%, transparent);
+  border-radius: 999px;
+  height: 0.5rem;
+  overflow: hidden;
+}
+
+.meter span {
+  background: var(--accent);
+  border-radius: inherit;
+  display: block;
+  height: 100%;
+}
+
+.source-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+}
+
+.source-list li {
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 0.875rem;
+  list-style: none;
+  padding: 0.875rem;
+}
+
+code,
+pre {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+
+code {
+  background: var(--muted);
+  border-radius: 0.35rem;
+  color: var(--foreground);
+  padding: 0.1rem 0.25rem;
+}
+
+pre {
+  background: var(--code);
+  border-radius: 1rem;
+  color: var(--code-foreground);
+  margin: 0;
+  overflow-x: auto;
+  padding: 1rem;
+}
+
+.two-column {
+  align-items: start;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr) minmax(17rem, 0.5fr);
+}
+
+@media (max-width: 760px) {
+  .two-column {
+    grid-template-columns: 1fr;
+  }
+
+  .app-header,
+  .metric-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .button {
+    width: 100%;
+  }
+}

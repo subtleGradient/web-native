@@ -1,0 +1,83 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>chat transcript demo</title>
+<script type="module" src="./define.js"></script>
+
+<topic-transcript
+  data-index="001"
+  data-topic="demo"
+  data-start-message="0001"
+  data-end-message="0003"
+  data-message-count="3"
+>
+  <header>
+    <h1>001 Demo Topic</h1>
+    <p>Messages 0001 through 0003.</p>
+  </header>
+  <chat-summary
+    data-scope="previous"
+    data-previous-href="000-previous-demo.topic.htm"
+    data-previous-title="000 Previous Demo"
+  >
+    <p>
+      The earlier topic established that compact summaries should preserve
+      enough context for the next topic without copying the full previous
+      thread.
+    </p>
+  </chat-summary>
+  <chat-message
+    data-source="0001-user.md"
+    data-turn="1"
+    data-role="user"
+    data-created="2026-05-13T20:36:49.063Z"
+  >
+    <pre>
+# Can this render raw message innards?
+
+Please keep the source light, but make it readable.
+
+- preserve the raw text
+- render common Markdown
+- hide archival noise by default</pre
+    >
+  </chat-message>
+  <chat-message
+    data-source="0002-assistant.md"
+    data-turn="2"
+    data-role="assistant"
+    data-model="gpt-test"
+    data-created="2026-05-13T20:40:15.673Z"
+    data-channel="final"
+  >
+    <pre>
+Yes. Tables and code fences render too.
+
+Citation tokens render as compact source pills: citeturn289313search1turn289313search21
+
+| Surface | Behavior |
+|---|---|
+| `chat-message` | Renders one message body |
+| `chat-summary` | Renders compact previous context |
+| `topic-transcript` | Provides the transcript shell |
+
+```js
+customElements.define("chat-message", ChatMessage)
+```</pre
+    >
+  </chat-message>
+  <chat-message
+    data-source="0003-assistant.md"
+    data-turn="3"
+    data-role="assistant"
+    data-recipient="web.run"
+    data-content-type="code"
+    data-created="2026-05-13T20:41:02.000Z"
+  >
+    <pre>
+{"search_query":[{"q":"Hacker News Who is hiring May 2026 freelance contract remote developer"},{"q":"remote freelance accessibility audit website contractor job"}],"response_length":"medium"}</pre
+    >
+  </chat-message>
+</topic-transcript>
