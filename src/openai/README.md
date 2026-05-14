@@ -32,6 +32,18 @@ for await (const event of client.streamResponse({
 }
 ```
 
+Local function tools are registered as handlers and executed through async generators:
+
+```js
+client.registerTool("add", ({ a, b }) => Number(a) + Number(b))
+
+for await (const output of client.runToolCalls(toolCalls)) {
+  console.log(output)
+}
+```
+
+Realtime/WebSocket connections use `client.realtimeSocket()`, which wraps incoming messages as an async generator. Browser WebSockets cannot set arbitrary auth headers, so authenticated realtime sessions should be negotiated through the runner/broker.
+
 Broker and Codex modes are available when the page is launched with the local runner:
 
 ```sh

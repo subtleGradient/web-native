@@ -1,7 +1,7 @@
 // @ts-check
 
 import { expect } from "chai"
-import { OpenAIClient, buildEmbeddingRequest, buildImageRequest, buildTextRequest, extractImageBase64, extractOutputText } from "./client.js"
+import { OpenAIClient, buildEmbeddingRequest, buildImageRequest, buildTextRequest, extractImageBase64, extractOutputText, extractToolCalls } from "./client.js"
 import "./define.js"
 
 const html = String.raw
@@ -129,6 +129,38 @@ describe("openai browser client", () => {
     expect(await client.text("hello", { stream: false })).to.equal("proxied")
   })
 
+  it("runs function tool calls through registered handlers as an async generator", async () => {
+    const client = new OpenAIClient()
+    client.registerTool("add", (args) => Number(args.a) + Number(args.b))
+
+    const calls = extractToolCalls(JSON.stringify({
+      output: [{ type: "function_call", call_id: "call_1", name: "add", arguments: '{"a":2,"b":3}' }],
+    }))
+    const outputs = []
+    for await (const output of client.runToolCalls(calls)) outputs.push(output)
+
+    expect(outputs).to.deep.equal([
+      { type: "function_call_output", call_id: "call_1", output: "5" },
+    ])
+  })
+
+  it("wraps websocket messages as an async generator", async () => {
+    MockWebSocket.instances = []
+    const client = new OpenAIClient({ brokerUrl: "/broker" })
+    const socket = client.realtimeSocket({ WebSocketCtor: MockWebSocket })
+    const events = socket.events()
+    const nextEvent = events.next()
+
+    MockWebSocket.instances[0]?.emit("message", { data: '{"type":"ready"}' })
+    socket.send({ type: "ping" })
+
+    expect(await nextEvent).to.deep.equal({ value: { type: "ready" }, done: false })
+    expect(MockWebSocket.instances[0]?.url).to.equal("ws://localhost:4173/broker/realtime")
+    expect(MockWebSocket.instances[0]?.sent).to.deep.equal(['{"type":"ping"}'])
+    MockWebSocket.instances[0]?.emit("close", {})
+    expect(await events.next()).to.deep.equal({ value: undefined, done: true })
+  })
+
   it("drives one-off calls from form markup through openai-client", async () => {
     const root = mount(html`
       <openai-client id="ai" model="gpt-test"></openai-client>
@@ -159,6 +191,38 @@ describe("openai browser client", () => {
     expect(extractOutputText(JSON.stringify({ output: [{ content: [{ text: "json" }] }] }))).to.equal("json")
   })
 })
+
+class MockWebSocket extends EventTarget {
+  /** @type {MockWebSocket[]} */
+  static instances = []
+
+  /** @type {string[]} */
+  sent = []
+
+  /** @param {string | URL} url */
+  constructor(url) {
+    super()
+    this.url = String(url)
+    MockWebSocket.instances.push(this)
+  }
+
+  /** @param {string} value */
+  send(value) {
+    this.sent.push(value)
+  }
+
+  close() {
+    this.emit("close", {})
+  }
+
+  /**
+   * @param {string} type
+   * @param {Record<string, unknown>} init
+   */
+  emit(type, init) {
+    this.dispatchEvent(new MessageEvent(type, init))
+  }
+}
 
 /** @param {string} markup */
 function mount(markup) {
