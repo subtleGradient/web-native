@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "description": "Generic universal web-native ESM modules and custom elements.",
+  "bin": {
+    "web-native-openai": "./src/openai/scripts/openai-runner.ts"
+  },
   "scripts": {
     "check": "tsgo --noEmit",
     "dev": "bun run scripts/serve.ts",

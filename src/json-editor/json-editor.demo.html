@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>JSON editor demo</title>
+    <script type="module" src="./define.js"></script>
+    <style>
+      :root { color-scheme: light dark; }
+      body {
+        background: color-mix(in oklch, Canvas 95%, CanvasText 5%);
+        color: CanvasText;
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        line-height: 1.5;
+        margin: 0;
+      }
+      main {
+        display: grid;
+        gap: 1rem;
+        margin-inline: auto;
+        max-inline-size: 54rem;
+        padding: clamp(1rem, 4vw, 3rem);
+      }
+      form {
+        background: Canvas;
+        border: 1px solid color-mix(in oklch, CanvasText 14%, transparent);
+        border-radius: 1rem;
+        display: grid;
+        gap: 1rem;
+        padding: 1rem;
+      }
+      label { display: grid; gap: 0.45rem; font-weight: 650; }
+      button {
+        background: Highlight;
+        border: 1px solid Highlight;
+        border-radius: 0.5rem;
+        color: HighlightText;
+        font: inherit;
+        font-weight: 750;
+        padding: 0.6rem 0.8rem;
+        width: fit-content;
+      }
+      output {
+        border: 1px solid color-mix(in oklch, CanvasText 14%, transparent);
+        border-radius: 0.75rem;
+        font: 0.875rem/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        min-block-size: 3rem;
+        padding: 0.75rem;
+        white-space: pre-wrap;
+      }
+    </style>
+    <script type="application/schema+json" id="settings-schema">
+{
+  "$id": "https://example.test/settings.schema.json",
+  "type": "object",
+  "required": ["name", "enabled", "rules"],
+  "properties": {
+    "name": { "type": "string", "minLength": 1 },
+    "enabled": { "type": "boolean" },
+    "mode": { "enum": ["preview", "live"] },
+    "rules": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/rule" }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "rule": {
+      "type": "object",
+      "required": ["field", "operator", "value"],
+      "properties": {
+        "field": { "type": "string" },
+        "operator": { "enum": ["equals", "contains", "starts_with"] },
+        "value": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  }
+}
+    </script>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>JSON editor</h1>
+        <p>A textarea-first custom element with schema-aware tree editing.</p>
+      </header>
+
+      <form onsubmit="event.preventDefault(); result.value = new FormData(this).get('settings')">
+        <label>
+          Settings JSON
+          <json-editor schema="#settings-schema">
+            <textarea name="settings">{
+  "name": "Demo",
+  "enabled": true,
+  "mode": "preview",
+  "rules": [
+    { "field": "title", "operator": "contains", "value": "native" }
+  ]
+}</textarea>
+          </json-editor>
+        </label>
+        <button>Read FormData</button>
+      </form>
+
+      <output id="result"></output>
+    </main>
+  </body>
+</html>

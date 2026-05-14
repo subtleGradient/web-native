@@ -15,5 +15,5 @@
     },
     "types": ["bun", "chai", "mocha"]
   },
-  "include": ["scripts/**/*.ts", "src/**/*.js", "test/**/*.js"]
+  "include": ["scripts/**/*.ts", "src/**/*.js", "src/**/*.ts", "test/**/*.js"]
 }

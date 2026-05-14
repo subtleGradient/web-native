@@ -1,0 +1,56 @@
+<!doctype html>
+<!--
+Run from GitHub with the local broker/static runner:
+bunx --bun -p https://github.com/subtleGradient/web-native/archive/refs/heads/add-json-editor-component.tar.gz web-native-openai src/openai/openai.standalone.html
+
+Or open this file directly for API-key direct mode. Broker and Codex modes require the runner.
+Security: only run demos you trust. API keys entered here are visible to this page's JavaScript.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>standalone OpenAI BYOK demo</title>
+    <script>
+      (() => {
+        const media = matchMedia("(prefers-color-scheme: dark)")
+        const syncTheme = () => {
+          document.documentElement.dataset.theme = media.matches ? "dark" : "light"
+        }
+
+        syncTheme()
+        media.addEventListener("change", syncTheme)
+      })()
+    </script>
+    <script type="module" src="https://cdn.jsdelivr.net/gh/subtleGradient/web-native@add-json-editor-component/src/openai/define.js"></script>
+    <style>
+      :root { color-scheme: light dark; }
+      :root[data-theme="light"] { color-scheme: light; }
+      :root[data-theme="dark"] { color-scheme: dark; }
+      body { background: Canvas; color: CanvasText; font-family: system-ui, sans-serif; margin: 2rem; }
+      main { display: grid; gap: 1rem; max-width: 42rem; }
+      form { display: grid; gap: 0.75rem; }
+      textarea { min-height: 8rem; }
+      input, textarea, button { font: inherit; padding: 0.6rem; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Standalone OpenAI BYOK</h1>
+      <p>This page loads the web components from GitHub and uses direct OpenAI API-key auth.</p>
+      <openai-client id="ai" model="gpt-5.5"></openai-client>
+      <openai-key-field target="ai"></openai-key-field>
+      <form onsubmit="ai.respond(event)">
+        <textarea name="prompt">Say hello from a standalone page.</textarea>
+        <button>Ask</button>
+      </form>
+      <openai-result for="ai"></openai-result>
+    </main>
+    <script type="module">
+      await customElements.whenDefined("openai-client")
+      Reflect.set(globalThis, "__webNativeStandaloneDemoReady", true)
+    </script>
+  </body>
+</html>
