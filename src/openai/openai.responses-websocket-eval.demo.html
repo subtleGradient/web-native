@@ -221,7 +221,8 @@ iframe with a worker timeout, but only run demos you trust and review tool calls
         tools: document.querySelector("#tools"),
       }
 
-      const workerSource = String.raw`
+      const js = String.raw
+      const workerSource = js`
         function serialize(value) {
           if (value === undefined) return "undefined"
           if (typeof value === "bigint") return String(value) + "n"
@@ -282,6 +283,7 @@ iframe with a worker timeout, but only run demos you trust and review tool calls
         socket: undefined,
         latestResponseId: undefined,
         handledCallIds: new Set(),
+        pendingOutputItems: [],
         pendingSandbox: new Map(),
         sandboxWindow: undefined,
 
@@ -361,6 +363,10 @@ iframe with a worker timeout, but only run demos you trust and review tool calls
             this.logTool("arguments done", pick(event, ["item_id", "arguments"]))
             return
           }
+          if (event.type === "response.output_item.done" && isRecord(event.item)) {
+            this.pendingOutputItems.push(event.item)
+            return
+          }
           if (event.type === "response.completed" && isRecord(event.response)) {
             await this.handleCompletedResponse(event.response)
           }
@@ -368,9 +374,11 @@ iframe with a worker timeout, but only run demos you trust and review tool calls
 
         async handleCompletedResponse(response) {
           if (typeof response.id === "string") this.latestResponseId = response.id
-          this.appendReasoningSummaries(response)
+          const items = distinctItems([...this.pendingOutputItems, ...outputItems(response)])
+          this.pendingOutputItems = []
+          this.appendReasoningSummaries(items)
 
-          const calls = outputItems(response).filter((item) => item.type === "function_call" && typeof item.call_id === "string" && !this.handledCallIds.has(item.call_id))
+          const calls = items.filter((item) => item.type === "function_call" && typeof item.call_id === "string" && !this.handledCallIds.has(item.call_id))
           if (calls.length === 0) {
             this.status("complete")
             return
@@ -444,7 +452,7 @@ iframe with a worker timeout, but only run demos you trust and review tool calls
         },
 
         appendReasoningSummaries(response) {
-          for (const item of outputItems(response)) {
+          for (const item of response) {
             if (item.type !== "reasoning" || !Array.isArray(item.summary)) continue
             for (const part of item.summary) {
               if (isRecord(part) && typeof part.text === "string") els.reasoning.textContent += part.text + "\n\n"
@@ -455,6 +463,7 @@ iframe with a worker timeout, but only run demos you trust and review tool calls
         clearOutput() {
           for (const element of [els.answer, els.events, els.reasoning, els.tools]) element.textContent = ""
           this.handledCallIds.clear()
+          this.pendingOutputItems = []
         },
 
         logEvent(event) {
@@ -537,7 +546,7 @@ iframe with a worker timeout, but only run demos you trust and review tool calls
           };
           parent.postMessage({ type: "web_native.eval.ready" }, "*");
         `
-        return `<!doctype html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' blob:; worker-src blob:; style-src 'unsafe-inline'"><style>html,body{background:#080b12;color:#b9ffd8;font:12px ui-monospace,monospace;margin:0;padding:0.75rem}</style><body>sandbox worker ready<script>${script}<\/script>`
+        return `<!doctype html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' blob:; worker-src blob:; style-src 'unsafe-inline'"><style>html,body{background:#080b12;color:#b9ffd8;font:12px ui-monospace,monospace;margin:0;padding:0.75rem}</style><body>sandbox worker ready<script>${script}<\/script>`
       }
 
       function waitForOpen(socket) {
@@ -553,6 +562,16 @@ iframe with a worker timeout, but only run demos you trust and review tool calls
 
       function outputItems(response) {
         return Array.isArray(response.output) ? response.output.filter(isRecord) : []
+      }
+
+      function distinctItems(items) {
+        const seen = new Set()
+        return items.filter((item) => {
+          const key = typeof item.id === "string" ? item.id : JSON.stringify(item)
+          if (seen.has(key)) return false
+          seen.add(key)
+          return true
+        })
       }
 
       function textField(data, name) {

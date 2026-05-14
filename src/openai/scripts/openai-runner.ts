@@ -19,6 +19,7 @@ const DEFAULT_DEMO_PATH = "src/openai/openai.demo.html"
 const OPENAI_API_BASE_URL = "https://api.openai.com/v1"
 const OPENAI_RESPONSES_WS_URL = "wss://api.openai.com/v1/responses"
 const CODEX_RESPONSES_URL = "https://chatgpt.com/backend-api/codex/responses"
+const CODEX_RESPONSES_WS_URL = "wss://chatgpt.com/backend-api/codex/responses"
 const CODEX_EMBEDDINGS_URL = "https://chatgpt.com/backend-api/codex/embeddings"
 const AUTH_URL = "https://auth.openai.com/oauth/token"
 const OPENAI_OAUTH_CLIENT_ID = "app_EMoamEEZ73f0CkXaXp7hrann"
@@ -83,7 +84,7 @@ async function handleFetch(request: Request) {
 function handleResponsesWebSocket(request: Request) {
   const upgraded = server.upgrade(request, {
     data: {
-      apiKey: request.headers.get("x-openai-api-key") ?? process.env.OPENAI_API_KEY,
+      apiKey: request.headers.get("x-openai-api-key") ?? undefined,
       organization: request.headers.get("openai-organization") ?? process.env.OPENAI_ORGANIZATION,
       project: request.headers.get("openai-project") ?? process.env.OPENAI_PROJECT,
       queue: [],
@@ -123,9 +124,9 @@ async function connectResponsesUpstream(ws: ServerWebSocket<ResponsesRelayData>,
 }
 
 async function connectResponsesUpstreamOnce(ws: ServerWebSocket<ResponsesRelayData>, data: ResponsesRelayData) {
-  let headers: Record<string, string>
+  let upstreamOptions: { headers: Record<string, string>, url: string }
   try {
-    headers = await responsesRelayHeaders(data)
+    upstreamOptions = await responsesRelayConnection(data)
   } catch (error) {
     ws.send(JSON.stringify({
       type: "error",
@@ -140,8 +141,8 @@ async function connectResponsesUpstreamOnce(ws: ServerWebSocket<ResponsesRelayDa
     return
   }
 
-  const upstream = new WebSocket(OPENAI_RESPONSES_WS_URL, {
-    headers,
+  const upstream = new WebSocket(upstreamOptions.url, {
+    headers: upstreamOptions.headers,
   } as unknown as string | string[])
   data.upstream = upstream
 
@@ -157,18 +158,35 @@ async function connectResponsesUpstreamOnce(ws: ServerWebSocket<ResponsesRelayDa
     if (data.closed) return
     ws.send(JSON.stringify({ type: "error", error: { message: "Responses WebSocket relay upstream error" }, status: 502 }))
   })
-  upstream.addEventListener("close", () => {
+  upstream.addEventListener("close", (event) => {
+    if (!data.closed && event.code !== 1000) {
+      ws.send(JSON.stringify({
+        type: "error",
+        status: 502,
+        error: {
+          message: `Responses WebSocket upstream closed: ${event.code}${event.reason ? ` ${event.reason}` : ""}`,
+        },
+      }))
+    }
     if (!data.closed) ws.close()
   })
 }
 
-async function responsesRelayHeaders(data: ResponsesRelayData) {
-  if (data.apiKey) return openAIAuthHeaders({ apiKey: data.apiKey, organization: data.organization, project: data.project })
+async function responsesRelayConnection(data: ResponsesRelayData) {
+  if (data.apiKey) {
+    return {
+      headers: openAIAuthHeaders({ apiKey: data.apiKey, organization: data.organization, project: data.project }),
+      url: OPENAI_RESPONSES_WS_URL,
+    }
+  }
   try {
-    return await codexHeaders()
+    return { headers: await codexHeaders(), url: CODEX_RESPONSES_WS_URL }
   } catch (error) {
     if (!isCodexAuthNotFoundError(error)) throw error
-    return openAIAuthHeaders({ apiKey: process.env.OPENAI_API_KEY, organization: process.env.OPENAI_ORGANIZATION, project: process.env.OPENAI_PROJECT })
+    return {
+      headers: openAIAuthHeaders({ apiKey: process.env.OPENAI_API_KEY, organization: process.env.OPENAI_ORGANIZATION, project: process.env.OPENAI_PROJECT }),
+      url: OPENAI_RESPONSES_WS_URL,
+    }
   }
 }
 
