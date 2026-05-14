@@ -69,4 +69,10 @@ Local checkout usage:
 bun ./src/openai/scripts/openai-runner.ts src/openai/openai.demo.html
 ```
 
+Responses WebSocket Mode demo with sandboxed local `eval_js` tool:
+
+```sh
+bun ./src/openai/scripts/openai-runner.ts src/openai/openai.responses-websocket-eval.demo.html
+```
+
 The runner serves the demo from localhost and exposes guarded proxy endpoints under `/__web-native-openai`. `transport="api-key-broker"` uses `OPENAI_API_KEY` or an entered key. `transport="codex-broker"` reads OpenCode OAuth auth from `OPENCODE_AUTH_FILE`, `$XDG_DATA_HOME/opencode/auth.json`, or `~/.local/share/opencode/auth.json`.

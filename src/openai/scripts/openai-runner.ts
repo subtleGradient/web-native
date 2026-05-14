@@ -17,10 +17,21 @@ const HOST = "localhost"
 const DEFAULT_PORT = 4174
 const DEFAULT_DEMO_PATH = "src/openai/openai.demo.html"
 const OPENAI_API_BASE_URL = "https://api.openai.com/v1"
+const OPENAI_RESPONSES_WS_URL = "wss://api.openai.com/v1/responses"
 const CODEX_RESPONSES_URL = "https://chatgpt.com/backend-api/codex/responses"
 const CODEX_EMBEDDINGS_URL = "https://chatgpt.com/backend-api/codex/embeddings"
 const AUTH_URL = "https://auth.openai.com/oauth/token"
 const OPENAI_OAUTH_CLIENT_ID = "app_EMoamEEZ73f0CkXaXp7hrann"
+
+type ResponsesRelayData = {
+  apiKey?: string
+  closed?: boolean
+  connecting?: Promise<void>
+  organization?: string
+  project?: string
+  queue: string[]
+  upstream?: WebSocket
+}
 
 const packageRoot = path.resolve(fileURLToPath(new URL("../../..", import.meta.url)))
 const launchPath = resolveLaunchPath(process.argv[2] ?? DEFAULT_DEMO_PATH)
@@ -31,6 +42,10 @@ const server = Bun.serve({
   hostname: HOST,
   port,
   fetch: handleFetch,
+  websocket: {
+    message: handleWebSocketMessage,
+    close: handleWebSocketClose,
+  },
 })
 
 const launchUrl = `http://${HOST}:${server.port}/${path.relative(packageRoot, launchPath).split(path.sep).join("/")}?t=${encodeURIComponent(token)}`
@@ -49,6 +64,7 @@ async function handleFetch(request: Request) {
 
   if (url.pathname.startsWith("/__web-native-openai/")) {
     if (!authorized(request, url)) return new Response("Forbidden", { status: 403 })
+    if (url.pathname === "/__web-native-openai/api/responses/ws") return handleResponsesWebSocket(request)
     return handleBrokerFetch(request, url)
   }
 
@@ -62,6 +78,124 @@ async function handleFetch(request: Request) {
       "content-type": contentType(filePath),
     },
   })
+}
+
+function handleResponsesWebSocket(request: Request) {
+  const upgraded = server.upgrade(request, {
+    data: {
+      apiKey: request.headers.get("x-openai-api-key") ?? process.env.OPENAI_API_KEY,
+      organization: request.headers.get("openai-organization") ?? process.env.OPENAI_ORGANIZATION,
+      project: request.headers.get("openai-project") ?? process.env.OPENAI_PROJECT,
+      queue: [],
+    } satisfies ResponsesRelayData,
+  })
+  return upgraded ? undefined : new Response("WebSocket upgrade failed", { status: 400 })
+}
+
+function handleWebSocketMessage(ws: ServerWebSocket<ResponsesRelayData>, message: string | Buffer) {
+  const data = ws.data
+  const text = typeof message === "string" ? message : message.toString()
+  const control = parseRelayConnectMessage(text)
+  if (control !== undefined) {
+    if (typeof control.apiKey === "string" && control.apiKey.length > 0) data.apiKey = control.apiKey
+    if (typeof control.organization === "string" && control.organization.length > 0) data.organization = control.organization
+    if (typeof control.project === "string" && control.project.length > 0) data.project = control.project
+    void connectResponsesUpstream(ws, data)
+    return
+  }
+  sendOrQueueResponsesFrame(data, text)
+  void connectResponsesUpstream(ws, data)
+}
+
+function handleWebSocketClose(ws: ServerWebSocket<ResponsesRelayData>) {
+  const data = ws.data
+  data.closed = true
+  data.upstream?.close()
+}
+
+async function connectResponsesUpstream(ws: ServerWebSocket<ResponsesRelayData>, data: ResponsesRelayData) {
+  if (data.upstream !== undefined) return
+  if (data.connecting !== undefined) return data.connecting
+  data.connecting = connectResponsesUpstreamOnce(ws, data).finally(() => {
+    data.connecting = undefined
+  })
+  return data.connecting
+}
+
+async function connectResponsesUpstreamOnce(ws: ServerWebSocket<ResponsesRelayData>, data: ResponsesRelayData) {
+  let headers: Record<string, string>
+  try {
+    headers = await responsesRelayHeaders(data)
+  } catch (error) {
+    ws.send(JSON.stringify({
+      type: "error",
+      status: 401,
+      error: {
+        type: "authentication_error",
+        code: "missing_credentials",
+        message: error instanceof Error ? error.message : String(error),
+      },
+    }))
+    ws.close()
+    return
+  }
+
+  const upstream = new WebSocket(OPENAI_RESPONSES_WS_URL, {
+    headers,
+  } as unknown as string | string[])
+  data.upstream = upstream
+
+  upstream.addEventListener("open", () => {
+    const pending = data.queue.splice(0)
+    for (const frame of pending) upstream.send(frame)
+  })
+  upstream.addEventListener("message", (event) => {
+    if (data.closed) return
+    ws.send(typeof event.data === "string" ? event.data : String(event.data))
+  })
+  upstream.addEventListener("error", () => {
+    if (data.closed) return
+    ws.send(JSON.stringify({ type: "error", error: { message: "Responses WebSocket relay upstream error" }, status: 502 }))
+  })
+  upstream.addEventListener("close", () => {
+    if (!data.closed) ws.close()
+  })
+}
+
+async function responsesRelayHeaders(data: ResponsesRelayData) {
+  if (data.apiKey) return openAIAuthHeaders({ apiKey: data.apiKey, organization: data.organization, project: data.project })
+  try {
+    return await codexHeaders()
+  } catch (error) {
+    if (!isCodexAuthNotFoundError(error)) throw error
+    return openAIAuthHeaders({ apiKey: process.env.OPENAI_API_KEY, organization: process.env.OPENAI_ORGANIZATION, project: process.env.OPENAI_PROJECT })
+  }
+}
+
+function isCodexAuthNotFoundError(error: unknown) {
+  if (isRecord(error) && error.code === "ENOENT") return true
+  if (!(error instanceof Error)) return false
+  return error.message.startsWith("No OpenAI OAuth credentials") || error.message.startsWith("No usable OpenAI OAuth credentials")
+}
+
+function sendOrQueueResponsesFrame(data: ResponsesRelayData, frame: string) {
+  const upstream = data.upstream
+  if (upstream?.readyState === WebSocket.OPEN) {
+    upstream.send(frame)
+    return
+  }
+  data.queue.push(frame)
+}
+
+function parseRelayConnectMessage(text: string) {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(text)
+  } catch {
+    return undefined
+  }
+  if (!isRecord(parsed) || parsed.type !== "web_native.openai.relay.connect") return undefined
+  return parsed
 }
 
 async function handleBrokerFetch(request: Request, url: URL) {
@@ -104,16 +238,21 @@ async function proxyJson(request: Request, endpoint: string, headers: HeadersIni
 }
 
 function openAIHeaders(request: Request) {
-  const apiKey = request.headers.get("x-openai-api-key") ?? process.env.OPENAI_API_KEY
-  if (!apiKey) throw new Error("OPENAI_API_KEY is required for api-key broker calls")
+  return openAIAuthHeaders({
+    apiKey: request.headers.get("x-openai-api-key") ?? process.env.OPENAI_API_KEY,
+    organization: request.headers.get("openai-organization") ?? process.env.OPENAI_ORGANIZATION,
+    project: request.headers.get("openai-project") ?? process.env.OPENAI_PROJECT,
+  })
+}
+
+function openAIAuthHeaders(options: { apiKey?: string, organization?: string, project?: string }) {
+  if (!options.apiKey) throw new Error("OPENAI_API_KEY is required for api-key broker calls")
   const headers: Record<string, string> = {
-    authorization: `Bearer ${apiKey}`,
+    authorization: `Bearer ${options.apiKey}`,
     "content-type": "application/json",
   }
-  const organization = request.headers.get("openai-organization") ?? process.env.OPENAI_ORGANIZATION
-  const project = request.headers.get("openai-project") ?? process.env.OPENAI_PROJECT
-  if (organization) headers["OpenAI-Organization"] = organization
-  if (project) headers["OpenAI-Project"] = project
+  if (options.organization) headers["OpenAI-Organization"] = options.organization
+  if (options.project) headers["OpenAI-Project"] = options.project
   return headers
 }
 
