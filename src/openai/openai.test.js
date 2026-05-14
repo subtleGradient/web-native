@@ -64,6 +64,30 @@ describe("openai browser client", () => {
     expect(chunks.join("")).to.equal("ab")
   })
 
+  it("yields streamed response events before the response body closes", async () => {
+    /** @type {ReadableStreamDefaultController<Uint8Array> | undefined} */
+    let streamController
+    const encoder = new TextEncoder()
+    const client = new OpenAIClient({
+      apiKey: "sk-test",
+      fetchFn: async () => new Response(new ReadableStream({
+        start(controller) {
+          streamController = controller
+        },
+      }), { status: 200 }),
+    })
+    const events = client.streamResponse(buildTextRequest("go"))
+    const first = events.next()
+
+    streamController?.enqueue(encoder.encode('data: {"type":"response.output_text.delta","delta":"a"}\n'))
+
+    expect(await first).to.deep.equal({ value: { type: "response.output_text.delta", delta: "a" }, done: false })
+
+    streamController?.close()
+
+    expect(await events.next()).to.deep.equal({ value: undefined, done: true })
+  })
+
   it("builds image-generation tool requests and returns data URLs", async () => {
     const client = new OpenAIClient({
       apiKey: "sk-test",
@@ -129,25 +153,64 @@ describe("openai browser client", () => {
     expect(await client.text("hello", { stream: false })).to.equal("proxied")
   })
 
+  it("posts direct realtime session requests to OpenAI's plural endpoint", async () => {
+    const client = new OpenAIClient({
+      apiKey: "sk-test",
+      fetchFn: async (input) => {
+        expect(String(input)).to.equal("https://api.openai.com/v1/realtime/sessions")
+        return new Response(JSON.stringify({ client_secret: { value: "rt-test" } }), { status: 200 })
+      },
+    })
+
+    expect(await client.realtimeSession({ model: "gpt-realtime" })).to.deep.equal({ client_secret: { value: "rt-test" } })
+  })
+
+  it("forwards organization and project headers through broker transports", async () => {
+    const client = new OpenAIClient({
+      apiKey: "sk-test",
+      brokerUrl: "/broker",
+      organization: "org-test",
+      project: "proj-test",
+      transport: "api-key-broker",
+      fetchFn: async (input, init) => {
+        expect(String(input)).to.equal("/broker/api/responses")
+        const headers = headersRecord(init?.headers)
+        expect(headers["x-openai-api-key"]).to.equal("sk-test")
+        expect(headers["openai-organization"]).to.equal("org-test")
+        expect(headers["openai-project"]).to.equal("proj-test")
+        return new Response(JSON.stringify({ output_text: "proxied" }), { status: 200 })
+      },
+    })
+
+    expect(await client.text("hello", { stream: false })).to.equal("proxied")
+  })
+
   it("runs function tool calls through registered handlers as an async generator", async () => {
     const client = new OpenAIClient()
     client.registerTool("add", (args) => Number(args.a) + Number(args.b))
+    client.registerTool("noop", () => undefined)
 
     const calls = extractToolCalls(JSON.stringify({
-      output: [{ type: "function_call", call_id: "call_1", name: "add", arguments: '{"a":2,"b":3}' }],
+      output: [
+        { type: "function_call", call_id: "call_1", name: "add", arguments: '{"a":2,"b":3}' },
+        { type: "function_call", call_id: "call_2", name: "noop", arguments: "{}" },
+      ],
     }))
     const outputs = []
     for await (const output of client.runToolCalls(calls)) outputs.push(output)
 
     expect(outputs).to.deep.equal([
       { type: "function_call_output", call_id: "call_1", output: "5" },
+      { type: "function_call_output", call_id: "call_2", output: "null" },
     ])
   })
 
   it("wraps websocket messages as an async generator", async () => {
     MockWebSocket.instances = []
     const client = new OpenAIClient({ brokerUrl: "/broker" })
-    const socket = client.realtimeSocket({ WebSocketCtor: MockWebSocket })
+    expect(() => client.realtimeSocket({ WebSocketCtor: MockWebSocket })).to.throw("No default realtime WebSocket route")
+
+    const socket = client.realtimeSocket({ url: "ws://localhost:4173/realtime", WebSocketCtor: MockWebSocket })
     const events = socket.events()
     const nextEvent = events.next()
 
@@ -155,7 +218,7 @@ describe("openai browser client", () => {
     socket.send({ type: "ping" })
 
     expect(await nextEvent).to.deep.equal({ value: { type: "ready" }, done: false })
-    expect(MockWebSocket.instances[0]?.url).to.equal("ws://localhost:4173/broker/realtime")
+    expect(MockWebSocket.instances[0]?.url).to.equal("ws://localhost:4173/realtime")
     expect(MockWebSocket.instances[0]?.sent).to.deep.equal(['{"type":"ping"}'])
     MockWebSocket.instances[0]?.emit("close", {})
     expect(await events.next()).to.deep.equal({ value: undefined, done: true })
@@ -220,6 +283,67 @@ describe("openai browser client", () => {
       include: ["web_search_call.action.sources"],
       store: false,
     })
+  })
+
+  it("does not rebuild the OpenAI client when only the model attribute changes", () => {
+    const root = mount(html`<openai-client id="ai" model="gpt-first"></openai-client>`)
+    const controller = /** @type {import("./openai.js").OpenAIClientElement} */ (root.querySelector("openai-client"))
+    const fetchFn = async () => new Response(JSON.stringify({ output_text: "ok" }), { status: 200 })
+    controller.client.fetchFn = fetchFn
+    controller.client.auth = { type: "api-key", apiKey: "sk-test", organization: "org-test", project: "proj-test" }
+    controller.client.registerTool("keep", () => "kept")
+
+    controller.setAttribute("model", "gpt-second")
+
+    expect(controller.client.fetchFn).to.equal(fetchFn)
+    expect(controller.client.auth).to.deep.equal({ type: "api-key", apiKey: "sk-test", organization: "org-test", project: "proj-test" })
+    expect(controller.client.tools.has("keep")).to.equal(true)
+  })
+
+  it("keeps only the latest overlapping form submission result while busy tracks all in-flight work", async () => {
+    /** @type {Array<{ body: Record<string, unknown>, resolve: (response: Response) => void }>} */
+    const pending = []
+    /** @type {unknown[]} */
+    const results = []
+    /** @type {Array<{ busy: boolean, pending: number }>} */
+    const statuses = []
+    const root = mount(html`
+      <openai-client id="ai"></openai-client>
+      <form id="first" onsubmit="ai.respond(event)"><textarea name="prompt">first</textarea></form>
+      <form id="second" onsubmit="ai.respond(event)"><textarea name="prompt">second</textarea></form>
+    `)
+    const controller = /** @type {import("./openai.js").OpenAIClientElement} */ (root.querySelector("openai-client"))
+    controller.apiKey = "sk-test"
+    controller.client.fetchFn = async (_input, init) => new Promise((resolve) => {
+      pending.push({ body: /** @type {Record<string, unknown>} */ (JSON.parse(String(init?.body))), resolve })
+    })
+    controller.addEventListener("openai:result", (event) => results.push(/** @type {CustomEvent} */ (event).detail))
+    controller.addEventListener("openai:status", (event) => statuses.push(/** @type {CustomEvent} */ (event).detail))
+
+    const firstForm = /** @type {HTMLFormElement} */ (root.querySelector("#first"))
+    const secondForm = /** @type {HTMLFormElement} */ (root.querySelector("#second"))
+    firstForm.requestSubmit()
+    secondForm.requestSubmit()
+    await flushMicrotasks()
+
+    expect(pending.map((item) => item.body.input)).to.deep.equal([
+      [{ role: "user", content: [{ type: "input_text", text: "first" }] }],
+      [{ role: "user", content: [{ type: "input_text", text: "second" }] }],
+    ])
+
+    pending[1]?.resolve(new Response(JSON.stringify({ output_text: "second done" }), { status: 200 }))
+    await once(controller, "openai:result")
+
+    expect(controller.lastResult?.text).to.equal("second done")
+    expect(controller.busy).to.equal(true)
+
+    const idle = once(controller, "openai:status")
+    pending[0]?.resolve(new Response(JSON.stringify({ output_text: "first stale" }), { status: 200 }))
+    await idle
+
+    expect(controller.lastResult?.text).to.equal("second done")
+    expect(results).to.have.length(1)
+    expect(statuses.at(-1)).to.deep.equal({ busy: false, pending: 0 })
   })
 
   it("extracts output text from common streamed and JSON response shapes", () => {

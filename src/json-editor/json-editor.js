@@ -217,6 +217,9 @@ export class JsonEditor extends HTMLElement {
   /** @type {JsonEditorIssue | undefined} */
   #parseIssue
 
+  /** @type {JsonEditorIssue | undefined} */
+  #schemaIssue
+
   #refreshVersion = 0
 
   #validationVersion = 0
@@ -320,7 +323,7 @@ export class JsonEditor extends HTMLElement {
 
   /** @returns {JsonEditorIssue[]} */
   get issues() {
-    return this.#issues.map((issue) => ({ ...issue, path: [...issue.path], schemaPath: issue.schemaPath ? [...issue.schemaPath] : undefined }))
+    return this.#issues.map(copyIssue)
   }
 
   format() {
@@ -330,41 +333,53 @@ export class JsonEditor extends HTMLElement {
 
   /** @returns {Promise<JsonEditorValidationResult>} */
   async validate() {
+    const version = ++this.#validationVersion
+    const computed = await this.#computeValidation()
+    if (version !== this.#validationVersion) return cloneValidationResult(computed.validation)
+    return this.#applyValidation(computed)
+  }
+
+  /** @returns {Promise<{ parsedValue: JsonValue | undefined, parseIssue: JsonEditorIssue | undefined, validation: JsonEditorValidationResult }>} */
+  async #computeValidation() {
     const parsed = parseJson(this.value)
     if (!parsed.ok) {
       const issue = { message: parsed.error, path: [] }
-      this.#parsedValue = undefined
-      this.#parseIssue = issue
-      this.#issues = [issue]
-      const result = { valid: false, issues: this.issues, value: undefined }
-      this.#dispatchValidation(result)
-      return result
+      const issues = this.#schemaIssue ? [this.#schemaIssue, issue] : [issue]
+      return { parsedValue: undefined, parseIssue: issue, validation: { valid: false, issues: issues.map(copyIssue), value: undefined } }
     }
-
-    this.#parsedValue = parsed.value
-    this.#parseIssue = undefined
 
     let value = /** @type {unknown} */ (parsed.value)
     /** @type {JsonEditorIssue[]} */
-    let issues = []
+    const issues = this.#schemaIssue ? [this.#schemaIssue] : []
 
     if (this.#standardValidate) {
       try {
         const result = await this.#standardValidate(value)
         if (result && Array.isArray(result.issues) && result.issues.length > 0) {
-          issues = result.issues.map(standardIssueToJsonEditorIssue)
+          issues.push(...result.issues.map(standardIssueToJsonEditorIssue))
         } else if (result && "value" in result) {
           value = result.value
         }
       } catch (error) {
-        issues = [{ message: errorMessage(error), path: [] }]
+        issues.push({ message: errorMessage(error), path: [] })
       }
     } else if (this.#jsonSchema) {
-      issues = validateJsonSchema(parsed.value, this.#jsonSchema, this.#schemaContext)
+      issues.push(...validateJsonSchema(parsed.value, this.#jsonSchema, this.#schemaContext))
     }
 
-    this.#issues = issues
-    const validation = { valid: issues.length === 0, issues: this.issues, value }
+    return { parsedValue: parsed.value, parseIssue: undefined, validation: { valid: issues.length === 0, issues: issues.map(copyIssue), value } }
+  }
+
+  /** @param {{ parsedValue: JsonValue | undefined, parseIssue: JsonEditorIssue | undefined, validation: JsonEditorValidationResult }} computed */
+  #applyValidation(computed) {
+    this.#parsedValue = computed.parsedValue
+    this.#parseIssue = computed.parseIssue
+    this.#issues = computed.validation.issues.map(copyIssue)
+    const validation = {
+      valid: this.#issues.length === 0,
+      issues: this.issues,
+      value: computed.validation.value,
+    }
     this.#dispatchValidation(validation)
     return validation
   }
@@ -380,6 +395,7 @@ export class JsonEditor extends HTMLElement {
       this.#schemaContext = resolved.context
       this.#jsonSchema = resolved.jsonSchema
       this.#standardValidate = resolved.standardValidate
+      this.#schemaIssue = undefined
       this.dispatchEvent(new CustomEvent(eventNames.schemaLoad, {
         bubbles: true,
         composed: true,
@@ -390,6 +406,7 @@ export class JsonEditor extends HTMLElement {
       this.#schemaContext = createSchemaContext()
       this.#jsonSchema = undefined
       this.#standardValidate = undefined
+      this.#schemaIssue = { message: `Schema load failed: ${errorMessage(error)}`, path: [] }
       this.#dispatchError(error)
     }
 
@@ -519,8 +536,10 @@ export class JsonEditor extends HTMLElement {
   /** @param {boolean} render */
   async #validateAndMaybeRender(render) {
     const version = ++this.#validationVersion
-    const result = await this.validate()
-    if (version === this.#validationVersion && render && this.isConnected) this.#render()
+    const computed = await this.#computeValidation()
+    if (version !== this.#validationVersion) return cloneValidationResult(computed.validation)
+    const result = this.#applyValidation(computed)
+    if (render && this.isConnected) this.#render()
     return result
   }
 
@@ -648,9 +667,17 @@ async function resolveSchemaValue(schema, schemaTarget) {
   const standard = getStandardProps(schema)
   const standardValidate = typeof standard?.validate === "function" ? standard.validate : undefined
   const converted = standard?.jsonSchema ? convertStandardJsonSchema(standard, schemaTarget) : undefined
-  const jsonSchema = converted ?? (isRecord(schema) && !standard?.validate && !standard?.jsonSchema ? /** @type {JsonSchema} */ (schema) : undefined)
+  const rawJsonSchema = converted !== undefined ? converted : (!standard?.validate && !standard?.jsonSchema ? schema : undefined)
+  const jsonSchema = normalizeJsonSchema(rawJsonSchema)
   const context = jsonSchema ? await buildSchemaContext(jsonSchema, document.baseURI) : createSchemaContext()
   return { context, jsonSchema, standardValidate }
+}
+
+/** @param {unknown} schema */
+function normalizeJsonSchema(schema) {
+  if (schema === true) return /** @type {JsonSchema} */ ({})
+  if (schema === false) return /** @type {JsonSchema} */ ({ not: {} })
+  return isRecord(schema) ? /** @type {JsonSchema} */ (schema) : undefined
 }
 
 /**
@@ -677,7 +704,7 @@ function convertStandardJsonSchema(standard, schemaTarget) {
 async function schemaFromStringSource(source) {
   const text = source.trim()
   if (text === "") return undefined
-  if (text.startsWith("{") || text.startsWith("[")) return JSON.parse(text)
+  if (text.startsWith("{") || text.startsWith("[") || text === "true" || text === "false") return JSON.parse(text)
 
   const element = schemaElementFromSource(text)
   if (element) return JSON.parse(element.textContent ?? "")
@@ -1371,7 +1398,7 @@ function validateNumber(value, schema, path, schemaPath, issues) {
   if (typeof schema.maximum === "number" && value > schema.maximum) issues.push({ message: `Must be at most ${schema.maximum}.`, path, schemaPath: [...schemaPath, "maximum"] })
   if (typeof schema.exclusiveMinimum === "number" && value <= schema.exclusiveMinimum) issues.push({ message: `Must be greater than ${schema.exclusiveMinimum}.`, path, schemaPath: [...schemaPath, "exclusiveMinimum"] })
   if (typeof schema.exclusiveMaximum === "number" && value >= schema.exclusiveMaximum) issues.push({ message: `Must be less than ${schema.exclusiveMaximum}.`, path, schemaPath: [...schemaPath, "exclusiveMaximum"] })
-  if (typeof schema.multipleOf === "number" && schema.multipleOf !== 0 && value / schema.multipleOf % 1 !== 0) issues.push({ message: `Must be a multiple of ${schema.multipleOf}.`, path, schemaPath: [...schemaPath, "multipleOf"] })
+  if (typeof schema.multipleOf === "number" && schema.multipleOf !== 0 && !isJsonMultipleOf(value, schema.multipleOf)) issues.push({ message: `Must be a multiple of ${schema.multipleOf}.`, path, schemaPath: [...schemaPath, "multipleOf"] })
 }
 
 /**
@@ -1386,7 +1413,7 @@ function validateNumber(value, schema, path, schemaPath, issues) {
 function validateArray(value, schema, context, path, schemaPath, seen, issues) {
   if (typeof schema.minItems === "number" && value.length < schema.minItems) issues.push({ message: `Must contain at least ${schema.minItems} items.`, path, schemaPath: [...schemaPath, "minItems"] })
   if (typeof schema.maxItems === "number" && value.length > schema.maxItems) issues.push({ message: `Must contain at most ${schema.maxItems} items.`, path, schemaPath: [...schemaPath, "maxItems"] })
-  if (schema.uniqueItems === true && new Set(value.map((item) => JSON.stringify(item))).size !== value.length) issues.push({ message: "Items must be unique.", path, schemaPath: [...schemaPath, "uniqueItems"] })
+  if (schema.uniqueItems === true && hasDuplicateJsonValues(value)) issues.push({ message: "Items must be unique.", path, schemaPath: [...schemaPath, "uniqueItems"] })
 
   value.forEach((item, index) => {
     const childSchema = schemaForArrayItem(schema, index, context)
@@ -1614,9 +1641,48 @@ function isPlainObject(value) {
 /**
  * @param {unknown} left
  * @param {unknown} right
+ * @returns {boolean}
  */
 function deepEqual(left, right) {
-  return JSON.stringify(left) === JSON.stringify(right)
+  if (Object.is(left, right)) return true
+  if (Array.isArray(left) || Array.isArray(right)) {
+    if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) return false
+    return left.every((item, index) => deepEqual(item, right[index]))
+  }
+  if (isRecord(left) || isRecord(right)) {
+    if (!isRecord(left) || !isRecord(right)) return false
+    const leftKeys = Object.keys(left)
+    const rightKeys = Object.keys(right)
+    if (leftKeys.length !== rightKeys.length) return false
+    return leftKeys.every((key) => Object.hasOwn(right, key) && deepEqual(left[key], right[key]))
+  }
+  return false
+}
+
+/** @param {JsonValue[]} value */
+function hasDuplicateJsonValues(value) {
+  return value.some((item, index) => value.slice(index + 1).some((other) => deepEqual(item, other)))
+}
+
+/**
+ * @param {number} value
+ * @param {number} multipleOf
+ */
+function isJsonMultipleOf(value, multipleOf) {
+  const quotient = value / multipleOf
+  if (!Number.isFinite(quotient)) return false
+  const nearestInteger = Math.round(quotient)
+  return Math.abs(quotient - nearestInteger) <= 1e-12 * Math.max(1, Math.abs(quotient))
+}
+
+/** @param {JsonEditorIssue} issue */
+function copyIssue(issue) {
+  return { ...issue, path: [...issue.path], schemaPath: issue.schemaPath ? [...issue.schemaPath] : undefined }
+}
+
+/** @param {JsonEditorValidationResult} validation */
+function cloneValidationResult(validation) {
+  return { valid: validation.valid, issues: validation.issues.map(copyIssue), value: validation.value }
 }
 
 /** @param {Array<string | number>} path */

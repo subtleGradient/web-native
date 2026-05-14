@@ -96,6 +96,10 @@ export class OpenAIClientElement extends HTMLElement {
 
   busy = false
 
+  #runSequence = 0
+
+  #pendingRuns = 0
+
   constructor() {
     super()
     this.client = this.#createClient()
@@ -105,7 +109,9 @@ export class OpenAIClientElement extends HTMLElement {
     this.#syncClient()
   }
 
-  attributeChangedCallback() {
+  /** @param {string} name */
+  attributeChangedCallback(name) {
+    if (name === "model") return
     this.#syncClient()
   }
 
@@ -190,35 +196,50 @@ export class OpenAIClientElement extends HTMLElement {
 
   /** @param {() => Promise<import("./client.js").OpenAIResult>} operation */
   async #run(operation) {
+    const runId = ++this.#runSequence
+    this.#pendingRuns += 1
     this.busy = true
     this.lastError = undefined
-    this.dispatchEvent(new CustomEvent(statusEventName, { bubbles: true, composed: true, detail: { busy: true } }))
+    this.dispatchEvent(new CustomEvent(statusEventName, { bubbles: true, composed: true, detail: { busy: true, pending: this.#pendingRuns } }))
     try {
-      this.lastResult = await operation()
-      this.dispatchEvent(new CustomEvent(resultEventName, { bubbles: true, composed: true, detail: this.lastResult }))
-      return this.lastResult
+      const result = await operation()
+      if (runId === this.#runSequence) {
+        this.lastResult = result
+        this.dispatchEvent(new CustomEvent(resultEventName, { bubbles: true, composed: true, detail: result }))
+      }
+      return result
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
-      this.lastError = message
-      this.lastResult = { kind: "error", error: message, raw: error }
-      this.dispatchEvent(new CustomEvent(errorEventName, { bubbles: true, composed: true, detail: this.lastResult }))
-      return this.lastResult
+      const result = /** @type {import("./client.js").OpenAIResult} */ ({ kind: "error", error: message, raw: error })
+      if (runId === this.#runSequence) {
+        this.lastError = message
+        this.lastResult = result
+        this.dispatchEvent(new CustomEvent(errorEventName, { bubbles: true, composed: true, detail: result }))
+      }
+      return result
     } finally {
-      this.busy = false
-      this.dispatchEvent(new CustomEvent(statusEventName, { bubbles: true, composed: true, detail: { busy: false } }))
+      this.#pendingRuns = Math.max(0, this.#pendingRuns - 1)
+      if (this.#pendingRuns === 0) {
+        this.busy = false
+        this.dispatchEvent(new CustomEvent(statusEventName, { bubbles: true, composed: true, detail: { busy: false, pending: 0 } }))
+      }
     }
   }
 
   #syncClient() {
-    const currentKey = this.client?.apiKey
-    this.client = this.#createClient()
-    if (currentKey) this.client.apiKey = currentKey
+    const previous = this.client
+    const next = this.#createClient(previous)
+    for (const [name, handler] of previous.tools) next.registerTool(name, handler)
+    this.client = next
   }
 
-  #createClient() {
+  /** @param {OpenAIClient} [previous] */
+  #createClient(previous) {
     return new OpenAIClient({
+      auth: previous?.auth ? { ...previous.auth } : undefined,
       baseUrl: this.getAttribute("base-url") ?? undefined,
       brokerUrl: this.getAttribute("broker-url") ?? undefined,
+      fetchFn: previous?.fetchFn,
       transport: /** @type {import("./client.js").OpenAITransportName} */ (this.transport),
     })
   }

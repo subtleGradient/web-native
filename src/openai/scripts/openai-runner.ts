@@ -177,10 +177,16 @@ function authorized(request: Request, url: URL) {
 
 function resolveLaunchPath(input: string) {
   const cwdPath = path.resolve(process.cwd(), input)
-  if (existsSync(cwdPath)) return cwdPath
+  if (existsSync(cwdPath)) return requirePackageRootPath(cwdPath, input)
   const packagePath = path.resolve(packageRoot, input)
-  if (existsSync(packagePath)) return packagePath
+  if (existsSync(packagePath)) return requirePackageRootPath(packagePath, input)
   throw new Error(`Demo file not found: ${input}`)
+}
+
+function requirePackageRootPath(filePath: string, input: string) {
+  const relative = path.relative(packageRoot, filePath)
+  if (relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative))) return filePath
+  throw new Error(`Demo file must be inside ${packageRoot}: ${input}`)
 }
 
 function resolvePublicPath(pathname: string) {

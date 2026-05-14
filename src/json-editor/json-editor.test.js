@@ -300,6 +300,127 @@ describe("json-editor", () => {
       ["extra"],
     ])
   })
+
+  it("compares enum, const, and uniqueItems objects without object key-order sensitivity", async () => {
+    const root = mount(html`
+      <json-editor id="enum-order" schema='{"enum":[{"a":1,"b":2}]}'>
+        <textarea>{"b":2,"a":1}</textarea>
+      </json-editor>
+      <json-editor id="const-order" schema='{"const":{"first":true,"second":false}}'>
+        <textarea>{"second":false,"first":true}</textarea>
+      </json-editor>
+      <json-editor id="unique-order" schema='{"type":"array","uniqueItems":true}'>
+        <textarea>[{"a":1,"b":2},{"b":2,"a":1}]</textarea>
+      </json-editor>
+    `)
+
+    await flushUpdates()
+
+    expect((await getEditorById(root, "enum-order").validate()).valid).to.equal(true)
+    expect((await getEditorById(root, "const-order").validate()).valid).to.equal(true)
+    expect((await getEditorById(root, "unique-order").validate()).issues[0]?.schemaPath).to.deep.equal(["uniqueItems"])
+  })
+
+  it("validates decimal multipleOf without floating-point modulo false positives", async () => {
+    const root = mount(html`
+      <json-editor schema='{"type":"number","multipleOf":0.1}'>
+        <textarea>0.3</textarea>
+      </json-editor>
+    `)
+    const editor = getEditor(root)
+
+    await flushUpdates()
+
+    expect((await editor.validate()).valid).to.equal(true)
+
+    editor.value = "0.31"
+    await flushUpdates()
+
+    expect((await editor.validate()).issues[0]?.schemaPath).to.deep.equal(["multipleOf"])
+  })
+
+  it("does not let stale async Standard Schema validation overwrite newer issues", async () => {
+    /** @type {(() => void) | undefined} */
+    let resolveSlow
+    const root = mount(html`
+      <json-editor>
+        <textarea>{"version":1}</textarea>
+      </json-editor>
+    `)
+    const editor = getEditor(root)
+    const textarea = getTextarea(editor)
+    editor.schema = {
+      "~standard": {
+        version: 1,
+        vendor: "test",
+        /** @param {unknown} value */
+        validate(value) {
+          if (isRecord(value) && value.version === 1) {
+            return new Promise((resolve) => {
+              resolveSlow = () => resolve({ issues: [{ message: "stale", path: [{ key: "version" }] }] })
+            })
+          }
+          return { value }
+        },
+      },
+    }
+
+    await Promise.resolve()
+    textarea.value = '{"version":2}'
+    textarea.dispatchEvent(new Event("input", { bubbles: true }))
+    await flushUpdates()
+
+    expect(editor.issues).to.deep.equal([])
+
+    resolveSlow?.()
+    await flushUpdates()
+
+    expect(editor.issues).to.deep.equal([])
+  })
+
+  it("supports boolean JSON Schemas from programmatic and Standard JSON Schema sources", async () => {
+    const root = mount(html`
+      <json-editor id="programmatic-false"><textarea>{"anything":true}</textarea></json-editor>
+      <json-editor id="standard-json-false"><textarea>{"anything":true}</textarea></json-editor>
+    `)
+    const programmatic = getEditorById(root, "programmatic-false")
+    const standardJson = getEditorById(root, "standard-json-false")
+
+    programmatic.schema = false
+    standardJson.schema = {
+      "~standard": {
+        version: 1,
+        vendor: "test",
+        jsonSchema: {
+          input() {
+            return false
+          },
+        },
+      },
+    }
+
+    await programmatic.refresh()
+    await standardJson.refresh()
+
+    expect((await programmatic.validate()).valid).to.equal(false)
+    expect((await standardJson.validate()).valid).to.equal(false)
+  })
+
+  it("keeps schema load failures visible as validation issues", async () => {
+    originalFetch = globalThis.fetch
+    globalThis.fetch = /** @type {typeof fetch} */ (/** @type {unknown} */ (async () => new Response("missing", { status: 404, statusText: "Missing" })))
+    const root = mount(html`
+      <json-editor schema="/missing-schema.json">
+        <textarea>{"ok":true}</textarea>
+      </json-editor>
+    `)
+    const editor = getEditor(root)
+
+    await flushUpdates()
+
+    expect(editor.issues[0]?.message).to.contain("Schema load failed")
+    expect(editor.shadowRoot?.textContent).to.not.contain("Valid JSON")
+  })
 })
 
 /** @param {string} markup */

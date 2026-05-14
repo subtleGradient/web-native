@@ -55,7 +55,7 @@ for await (const output of client.runToolCalls(toolCalls)) {
 }
 ```
 
-Realtime/WebSocket connections use `client.realtimeSocket()`, which wraps incoming messages as an async generator. Browser WebSockets cannot set arbitrary auth headers, so authenticated realtime sessions should be negotiated through the runner/broker.
+Realtime session creation is available through `client.realtimeSession()`. WebSocket connections use `client.realtimeSocket({ url })`, which wraps incoming messages as an async generator. Browser WebSockets cannot set arbitrary auth headers, and the local runner only brokers session creation, so pass an explicit WebSocket URL from a negotiated realtime session or another realtime gateway.
 
 Broker and Codex modes are available when the page is launched with the local runner:
 

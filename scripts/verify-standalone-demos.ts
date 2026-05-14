@@ -20,6 +20,7 @@ const standalonePages = [
   "src/shadcn/separator/separator.standalone.html",
   "src/shadcn/tabs/tabs.standalone.html",
   "src/shadcn/presentational/presentational.standalone.html",
+  "src/openai/openai.standalone.html",
 ]
 
 let browser: Awaited<ReturnType<typeof puppeteer.launch>> | undefined

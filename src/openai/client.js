@@ -92,10 +92,16 @@ export class OpenAIClient {
   /** @param {Record<string, unknown>} request */
   async *streamResponse(request) {
     const response = await this.post("responses", { ...request, stream: true })
-    const body = await response.text()
-    if (!response.ok) throw new Error(responseErrorMessage(response, body))
-    const events = parseServerSentEvents(body)
-    for (const event of events) yield event
+    if (!response.ok) {
+      const body = await response.text()
+      throw new Error(responseErrorMessage(response, body))
+    }
+    if (!response.body) {
+      const body = await response.text()
+      for (const event of parseServerSentEvents(body)) yield event
+      return
+    }
+    for await (const event of streamServerSentEvents(response.body)) yield event
   }
 
   /**
@@ -178,16 +184,17 @@ export class OpenAIClient {
     return {
       type: "function_call_output",
       call_id: toolCallId(call),
-      output: typeof result === "string" ? result : JSON.stringify(result),
+      output: serializeToolOutput(result),
     }
   }
 
   /** @param {RealtimeSocketOptions} [options] */
   realtimeSocket(options = {}) {
+    const url = options.url ?? realtimeSocketUrl(this)
     const WebSocketCtor = options.WebSocketCtor ?? WebSocket
     return new OpenAIRealtimeSocket({
       protocols: options.protocols,
-      url: options.url ?? realtimeSocketUrl(this),
+      url,
       WebSocketCtor,
     })
   }
@@ -351,17 +358,62 @@ export function parseServerSentEvents(body) {
   /** @type {unknown[]} */
   const events = []
   for (const rawLine of body.split(/\r?\n/)) {
-    const line = rawLine.trimStart()
-    if (!line.startsWith("data:")) continue
-    const data = line.slice("data:".length).trim()
-    if (data.length === 0 || data === "[DONE]") continue
-    try {
-      events.push(JSON.parse(data))
-    } catch {
-      // Keep scanning; streamed responses can include non-JSON keepalive noise.
-    }
+    const event = parseServerSentEventLine(rawLine)
+    if (event !== undefined) events.push(event)
   }
   return events
+}
+
+/** @param {ReadableStream<Uint8Array>} body */
+async function* streamServerSentEvents(body) {
+  const reader = body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ""
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      let nextLine = readBufferedLine(buffer)
+      while (nextLine) {
+        buffer = nextLine.remaining
+        const event = parseServerSentEventLine(nextLine.line)
+        if (event !== undefined) yield event
+        nextLine = readBufferedLine(buffer)
+      }
+    }
+  } finally {
+    reader.releaseLock()
+  }
+
+  buffer += decoder.decode()
+  if (buffer.length > 0) {
+    const event = parseServerSentEventLine(buffer)
+    if (event !== undefined) yield event
+  }
+}
+
+/** @param {string} buffer */
+function readBufferedLine(buffer) {
+  const newlineIndex = buffer.indexOf("\n")
+  if (newlineIndex === -1) return undefined
+  const line = buffer.slice(0, newlineIndex).replace(/\r$/, "")
+  return { line, remaining: buffer.slice(newlineIndex + 1) }
+}
+
+/** @param {string} rawLine */
+function parseServerSentEventLine(rawLine) {
+  const line = rawLine.trimStart()
+  if (!line.startsWith("data:")) return undefined
+  const data = line.slice("data:".length).trim()
+  if (data.length === 0 || data === "[DONE]") return undefined
+  try {
+    return JSON.parse(data)
+  } catch {
+    // Keep scanning; streamed responses can include non-JSON keepalive noise.
+    return undefined
+  }
 }
 
 /** @param {string} body */
@@ -441,19 +493,17 @@ function inputTextMessage(text) {
  * @param {"responses" | "embeddings" | "realtime/session"} resource
  */
 function endpointFor(client, resource) {
-  if (client.transport === "api-key-direct") return `${client.baseUrl}/${resource}`
+  if (client.transport === "api-key-direct") return `${client.baseUrl}/${resource === "realtime/session" ? "realtime/sessions" : resource}`
   if (client.transport === "codex-broker") return `${client.brokerUrl}/codex/${resource}`
   return `${client.brokerUrl}/api/${resource}`
 }
 
-/** @param {OpenAIClient} client */
+/**
+ * @param {OpenAIClient} client
+ * @returns {string}
+ */
 function realtimeSocketUrl(client) {
-  if (typeof location === "undefined") return `${client.brokerUrl}/realtime`
-  const brokerUrl = new URL(`${client.brokerUrl}/realtime`, location.href)
-  brokerUrl.protocol = brokerUrl.protocol === "https:" ? "wss:" : "ws:"
-  const runnerToken = runnerTokenFromLocation()
-  if (runnerToken !== undefined) brokerUrl.searchParams.set("t", runnerToken)
-  return brokerUrl.href
+  throw new Error(`No default realtime WebSocket route is available for ${client.transport}. Create a realtime session and pass its WebSocket URL with realtimeSocket({ url }).`)
 }
 
 /** @param {OpenAIClient} client */
@@ -467,10 +517,19 @@ function headersFor(client) {
     if (client.auth.project !== undefined) headers["OpenAI-Project"] = client.auth.project
   } else {
     if (client.apiKey) headers["x-openai-api-key"] = client.apiKey
+    if (client.auth.organization !== undefined) headers["OpenAI-Organization"] = client.auth.organization
+    if (client.auth.project !== undefined) headers["OpenAI-Project"] = client.auth.project
     const runnerToken = runnerTokenFromLocation()
     if (runnerToken !== undefined) headers["x-web-native-openai-token"] = runnerToken
   }
   return headers
+}
+
+/** @param {unknown} result */
+function serializeToolOutput(result) {
+  if (typeof result === "string") return result
+  const serialized = JSON.stringify(result)
+  return serialized === undefined ? "null" : serialized
 }
 
 /**
