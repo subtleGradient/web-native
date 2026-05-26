@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>TodoMVC browser tests</title>
+    <link rel="icon" href="data:," />
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family:
+          ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+      }
+
+      body {
+        background: Canvas;
+        color: CanvasText;
+        margin: 0;
+        padding: 1.5rem;
+      }
+
+      main {
+        display: grid;
+        gap: 1rem;
+        margin: 0 auto;
+        max-inline-size: 56rem;
+      }
+
+      h1 {
+        font-size: 1.5rem;
+        margin: 0;
+      }
+
+      #summary {
+        color: color-mix(in oklch, CanvasText 64%, transparent);
+        margin: 0;
+      }
+
+      #results {
+        display: grid;
+        gap: 0.5rem;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      #results li {
+        border: 1px solid color-mix(in oklch, CanvasText 16%, transparent);
+        border-radius: 0.5rem;
+        padding: 0.75rem;
+      }
+
+      #results li[data-status="pass"] {
+        border-color: color-mix(in oklch, #16a34a 48%, transparent);
+      }
+
+      #results li[data-status="fail"] {
+        border-color: color-mix(in oklch, #dc2626 54%, transparent);
+      }
+
+      .frames {
+        display: grid;
+        gap: 1rem;
+      }
+
+      iframe {
+        background: white;
+        border: 1px solid color-mix(in oklch, CanvasText 16%, transparent);
+        border-radius: 0.5rem;
+        inline-size: min(100%, 56rem);
+        min-block-size: 22rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>TodoMVC browser tests</h1>
+      <p id="summary">Running...</p>
+      <ol id="results"></ol>
+      <div id="frames" class="frames" aria-label="Test iframes"></div>
+    </main>
+    <script type="module" src="./test/runner.js"></script>
+  </body>
+</html>
