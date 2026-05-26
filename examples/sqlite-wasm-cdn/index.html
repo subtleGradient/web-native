@@ -121,6 +121,10 @@
         opacity: 0.55;
       }
 
+      .file-picker {
+        display: none;
+      }
+
       .actions,
       .status-line {
         align-items: center;
@@ -285,6 +289,23 @@
                 >Run sample query</shadcn-button
               >
             </span>
+            <span onclick="globalThis.sqliteWasmCdnDemo?.exportDatabase(event)">
+              <shadcn-button id="export-button" variant="outline" disabled
+                >Export DB</shadcn-button
+              >
+            </span>
+            <span onclick="globalThis.sqliteWasmCdnDemo?.chooseImportFile(event)">
+              <shadcn-button id="import-button" variant="outline" disabled
+                >Import DB</shadcn-button
+              >
+            </span>
+            <input
+              id="import-file"
+              class="file-picker"
+              type="file"
+              accept=".db,.sqlite,.sqlite3,application/x-sqlite3,application/vnd.sqlite3"
+              onchange="globalThis.sqliteWasmCdnDemo?.importDatabase(event)"
+            />
             <shadcn-badge id="row-count" variant="outline">0 rows</shadcn-badge>
           </shadcn-card-footer>
         </shadcn-card>
@@ -338,6 +359,9 @@
       const wasmUrl = `${cdnRoot}sqlite3.wasm`
       const input = document.querySelector("#note-input")
       const insertButton = document.querySelector("#insert-button")
+      const exportButton = document.querySelector("#export-button")
+      const importButton = document.querySelector("#import-button")
+      const importFile = document.querySelector("#import-file")
       const notesBody = document.querySelector("#notes-body")
       const output = document.querySelector("#query-output")
       const queryButton = document.querySelector("#query-button")
@@ -356,7 +380,7 @@
         const sqlite3 = await sqlite3InitModule({
           locateFile: (file) => `${cdnRoot}${file}`,
         })
-        const db = new sqlite3.oo1.DB(":memory:", "c")
+        let db = new sqlite3.oo1.DB(":memory:", "c")
 
         db.exec(sql`
           create table notes (
@@ -389,6 +413,74 @@
           },
           renderRows() {
             renderRows(db)
+          },
+          exportDatabase(event) {
+            event.preventDefault()
+
+            const bytes = sqlite3.capi.sqlite3_js_db_export(db)
+            const blob = new Blob([bytes], {
+              type: "application/x-sqlite3",
+            })
+            const url = URL.createObjectURL(blob)
+            const anchor = document.createElement("a")
+
+            anchor.href = url
+            anchor.download = `sqlite-wasm-cdn-${new Date()
+              .toISOString()
+              .replaceAll(":", "-")}.db`
+            document.body.append(anchor)
+            anchor.click()
+            anchor.remove()
+            setTimeout(() => URL.revokeObjectURL(url), 0)
+            setStatus(
+              "ready",
+              `Exported ${formatBytes(bytes.byteLength)} database file.`,
+            )
+          },
+          chooseImportFile(event) {
+            event.preventDefault()
+            importFile.click()
+          },
+          async importDatabase(event) {
+            const file = event.currentTarget.files?.[0]
+            event.currentTarget.value = ""
+
+            if (!file) return
+
+            setControlsEnabled(false)
+
+            try {
+              const bytes = new Uint8Array(await file.arrayBuffer())
+              const nextDb = new sqlite3.oo1.DB(":memory:", "c")
+
+              try {
+                deserializeDatabase(sqlite3, nextDb, bytes)
+                assertNotesDatabase(nextDb)
+              } catch (error) {
+                nextDb.close()
+                throw error
+              }
+
+              db.close()
+              db = nextDb
+              renderRows(db)
+              setStatus(
+                "ready",
+                `Imported ${file.name} (${formatBytes(bytes.byteLength)}).`,
+              )
+            } catch (error) {
+              setStatus(
+                "error",
+                "Import failed. Choose a SQLite database exported from this demo.",
+              )
+              output.textContent =
+                error instanceof Error
+                  ? (error.stack ?? error.message)
+                  : String(error)
+              console.error(error)
+            } finally {
+              setControlsEnabled(true)
+            }
           },
         }
 
@@ -432,10 +524,73 @@
         rowCount.textContent = `${rows.length} ${rows.length === 1 ? "row" : "rows"}`
       }
 
+      function assertNotesDatabase(db) {
+        const tables = db.selectObjects(sql`
+          select name
+          from sqlite_schema
+          where type = 'table' and name = 'notes'
+          limit 1
+        `)
+
+        if (tables.length !== 1) {
+          throw new Error("The uploaded database does not contain a notes table.")
+        }
+
+        db.selectObjects(sql`
+          select body, created_at as createdAt
+          from notes
+          order by id desc
+          limit 1
+        `)
+      }
+
+      function deserializeDatabase(sqlite3, db, bytes) {
+        if (bytes.byteLength === 0) {
+          throw new Error("The uploaded database file is empty.")
+        }
+
+        const { capi, wasm } = sqlite3
+        const pointer = capi.sqlite3_malloc64(bytes.byteLength)
+
+        if (!pointer) {
+          throw new Error(
+            `Could not allocate ${formatBytes(bytes.byteLength)} for import.`,
+          )
+        }
+
+        wasm.heap8u().set(bytes, pointer)
+
+        const flags =
+          capi.SQLITE_DESERIALIZE_FREEONCLOSE |
+          capi.SQLITE_DESERIALIZE_RESIZEABLE
+        const rc = capi.sqlite3_deserialize(
+          db.pointer,
+          "main",
+          pointer,
+          bytes.byteLength,
+          bytes.byteLength,
+          flags,
+        )
+
+        if (rc) {
+          capi.sqlite3_free(pointer)
+          db.checkRc(rc)
+        }
+      }
+
+      function formatBytes(bytes) {
+        if (bytes < 1024) return `${bytes} B`
+        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+        return `${(bytes / 1024 / 1024).toFixed(1)} MB`
+      }
+
       function setControlsEnabled(enabled) {
         input.disabled = !enabled
         insertButton.disabled = !enabled
         queryButton.disabled = !enabled
+        exportButton.disabled = !enabled
+        importButton.disabled = !enabled
+        importFile.disabled = !enabled
       }
 
       function setStatus(kind, message) {
