@@ -22,15 +22,27 @@ const externalRefLimit = 64
 
 const editorStyles = String.raw`
   :host {
+    --json-editor-accent: Highlight;
+    --json-editor-danger: oklch(55% 0.17 28);
+    --json-editor-border: color-mix(in oklch, CanvasText 14%, transparent);
+    --json-editor-muted-border: color-mix(in oklch, CanvasText 9%, transparent);
+    --json-editor-surface: color-mix(in oklch, Canvas 96%, CanvasText 4%);
+    --json-editor-surface-strong: color-mix(in oklch, Canvas 91%, CanvasText 9%);
+    --json-editor-text-muted: color-mix(in oklch, CanvasText 64%, transparent);
+    --json-editor-radius: 0.5rem;
+    color: CanvasText;
     display: block;
+    font-family: ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
 
   .json-editor {
-    border: 1px solid color-mix(in oklch, CanvasText 18%, transparent);
-    border-radius: 0.625rem;
+    background: Canvas;
+    border: 1px solid var(--json-editor-border);
+    border-radius: var(--json-editor-radius);
     display: grid;
-    gap: 0.625rem;
-    padding: 0.625rem;
+    gap: 0;
+    overflow: clip;
   }
 
   .toolbar,
@@ -38,70 +50,105 @@ const editorStyles = String.raw`
   .add-row,
   .primitive {
     align-items: center;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
+    gap: 0.5rem;
   }
 
   .toolbar {
+    background: color-mix(in oklch, Canvas 98%, CanvasText 2%);
+    border-block-end: 1px solid var(--json-editor-muted-border);
+    display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
+    padding: 0.5rem 0.625rem;
   }
 
   .status {
-    color: color-mix(in oklch, CanvasText 64%, transparent);
+    align-items: center;
+    color: var(--json-editor-text-muted);
+    display: inline-flex;
     font-size: 0.8125rem;
+    font-weight: 500;
+    gap: 0.4rem;
+    min-block-size: 1.625rem;
   }
 
   .status[data-invalid] {
-    color: LinkText;
+    color: var(--json-editor-danger);
     font-weight: 650;
+  }
+
+  .status[hidden] + button {
+    margin-inline-start: auto;
   }
 
   .tree {
     display: grid;
-    gap: 0.45rem;
+    gap: 0.75rem;
     min-inline-size: 0;
+    overflow: auto;
+    padding: 0.75rem 0.625rem;
   }
 
   details.node {
-    border-inline-start: 2px solid color-mix(in oklch, CanvasText 14%, transparent);
+    border-inline-start: 2px solid var(--json-editor-muted-border);
     display: grid;
-    gap: 0.45rem;
-    padding-inline-start: 0.625rem;
+    gap: 0.5rem;
+    min-inline-size: 0;
+    padding-inline-start: 0.75rem;
   }
 
   details.node > summary {
+    align-items: center;
+    color: CanvasText;
     cursor: default;
-    font-weight: 650;
-    list-style-position: outside;
+    display: flex;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    gap: 0.5rem;
+    list-style-position: inside;
+    min-block-size: 1.75rem;
+    overflow-wrap: anywhere;
+  }
+
+  .summary-meta {
+    color: var(--json-editor-text-muted);
+    font-size: 0.8125rem;
+    font-weight: 500;
   }
 
   .children {
     display: grid;
-    gap: 0.45rem;
-    margin-block-start: 0.45rem;
+    gap: 0.5rem;
+    margin-block-start: 0.25rem;
+    min-inline-size: 0;
   }
 
   .row {
-    align-items: flex-start;
+    align-items: start;
+    border-block-start: 1px solid var(--json-editor-muted-border);
+    display: grid;
+    grid-template-columns: minmax(4.5rem, 8rem) minmax(0, 1fr) auto;
+    min-inline-size: 0;
+    padding-block-start: 0.5rem;
   }
 
   .key,
   .index {
-    color: color-mix(in oklch, CanvasText 68%, transparent);
-    font: 0.8125rem/1.9 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    min-inline-size: 4.5rem;
+    color: var(--json-editor-text-muted);
+    font: 0.875rem/2 ui-sans-serif, system-ui, sans-serif;
     overflow-wrap: anywhere;
+    padding-inline-end: 0.5rem;
   }
 
   .value {
     display: grid;
-    flex: 1;
-    gap: 0.35rem;
+    gap: 0.4rem;
     min-inline-size: min(100%, 12rem);
   }
 
   .primitive {
+    display: flex;
+    flex-wrap: wrap;
     min-inline-size: 0;
   }
 
@@ -109,11 +156,12 @@ const editorStyles = String.raw`
   select,
   button,
   textarea {
-    border: 1px solid color-mix(in oklch, CanvasText 22%, transparent);
-    border-radius: 0.45rem;
+    border: 1px solid var(--json-editor-border);
+    border-radius: 0.375rem;
     color: CanvasText;
-    font: inherit;
-    padding: 0.38rem 0.5rem;
+    font: 0.875rem/1.4 ui-sans-serif, system-ui, sans-serif;
+    min-block-size: 2rem;
+    padding: 0.4rem 0.55rem;
   }
 
   input,
@@ -122,54 +170,128 @@ const editorStyles = String.raw`
     min-inline-size: 0;
   }
 
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid color-mix(in oklch, var(--json-editor-accent) 78%, CanvasText 22%);
+    outline-offset: 0;
+  }
+
+  button:focus-visible {
+    outline: 2px solid color-mix(in oklch, var(--json-editor-accent) 78%, CanvasText 22%);
+    outline-offset: 2px;
+  }
+
   input[data-json-kind="string"] {
     flex: 1;
     min-inline-size: min(100%, 12rem);
   }
 
+  input[type="checkbox"] {
+    accent-color: var(--json-editor-accent);
+    block-size: 1rem;
+    inline-size: 1rem;
+  }
+
+  select {
+    padding-inline-end: 1.6rem;
+  }
+
   button {
-    background: color-mix(in oklch, Canvas 88%, CanvasText 12%);
+    background: var(--json-editor-surface);
+    border-color: var(--json-editor-border);
     color: CanvasText;
+    cursor: pointer;
+    font-size: 0.8125rem;
     font-weight: 650;
+    min-block-size: 2rem;
   }
 
   button.primary {
-    background: Highlight;
-    border-color: Highlight;
-    color: HighlightText;
+    background: var(--json-editor-surface);
+    border-color: var(--json-editor-border);
+    color: CanvasText;
+    padding-inline: 0.75rem;
+  }
+
+  button:hover {
+    background: var(--json-editor-surface-strong);
+  }
+
+  button.primary:hover {
+    background: var(--json-editor-surface-strong);
   }
 
   button.danger {
-    color: LinkText;
+    background: transparent;
+    border-color: transparent;
+    color: var(--json-editor-text-muted);
+    min-block-size: 1.875rem;
+  }
+
+  button.danger:hover {
+    background: color-mix(in oklch, var(--json-editor-danger) 8%, transparent);
+    border-color: color-mix(in oklch, var(--json-editor-danger) 14%, transparent);
+    color: var(--json-editor-danger);
   }
 
   .issue-list {
-    color: LinkText;
+    color: var(--json-editor-danger);
     display: grid;
     font-size: 0.8125rem;
-    gap: 0.18rem;
+    gap: 0.2rem;
     margin: 0;
     padding: 0;
   }
 
   .issue-list li {
+    background: color-mix(in oklch, var(--json-editor-danger) 8%, transparent);
+    border: 1px solid color-mix(in oklch, var(--json-editor-danger) 22%, transparent);
+    border-radius: 0.375rem;
     list-style: none;
+    padding: 0.35rem 0.45rem;
   }
 
   .empty,
   .invalid,
   .missing {
-    color: color-mix(in oklch, CanvasText 62%, transparent);
+    color: var(--json-editor-text-muted);
     font-size: 0.875rem;
   }
 
+  .invalid {
+    background: color-mix(in oklch, var(--json-editor-danger) 8%, transparent);
+    border: 1px solid color-mix(in oklch, var(--json-editor-danger) 22%, transparent);
+    border-radius: 0.375rem;
+    color: var(--json-editor-danger);
+    margin: 0;
+    padding: 0.6rem 0.7rem;
+  }
+
+  .add-row {
+    background: var(--json-editor-surface);
+    border: 1px dashed var(--json-editor-border);
+    border-radius: 0.375rem;
+    display: flex;
+    flex-wrap: wrap;
+    padding: 0.5rem;
+  }
+
+  .missing {
+    background: color-mix(in oklch, var(--json-editor-danger) 7%, Canvas);
+    border-color: color-mix(in oklch, var(--json-editor-danger) 24%, transparent);
+  }
+
   .source {
+    background: color-mix(in oklch, Canvas 98%, CanvasText 2%);
+    border-block-start: 1px solid var(--json-editor-muted-border);
     display: grid;
-    gap: 0.45rem;
+    gap: 0.5rem;
+    padding: 0.625rem 0.75rem 0.75rem;
   }
 
   .source > summary {
-    color: color-mix(in oklch, CanvasText 68%, transparent);
+    color: var(--json-editor-text-muted);
     cursor: default;
     font-size: 0.875rem;
     font-weight: 650;
@@ -180,6 +302,50 @@ const editorStyles = String.raw`
     font: 0.875rem/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     min-block-size: 7rem;
     inline-size: 100%;
+  }
+
+  @media (max-width: 42rem) {
+    .toolbar {
+      align-items: stretch;
+      display: grid;
+    }
+
+    .row {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .key,
+    .index {
+      grid-column: 1;
+      grid-row: 1;
+      padding-inline-end: 0;
+    }
+
+    .value {
+      grid-column: 1 / -1;
+      grid-row: 2;
+      min-inline-size: 0;
+    }
+
+    .row > button.danger {
+      grid-column: 2;
+      grid-row: 1;
+      justify-self: end;
+    }
+
+    .primitive {
+      align-items: stretch;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    input[data-json-kind="string"],
+    input[data-json-kind="number"],
+    input[data-json-kind="integer"],
+    select {
+      inline-size: 100%;
+      min-inline-size: 0;
+    }
   }
 `
 
@@ -601,7 +767,8 @@ export class JsonEditor extends HTMLElement {
       status.dataset.invalid = ""
       status.textContent = `${this.#issues.length} issue${this.#issues.length === 1 ? "" : "s"}`
     } else {
-      status.textContent = this.#jsonSchema || this.#standardValidate ? "Valid JSON for schema" : "Valid JSON"
+      status.hidden = true
+      status.textContent = ""
     }
 
     const formatButton = document.createElement("button")
@@ -638,7 +805,7 @@ export class JsonEditor extends HTMLElement {
     source.setAttribute("part", "source")
 
     const summary = document.createElement("summary")
-    summary.textContent = "JSON source"
+    summary.textContent = "Text value"
     const slot = document.createElement("slot")
     slot.name = "source"
     source.append(summary, slot)
@@ -819,6 +986,31 @@ function renderValue(editor, value, path, schema, context, issues, rootValue) {
 }
 
 /**
+ * @param {Array<string | number>} path
+ * @param {string} rootLabel
+ */
+function summaryLabel(path, rootLabel) {
+  if (path.length === 0) return rootLabel
+  const last = path.at(-1)
+  return typeof last === "number" ? `Item ${last + 1}` : String(last)
+}
+
+/** @param {string} text */
+function summaryMeta(text) {
+  const span = document.createElement("span")
+  span.className = "summary-meta"
+  span.textContent = text
+  return span
+}
+
+/** @param {Array<string | number>} path */
+function controlLabel(path) {
+  if (path.length === 0) return "Value"
+  const last = path.at(-1)
+  return typeof last === "number" ? `Item ${last + 1}` : String(last)
+}
+
+/**
  * @param {JsonEditor} editor
  * @param {{ [key: string]: JsonValue }} value
  * @param {Array<string | number>} path
@@ -834,7 +1026,7 @@ function renderObject(editor, value, path, schema, context, issues, rootValue) {
   details.dataset.jsonPath = jsonPointer(path)
 
   const summary = document.createElement("summary")
-  summary.textContent = `${path.length === 0 ? "root" : String(path.at(-1))} {${Object.keys(value).length}}`
+  summary.append(summaryLabel(path, "Object"), summaryMeta(`${Object.keys(value).length} field${Object.keys(value).length === 1 ? "" : "s"}`))
   details.append(summary, renderIssues(issuesForPath(issues, path)))
 
   const children = document.createElement("div")
@@ -853,14 +1045,18 @@ function renderObject(editor, value, path, schema, context, issues, rootValue) {
     valueElement.className = "value"
     valueElement.append(renderValue(editor, child, [...path, key], schemaForObjectProperty(schema, key, context), context, issues, rootValue))
 
-    const remove = document.createElement("button")
-    remove.type = "button"
-    remove.className = "danger"
-    remove.textContent = "Remove"
-    remove.setAttribute("aria-label", `Remove ${key}`)
-    remove.onclick = () => editor.removeJsonPath([...path, key])
+    row.append(keyElement, valueElement)
 
-    row.append(keyElement, valueElement, remove)
+    if (!isRequiredObjectProperty(schema, key)) {
+      const remove = document.createElement("button")
+      remove.type = "button"
+      remove.className = "danger"
+      remove.textContent = "Remove"
+      remove.setAttribute("aria-label", `Remove ${key}`)
+      remove.onclick = () => editor.removeJsonPath([...path, key])
+      row.append(remove)
+    }
+
     children.append(row)
   }
 
@@ -868,7 +1064,7 @@ function renderObject(editor, value, path, schema, context, issues, rootValue) {
     const row = document.createElement("div")
     row.className = "add-row missing"
     const label = document.createElement("span")
-    label.textContent = `Missing required property "${key}".`
+    label.textContent = `Required field "${key}" is missing.`
     const button = document.createElement("button")
     button.type = "button"
     button.textContent = `Add ${key}`
@@ -877,7 +1073,8 @@ function renderObject(editor, value, path, schema, context, issues, rootValue) {
     children.append(row)
   }
 
-  children.append(renderObjectAddRow(editor, value, path, schema, context))
+  const addRow = renderObjectAddRow(editor, value, path, schema, context)
+  if (addRow) children.append(addRow)
   details.append(children)
   return details
 }
@@ -898,7 +1095,7 @@ function renderArray(editor, value, path, schema, context, issues, rootValue) {
   details.dataset.jsonPath = jsonPointer(path)
 
   const summary = document.createElement("summary")
-  summary.textContent = `${path.length === 0 ? "root" : String(path.at(-1))} [${value.length}]`
+  summary.append(summaryLabel(path, "Items"), summaryMeta(`${value.length} item${value.length === 1 ? "" : "s"}`))
   details.append(summary, renderIssues(issuesForPath(issues, path)))
 
   const children = document.createElement("div")
@@ -911,7 +1108,7 @@ function renderArray(editor, value, path, schema, context, issues, rootValue) {
 
     const indexElement = document.createElement("span")
     indexElement.className = "index"
-    indexElement.textContent = String(index)
+    indexElement.textContent = `Item ${index + 1}`
 
     const valueElement = document.createElement("div")
     valueElement.className = "value"
@@ -950,13 +1147,13 @@ function renderPrimitive(editor, value, path, schema, context, issues) {
   const wrapper = document.createElement("div")
   wrapper.className = "primitive"
   wrapper.dataset.jsonPath = jsonPointer(path)
-  wrapper.append(createTypeSelect(editor, value, path, schema, context))
 
   const enumValues = enumValuesForSchema(schema)
   if (enumValues) {
     const select = document.createElement("select")
     select.dataset.jsonPath = jsonPointer(path)
     select.dataset.jsonKind = "enum"
+    select.setAttribute("aria-label", controlLabel(path))
     for (const item of enumValues) {
       const option = document.createElement("option")
       option.value = JSON.stringify(item)
@@ -969,6 +1166,8 @@ function renderPrimitive(editor, value, path, schema, context, issues) {
     return wrapper
   }
 
+  if (shouldRenderTypeSelect(value, schema)) wrapper.append(createTypeSelect(editor, value, path, schema, context))
+
   const type = jsonTypeOf(value)
   if (type === "boolean") {
     const input = document.createElement("input")
@@ -976,6 +1175,7 @@ function renderPrimitive(editor, value, path, schema, context, issues) {
     input.checked = value === true
     input.dataset.jsonPath = jsonPointer(path)
     input.dataset.jsonKind = "boolean"
+    input.setAttribute("aria-label", controlLabel(path))
     input.onchange = () => editor.setJsonPath(path, input.checked)
     wrapper.append(input)
   } else if (type === "number" || type === "integer") {
@@ -985,6 +1185,7 @@ function renderPrimitive(editor, value, path, schema, context, issues) {
     input.step = type === "integer" ? "1" : "any"
     input.dataset.jsonPath = jsonPointer(path)
     input.dataset.jsonKind = type
+    input.setAttribute("aria-label", controlLabel(path))
     input.oninput = () => {
       if (input.value === "") return
       const number = Number(input.value)
@@ -1001,6 +1202,7 @@ function renderPrimitive(editor, value, path, schema, context, issues) {
     input.value = String(value)
     input.dataset.jsonPath = jsonPointer(path)
     input.dataset.jsonKind = "string"
+    input.setAttribute("aria-label", controlLabel(path))
     input.oninput = () => editor.setJsonPath(path, input.value, { render: false })
     input.onchange = () => editor.setJsonPath(path, input.value)
     wrapper.append(input)
@@ -1013,6 +1215,16 @@ function renderPrimitive(editor, value, path, schema, context, issues) {
 
   wrapper.append(renderIssues(issuesForPath(issues, path)))
   return wrapper
+}
+
+/**
+ * @param {JsonValue} value
+ * @param {JsonSchema | undefined} schema
+ */
+function shouldRenderTypeSelect(value, schema) {
+  const allowedTypes = allowedTypesForSchema(schema)
+  if (!allowedTypes || allowedTypes.length !== 1) return true
+  return !jsonTypeMatches(allowedTypes[0], jsonTypeOf(value))
 }
 
 /**
@@ -1053,6 +1265,7 @@ function createTypeSelect(editor, value, path, schema, context) {
  * @param {Array<string | number>} path
  * @param {JsonSchema | undefined} schema
  * @param {SchemaContext} context
+ * @returns {HTMLElement | undefined}
  */
 function renderObjectAddRow(editor, value, path, schema, context) {
   const row = document.createElement("div")
@@ -1061,7 +1274,7 @@ function renderObjectAddRow(editor, value, path, schema, context) {
   const available = availableSchemaPropertyKeys(value, schema)
   if (available.length > 0) {
     const select = document.createElement("select")
-    select.setAttribute("aria-label", "Schema property")
+    select.setAttribute("aria-label", "Field to add")
     for (const key of available) {
       const option = document.createElement("option")
       option.value = key
@@ -1071,7 +1284,7 @@ function renderObjectAddRow(editor, value, path, schema, context) {
 
     const button = document.createElement("button")
     button.type = "button"
-    button.textContent = "Add property"
+    button.textContent = "Add field"
     button.onclick = () => editor.addObjectProperty(path, select.value)
     row.append(select, button)
   }
@@ -1079,8 +1292,8 @@ function renderObjectAddRow(editor, value, path, schema, context) {
   if (allowsAdditionalProperties(schema, context)) {
     const input = document.createElement("input")
     input.type = "text"
-    input.placeholder = "property"
-    input.setAttribute("aria-label", "Custom property")
+    input.placeholder = "Field name"
+    input.setAttribute("aria-label", "Custom field")
 
     const button = document.createElement("button")
     button.type = "button"
@@ -1093,14 +1306,7 @@ function renderObjectAddRow(editor, value, path, schema, context) {
     row.append(input, button)
   }
 
-  if (!row.hasChildNodes()) {
-    const empty = document.createElement("span")
-    empty.className = "empty"
-    empty.textContent = "No additional properties."
-    row.append(empty)
-  }
-
-  return row
+  return row.hasChildNodes() ? row : undefined
 }
 
 /** @param {JsonEditorIssue[]} issues */
@@ -1124,6 +1330,14 @@ function renderIssues(issues) {
 function missingRequiredKeys(value, schema) {
   if (!schema || !Array.isArray(schema.required)) return []
   return schema.required.filter((key) => typeof key === "string" && !(key in value))
+}
+
+/**
+ * @param {JsonSchema | undefined} schema
+ * @param {string} key
+ */
+function isRequiredObjectProperty(schema, key) {
+  return Array.isArray(schema?.required) && schema.required.includes(key)
 }
 
 /**
