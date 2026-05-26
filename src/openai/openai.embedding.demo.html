@@ -1,0 +1,51 @@
+<!doctype html>
+<!--
+Run from a local checkout:
+bun ./src/openai/scripts/openai-runner.ts src/openai/openai.embedding.demo.html
+
+Security: only run demos you trust. API keys entered here are visible to this page's JavaScript.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="./openai.demo.css" />
+    <title>OpenAI embedding demo</title>
+    <script type="module" src="./define.js"></script>
+    <script type="module" src="./openai.demo.js"></script>
+  </head>
+  <body>
+    <main>
+      <a class="back" data-preserve-search href="./openai.demo.html">← All OpenAI demos</a>
+      <header>
+        <h1>Embedding</h1>
+        <p>Create an embedding vector for input text.</p>
+      </header>
+
+      <openai-client id="ai" model="gpt-5.5"></openai-client>
+
+      <section class="panel" aria-label="OpenAI auth and transport">
+        <openai-key-field target="ai"></openai-key-field>
+        <label>
+          Transport
+          <select onchange="ai.setAttribute('transport', this.value)">
+            <option value="api-key-direct">API key direct</option>
+            <option value="api-key-broker">API key broker</option>
+            <option value="codex-broker">Codex broker</option>
+          </select>
+        </label>
+        <p class="note">For broker mode, run this page with <code>web-native-openai</code>. For API-key broker without typing a key, set <code>OPENAI_API_KEY</code>.</p>
+      </section>
+
+      <form class="panel" onsubmit="ai.embed(event)">
+        <h2>Request</h2>
+        <label>Input<textarea name="prompt">hello vector space</textarea></label>
+        <button>Embed</button>
+      </form>
+
+      <openai-result for="ai"></openai-result>
+    </main>
+  </body>
+</html>

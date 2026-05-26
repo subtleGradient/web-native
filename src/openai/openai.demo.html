@@ -6,7 +6,7 @@ bunx --bun -p https://github.com/subtleGradient/web-native/archive/refs/heads/op
 Run from a local checkout:
 bun ./src/openai/scripts/openai-runner.ts src/openai/openai.demo.html
 
-Security: only run demos you trust. API keys entered here are visible to this page's JavaScript.
+Security: only run demos you trust. API keys entered in linked demos are visible to that page's JavaScript.
 -->
 <html lang="en">
   <head>
@@ -14,293 +14,105 @@ Security: only run demos you trust. API keys entered here are visible to this pa
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
     <link rel="icon" href="data:," />
-    <title>OpenAI BYOK demo</title>
-    <script type="module" src="./define.js"></script>
-    <script type="module" src="../json-editor/define.js"></script>
-    <style>
-      :root { color-scheme: light dark; }
-      body {
-        background: color-mix(in oklch, Canvas 95%, CanvasText 5%);
-        color: CanvasText;
-        font-family: ui-sans-serif, system-ui, sans-serif;
-        line-height: 1.5;
-        margin: 0;
-      }
-      main {
-        display: grid;
-        gap: 1rem;
-        margin-inline: auto;
-        max-inline-size: 56rem;
-        padding: clamp(1rem, 4vw, 3rem);
-      }
-      .panel {
-        background: Canvas;
-        border: 1px solid color-mix(in oklch, CanvasText 14%, transparent);
-        border-radius: 1rem;
-        display: grid;
-        gap: 0.875rem;
-        padding: 1rem;
-      }
-      label { display: grid; gap: 0.35rem; font-weight: 650; }
-      input, select, textarea, button {
-        border: 1px solid color-mix(in oklch, CanvasText 22%, transparent);
-        border-radius: 0.5rem;
-        font: inherit;
-        padding: 0.6rem 0.7rem;
-      }
-      textarea { min-block-size: 8rem; resize: vertical; }
-      button { background: Highlight; color: HighlightText; font-weight: 750; width: fit-content; }
-      .grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); }
-      .wide { grid-column: 1 / -1; }
-      .note { color: color-mix(in oklch, CanvasText 62%, transparent); font-size: 0.925rem; margin: 0; }
-      code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-    </style>
-    <script type="application/schema+json" id="openai-tools-schema">
-{
-  "$id": "https://web-native.local/openai-tools.schema.json",
-  "type": "array",
-  "items": {
-    "oneOf": [
-      {
-        "type": "object",
-        "required": ["type"],
-        "properties": {
-          "type": { "const": "web_search" },
-          "search_context_size": { "enum": ["low", "medium", "high"] }
-        },
-        "additionalProperties": false
-      },
-      {
-        "type": "object",
-        "required": ["type", "vector_store_ids"],
-        "properties": {
-          "type": { "const": "file_search" },
-          "vector_store_ids": { "type": "array", "items": { "type": "string" } },
-          "max_num_results": { "type": "integer", "minimum": 1 }
-        },
-        "additionalProperties": false
-      },
-      {
-        "type": "object",
-        "required": ["type", "container"],
-        "properties": {
-          "type": { "const": "code_interpreter" },
-          "container": {
-            "type": "object",
-            "required": ["type"],
-            "properties": {
-              "type": { "const": "auto" },
-              "memory_limit": { "type": "string" }
-            },
-            "additionalProperties": true
-          }
-        },
-        "additionalProperties": false
-      },
-      {
-        "type": "object",
-        "required": ["type"],
-        "properties": {
-          "type": { "const": "computer" }
-        },
-        "additionalProperties": false
-      },
-      {
-        "type": "object",
-        "required": ["type", "server_label", "server_url"],
-        "properties": {
-          "type": { "const": "mcp" },
-          "server_label": { "type": "string" },
-          "server_description": { "type": "string" },
-          "server_url": { "type": "string" },
-          "require_approval": { "enum": ["never", "always"] },
-          "allowed_tools": { "type": "array", "items": { "type": "string" } }
-        },
-        "additionalProperties": false
-      },
-      {
-        "type": "object",
-        "required": ["type", "name", "tools"],
-        "properties": {
-          "type": { "const": "namespace" },
-          "name": { "type": "string" },
-          "description": { "type": "string" },
-          "tools": {
-            "type": "array",
-            "items": { "$ref": "#/$defs/functionTool" }
-          }
-        },
-        "additionalProperties": false
-      },
-      {
-        "type": "object",
-        "required": ["type"],
-        "properties": {
-          "type": { "const": "tool_search" }
-        },
-        "additionalProperties": false
-      }
-    ]
-  },
-  "$defs": {
-    "functionTool": {
-      "type": "object",
-      "required": ["type", "name", "parameters"],
-      "properties": {
-        "type": { "const": "function" },
-        "name": { "type": "string" },
-        "description": { "type": "string" },
-        "defer_loading": { "type": "boolean" },
-        "parameters": { "type": "object" }
-      },
-      "additionalProperties": false
-    }
-  }
-}
-    </script>
-    <script type="application/schema+json" id="openai-include-schema">
-{
-  "type": "array",
-  "items": {
-    "type": "string",
-    "enum": [
-      "web_search_call.action.sources",
-      "file_search_call.results"
-    ]
-  },
-  "uniqueItems": true
-}
-    </script>
+    <link rel="stylesheet" href="./openai.demo.css" />
+    <title>OpenAI BYOK demos</title>
+    <script type="module" src="./openai.demo.js"></script>
   </head>
   <body>
-    <main>
+    <main class="index">
       <header>
-        <h1>OpenAI BYOK</h1>
-        <p>One client element can call the official OpenAI API directly or use the local runner as a broker for API-key/Codex auth.</p>
+        <h1>OpenAI BYOK demos</h1>
+        <p>
+          Pick a focused demo. Each page owns one request shape and shares the
+          same client/auth controls.
+        </p>
       </header>
 
-      <openai-client id="ai" model="gpt-5.5"></openai-client>
-
       <section class="panel">
-        <openai-key-field target="ai"></openai-key-field>
-        <label>
-          Transport
-          <select onchange="ai.setAttribute('transport', this.value)">
-            <option value="api-key-direct">API key direct</option>
-            <option value="api-key-broker">API key broker</option>
-            <option value="codex-broker">Codex broker</option>
-          </select>
-        </label>
-        <p>For broker mode, run this page with <code>web-native-openai</code>. For API-key broker without typing a key, set <code>OPENAI_API_KEY</code>.</p>
+        <p>
+          For broker modes, run these pages with <code>web-native-openai</code>.
+          For API-key broker without typing a key, set
+          <code>OPENAI_API_KEY</code>.
+        </p>
       </section>
 
-      <section class="grid">
-        <form class="panel" onsubmit="ai.respond(event)">
-          <h2>Text</h2>
-          <label>Instructions<textarea name="instructions">Answer clearly and briefly.</textarea></label>
-          <label>Prompt<textarea name="prompt">Say hello in one sentence.</textarea></label>
-          <button>Ask</button>
-        </form>
-
-        <form class="panel" onsubmit="ai.generateImage(event)">
-          <h2>Image</h2>
-          <label>Prompt<textarea name="prompt">tiny watercolor robot on a white background</textarea></label>
-          <label>Format<select name="outputFormat"><option>png</option><option>webp</option><option>jpeg</option></select></label>
-          <button>Generate image</button>
-        </form>
-
-        <form class="panel" onsubmit="ai.embed(event)">
-          <h2>Embedding</h2>
-          <label>Input<textarea name="prompt">hello vector space</textarea></label>
-          <button>Embed</button>
-        </form>
-
-        <form class="panel" onsubmit="ai.respondWithTools(event)">
-          <h2>Web search</h2>
-          <p class="note">Uses the current Responses <code>web_search</code> hosted tool, not the legacy preview tool.</p>
-          <label>Prompt<textarea name="prompt">What was a positive news story from today? Include citations.</textarea></label>
-          <label>Tools JSON<json-editor schema="#openai-tools-schema"><textarea name="tools">[{"type":"web_search","search_context_size":"low"}]</textarea></json-editor></label>
-          <label>Include JSON<json-editor schema="#openai-include-schema"><textarea name="include">["web_search_call.action.sources"]</textarea></json-editor></label>
-          <button>Search web</button>
-        </form>
-
-        <form class="panel" onsubmit="ai.respondWithTools(event)">
-          <h2>File search</h2>
-          <p class="note">Requires a vector store that already has uploaded files.</p>
-          <label>Prompt<textarea name="prompt">What are the most important facts in this knowledge base?</textarea></label>
-          <label>Tools JSON<json-editor schema="#openai-tools-schema"><textarea name="tools">[{"type":"file_search","vector_store_ids":["vs_replace_me"],"max_num_results":3}]</textarea></json-editor></label>
-          <label>Include JSON<json-editor schema="#openai-include-schema"><textarea name="include">["file_search_call.results"]</textarea></json-editor></label>
-          <button>Search files</button>
-        </form>
-
-        <form class="panel" onsubmit="ai.respondWithTools(event)">
-          <h2>Code interpreter</h2>
-          <p class="note">Creates or reuses an ephemeral hosted Python container with auto mode.</p>
-          <label>Instructions<textarea name="instructions">Use the python tool to calculate, verify, and then explain the result briefly.</textarea></label>
-          <label>Prompt<textarea name="prompt">Solve 3x + 11 = 14, then verify the answer in Python.</textarea></label>
-          <label>Tools JSON<json-editor schema="#openai-tools-schema"><textarea name="tools">[{"type":"code_interpreter","container":{"type":"auto","memory_limit":"1g"}}]</textarea></json-editor></label>
-          <button>Run Python</button>
-        </form>
-
-        <form class="panel" onsubmit="ai.respondWithTools(event)">
-          <h2>Computer use</h2>
-          <p class="note">Returns <code>computer_call</code> actions for a harness to execute; this page intentionally does not operate your UI.</p>
-          <label>Prompt<textarea name="prompt">Ask for a screenshot, then describe the next UI action you would take to find the search field.</textarea></label>
-          <label>Tools JSON<json-editor schema="#openai-tools-schema"><textarea name="tools">[{"type":"computer"}]</textarea></json-editor></label>
-          <button>Request UI actions</button>
-        </form>
-
-        <form class="panel" onsubmit="ai.respondWithTools(event)">
-          <h2>Remote MCP</h2>
-          <p class="note">Calls a public demo MCP server. Only use trusted MCP servers with real data.</p>
-          <label>Prompt<textarea name="prompt">Roll 2d4+1.</textarea></label>
-          <label>Tools JSON<json-editor schema="#openai-tools-schema"><textarea name="tools">[{"type":"mcp","server_label":"dmcp","server_description":"A Dungeons and Dragons MCP server to assist with dice rolling.","server_url":"https://dmcp-server.deno.dev/sse","require_approval":"never","allowed_tools":["roll"]}]</textarea></json-editor></label>
-          <button>Call MCP</button>
-        </form>
-
-        <form class="panel wide" onsubmit="ai.respondWithTools(event)">
-          <h2>Tool search</h2>
-          <p class="note">Demonstrates deferred tool loading with <code>tool_search</code>; supported by GPT-5.4 and later models.</p>
-          <label>Prompt<textarea name="prompt">List open orders for customer CUST-12345.</textarea></label>
-          <label>Tools JSON<json-editor schema="#openai-tools-schema"><textarea name="tools">[
-  {
-    "type": "namespace",
-    "name": "crm",
-    "description": "CRM tools for customer lookup and order management.",
-    "tools": [
-      {
-        "type": "function",
-        "name": "get_customer_profile",
-        "description": "Fetch a customer profile by customer ID.",
-        "parameters": {
-          "type": "object",
-          "properties": { "customer_id": { "type": "string" } },
-          "required": ["customer_id"],
-          "additionalProperties": false
-        }
-      },
-      {
-        "type": "function",
-        "name": "list_open_orders",
-        "description": "List open orders for a customer ID.",
-        "defer_loading": true,
-        "parameters": {
-          "type": "object",
-          "properties": { "customer_id": { "type": "string" } },
-          "required": ["customer_id"],
-          "additionalProperties": false
-        }
-      }
-    ]
-  },
-  { "type": "tool_search" }
-]</textarea></json-editor></label>
-          <input type="hidden" name="parallel_tool_calls" value="false" />
-          <button>Search tools</button>
-        </form>
+      <section class="demo-list" aria-label="OpenAI demos">
+        <a class="card" data-preserve-search href="./openai.text.demo.html">
+          <strong>Text</strong>
+          <span>Send instructions and a prompt to the Responses API.</span>
+        </a>
+        <a class="card" data-preserve-search href="./openai.image.demo.html">
+          <strong>Image</strong>
+          <span
+            >Generate an image through the Responses image generation
+            tool.</span
+          >
+        </a>
+        <a
+          class="card"
+          data-preserve-search
+          href="./openai.embedding.demo.html"
+        >
+          <strong>Embedding</strong>
+          <span>Create an embedding vector for input text.</span>
+        </a>
+        <a
+          class="card"
+          data-preserve-search
+          href="./openai.web-search.demo.html"
+        >
+          <strong>Web search</strong>
+          <span
+            >Use the hosted <code>web_search</code> tool with citations.</span
+          >
+        </a>
+        <a
+          class="card"
+          data-preserve-search
+          href="./openai.file-search.demo.html"
+        >
+          <strong>File search</strong>
+          <span>Query a pre-populated vector store.</span>
+        </a>
+        <a
+          class="card"
+          data-preserve-search
+          href="./openai.code-interpreter.demo.html"
+        >
+          <strong>Code interpreter</strong>
+          <span>Run hosted Python in an ephemeral container.</span>
+        </a>
+        <a
+          class="card"
+          data-preserve-search
+          href="./openai.computer-use.demo.html"
+        >
+          <strong>Computer use</strong>
+          <span
+            >Request <code>computer_call</code> actions for a harness to
+            execute.</span
+          >
+        </a>
+        <a
+          class="card"
+          data-preserve-search
+          href="./openai.remote-mcp.demo.html"
+        >
+          <strong>Remote MCP</strong>
+          <span>Call a public demo MCP server.</span>
+        </a>
+        <a
+          class="card"
+          data-preserve-search
+          href="./openai.tool-search.demo.html"
+        >
+          <strong>Tool search</strong>
+          <span
+            >Demonstrate deferred tool loading with
+            <code>tool_search</code>.</span
+          >
+        </a>
       </section>
-
-      <openai-result for="ai"></openai-result>
     </main>
   </body>
 </html>

@@ -1,0 +1,59 @@
+<!doctype html>
+<!--
+Run from a local checkout:
+bun ./src/openai/scripts/openai-runner.ts src/openai/openai.image.demo.html
+
+Security: only run demos you trust. API keys entered here are visible to this page's JavaScript.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="./openai.demo.css" />
+    <title>OpenAI image demo</title>
+    <script type="module" src="./define.js"></script>
+    <script type="module" src="./openai.demo.js"></script>
+  </head>
+  <body>
+    <main>
+      <a class="back" data-preserve-search href="./openai.demo.html">← All OpenAI demos</a>
+      <header>
+        <h1>Image</h1>
+        <p>Generate an image through the Responses image generation tool.</p>
+      </header>
+
+      <openai-client id="ai" model="gpt-5.5"></openai-client>
+
+      <section class="panel" aria-label="OpenAI auth and transport">
+        <openai-key-field target="ai"></openai-key-field>
+        <label>
+          Transport
+          <select onchange="ai.setAttribute('transport', this.value)">
+            <option value="api-key-direct">API key direct</option>
+            <option value="api-key-broker">API key broker</option>
+            <option value="codex-broker">Codex broker</option>
+          </select>
+        </label>
+        <p class="note">For broker mode, run this page with <code>web-native-openai</code>. For API-key broker without typing a key, set <code>OPENAI_API_KEY</code>.</p>
+      </section>
+
+      <form class="panel" onsubmit="ai.generateImage(event)">
+        <h2>Request</h2>
+        <label>Prompt<textarea name="prompt">tiny watercolor robot on a white background</textarea></label>
+        <label>
+          Format
+          <select name="outputFormat">
+            <option>png</option>
+            <option>webp</option>
+            <option>jpeg</option>
+          </select>
+        </label>
+        <button>Generate image</button>
+      </form>
+
+      <openai-result for="ai"></openai-result>
+    </main>
+  </body>
+</html>

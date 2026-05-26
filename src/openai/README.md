@@ -33,7 +33,7 @@ for await (const event of client.streamResponse({
 }
 ```
 
-The demo page includes executable Responses examples for the current hosted tool shapes: `web_search`, `file_search`, `computer`, `code_interpreter`, `mcp` remote servers/connectors, `image_generation`, and `tool_search`. Use `respondWithTools(event)` from markup when a demo should pass a raw `tools` array to `/v1/responses`:
+The demo index links to focused executable pages for the current hosted tool shapes: `web_search`, `file_search`, `computer`, `code_interpreter`, `mcp` remote servers/connectors, `image_generation`, and `tool_search`. Use `respondWithTools(event)` from markup when a demo should pass a raw `tools` array to `/v1/responses`:
 
 ```html
 <form onsubmit="ai.respondWithTools(event)">
@@ -69,10 +69,12 @@ Local checkout usage:
 bun ./src/openai/scripts/openai-runner.ts src/openai/openai.demo.html
 ```
 
+To open one small demo directly, replace the path with a focused page such as `src/openai/openai.web-search.demo.html`.
+
 Responses WebSocket Mode demo with sandboxed local `eval_js` tool:
 
 ```sh
 bun ./src/openai/scripts/openai-runner.ts src/openai/openai.responses-websocket-eval.demo.html
 ```
 
-The runner serves the demo from localhost and exposes guarded proxy endpoints under `/__web-native-openai`. `transport="api-key-broker"` uses `OPENAI_API_KEY` or an entered key. `transport="codex-broker"` reads OpenCode OAuth auth from `OPENCODE_AUTH_FILE`, `$XDG_DATA_HOME/opencode/auth.json`, or `~/.local/share/opencode/auth.json`.
+The runner serves demo pages from localhost and exposes guarded proxy endpoints under `/__web-native-openai`. `transport="api-key-broker"` uses `OPENAI_API_KEY` or an entered key. `transport="codex-broker"` reads OpenCode OAuth auth from `OPENCODE_AUTH_FILE`, `$XDG_DATA_HOME/opencode/auth.json`, or `~/.local/share/opencode/auth.json`.
