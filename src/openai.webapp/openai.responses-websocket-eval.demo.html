@@ -55,6 +55,15 @@ only run demos you trust and review tool calls.
         gap: 0.35rem;
       }
 
+      .back {
+        color: var(--text);
+        font-weight: 760;
+        text-decoration-color: color-mix(in oklch, var(--accent) 72%, currentColor);
+        text-decoration-thickness: 0.08em;
+        text-underline-offset: 0.18em;
+        width: fit-content;
+      }
+
       h1, h2, h3, p { margin: 0; }
       h1 { font-size: clamp(2rem, 5vw, 4.75rem); letter-spacing: -0.08em; line-height: 0.9; }
       h2 { font-size: 1rem; letter-spacing: 0.02em; text-transform: uppercase; }
@@ -152,6 +161,7 @@ only run demos you trust and review tool calls.
   <body>
     <main>
       <header>
+        <a class="back" data-preserve-search href="./openai.demo.html">All OpenAI demos</a>
         <h1>Responses WebSocket eval loop</h1>
         <p>GPT-5.5 over persistent Responses WebSocket Mode, with reasoning summaries and a local <code>eval_js</code> function tool isolated in a sandboxed iframe.</p>
       </header>
