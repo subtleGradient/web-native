@@ -1,6 +1,6 @@
 // @ts-check
 
-import { BaseSwitch } from "../../switch.web/index.js"
+import { BaseSwitch } from "../../base.web/switch/index.js"
 import { normalizeToken, setDataAttributes, setSlot, syncGeneratedClasses } from "../internal/classes.js"
 
 const sizes = ["default", "sm", "lg"]

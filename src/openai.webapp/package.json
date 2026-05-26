@@ -1,0 +1,8 @@
+{
+  "name": "openai",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun scripts/openai-runner.ts openai.demo.html"
+  }
+}

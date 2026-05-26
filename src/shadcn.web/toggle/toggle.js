@@ -1,6 +1,6 @@
 // @ts-check
 
-import { BaseToggle } from "../../toggle.web/index.js"
+import { BaseToggle } from "../../base.web/toggle/index.js"
 import { normalizeToken, setDataAttributes, setSlot, syncGeneratedClasses } from "../internal/classes.js"
 
 const variants = ["default", "outline"]

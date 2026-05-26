@@ -68,11 +68,14 @@ Development should follow RGRTDD / demo-first flow:
 
 ## Current Components
 
-- `src/checkbox.web/` ports Base UI Checkbox as `base-checkbox`.
-- `src/toggle.web/` ports Base UI Toggle as `base-toggle`.
-- `src/separator.web/` ports Base UI Separator as `base-separator`.
-- `src/switch.web/` ports Base UI Switch as `base-switch`.
-- `src/tabs.web/` ports Base UI Tabs as `base-tabs`, `base-tabs-list`, `base-tab`, and `base-tabs-panel`.
+- `src/base.web/checkbox/` ports Base UI Checkbox as `base-checkbox`.
+- `src/base.web/toggle/` ports Base UI Toggle as `base-toggle`.
+- `src/base.web/toggle-group/` ports Base UI Toggle Group as `base-toggle-group` and `base-toggle-group-item`.
+- `src/base.web/separator/` ports Base UI Separator as `base-separator`.
+- `src/base.web/switch/` ports Base UI Switch as `base-switch`.
+- `src/base.web/tabs/` ports Base UI Tabs as `base-tabs`, `base-tabs-list`, `base-tab`, and `base-tabs-panel`.
+- `src/base.web/progress/` ports Base UI Progress as `base-progress`, `base-progress-track`, `base-progress-indicator`, `base-progress-label`, and `base-progress-value`.
+- `src/base.web/radio-group/` ports Base UI Radio Group as `base-radio-group` and `base-radio`.
 - `src/chat.web/` adds `topic-transcript`, `chat-summary`, and `chat-message` elements for lightweight archived chat transcript pages.
 - `src/openai.webapp/` adds BYOK OpenAI client helpers plus `openai-client`, `openai-key-field`, and `openai-result` elements.
 - `src/json-editor/` adds `json-editor` for schema-aware textarea enhancement.

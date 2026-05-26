@@ -6,7 +6,6 @@
     <meta name="color-scheme" content="light dark" />
     <link rel="icon" href="data:," />
     <title>deck-gl component stories</title>
-    <script type="module" src="./define.js"></script>
     <style>
       :root { color-scheme: light dark; }
       * { box-sizing: border-box; }
@@ -26,12 +25,21 @@
     <main>
       <header>
         <h1>deck-gl elements</h1>
-        <p>Local offline stories for deck readiness, layer visibility, detail panels, inline handlers, and renderer fixtures.</p>
+        <p>Stories for deck readiness, layer visibility, detail panels, inline handlers, and the real deck.gl renderer.</p>
       </header>
       <section data-story="fixture-controls">
         <h2>Fixture controls</h2>
         <div class="deck-shell">
-          <deck-gl id="storybook-deck" controller initial-view-state='{"longitude":-98,"latitude":39,"zoom":3}'></deck-gl>
+          <deck-gl
+            id="storybook-deck"
+            controller
+            initial-view-state='{"longitude":-98,"latitude":39,"zoom":3}'
+            oninit="DeckStories.init.call(this, event)"
+            onload="DeckStories.loaded()"
+            onhover="DeckStories.preview(event)"
+            ondeckclick="DeckStories.pin(event)"
+            onviewstatechange="DeckStories.syncView(event)"
+          ></deck-gl>
           <div>
             <deck-layer-list
               id="storybook-layers"
@@ -50,46 +58,142 @@
       </section>
     </main>
     <script type="module">
-      await Promise.all([customElements.whenDefined("deck-gl"), customElements.whenDefined("deck-layer-list"), customElements.whenDefined("deck-details-panel")])
+      import { Deck } from "https://esm.sh/@deck.gl/core@9.3.2"
+      import { ArcLayer, ScatterplotLayer, TextLayer } from "https://esm.sh/@deck.gl/layers@9.3.2?deps=@deck.gl/core@9.3.2"
 
-      class StoryDeck {
-        constructor(props) {
-          this.props = {}
-          this.parent = props.parent
-          this.button = document.createElement("button")
-          this.button.type = "button"
-          this.button.textContent = "Select fixture airport"
-          this.button.style.cssText = "align-items:center;background:rgba(255,255,255,.92);border:0;border-radius:999px;color:#0f172a;display:flex;font:700 1rem system-ui;inset:auto 1rem 1rem auto;min-height:2.75rem;padding-inline:1rem;position:absolute;"
-          this.button.onclick = () => {
-            this.props.onClick?.({ object: { name: "Fixture airport", code: "FX1", status: "ready" }, picked: true }, new MouseEvent("click"))
-          }
-          this.parent.append(this.button)
-          this.setProps(props)
-          this.props.onLoad?.()
-        }
+      const airports = [
+        { code: "SEA", name: "Seattle Field", coordinates: [-122.3, 47.6], capacity: 76, status: "stable" },
+        { code: "DEN", name: "Denver Hub", coordinates: [-104.9, 39.7], capacity: 88, status: "stable" },
+        { code: "MSP", name: "Twin Cities Depot", coordinates: [-93.2, 44.9], capacity: 58, status: "strained" },
+        { code: "DFW", name: "Dallas Staging", coordinates: [-97, 32.8], capacity: 91, status: "stable" },
+        { code: "ATL", name: "Atlanta Relief", coordinates: [-84.4, 33.6], capacity: 84, status: "stable" },
+        { code: "MIA", name: "Miami Medical", coordinates: [-80.2, 25.8], capacity: 49, status: "strained" },
+        { code: "JFK", name: "New York Intake", coordinates: [-73.8, 40.7], capacity: 67, status: "stable" },
+      ]
 
-        setProps(props) {
-          Object.assign(this.props, props)
-        }
+      const routes = [
+        { source: "SEA", target: "DEN", priority: 2, cargo: "generators", color: [251, 146, 60, 220] },
+        { source: "DEN", target: "DFW", priority: 3, cargo: "water", color: [249, 115, 22, 230] },
+        { source: "DFW", target: "ATL", priority: 4, cargo: "medical kits", color: [239, 68, 68, 235] },
+        { source: "ATL", target: "MIA", priority: 3, cargo: "field beds", color: [249, 115, 22, 230] },
+        { source: "MSP", target: "JFK", priority: 2, cargo: "food pallets", color: [251, 146, 60, 220] },
+        { source: "JFK", target: "ATL", priority: 1, cargo: "staff", color: [253, 186, 116, 220] },
+      ]
 
-        finalize() {
-          this.button.remove()
-        }
-      }
+      const weather = [
+        { name: "Icing watch", coordinates: [-96, 44], radiusMeters: 270000, severity: "moderate", fillColor: [56, 189, 248, 46] },
+        { name: "Thunderstorm cell", coordinates: [-88, 31], radiusMeters: 310000, severity: "high", fillColor: [14, 165, 233, 64] },
+        { name: "Crosswind band", coordinates: [-112, 37], radiusMeters: 240000, severity: "low", fillColor: [125, 211, 252, 38] },
+      ]
 
-      document.querySelector("#storybook-deck").deckConstructor = StoryDeck
+      const airportsByCode = new Map(airports.map((airport) => [airport.code, airport]))
+      const activeLayers = new Map([
+        ["airports", true],
+        ["routes", true],
+        ["weather", false],
+      ])
 
       globalThis.DeckStories = {
+        deckElement: null,
+        init(event) {
+          globalThis.DeckStories.deckElement = this
+          this.deckConstructor = Deck
+          this.parameters = { clearColor: [0, 0, 0, 0] }
+          this.getTooltip = ({ object }) => object?.name
+          this.layers = globalThis.DeckStories.layers()
+        },
+        layers() {
+          const routeData = routes.flatMap((route) => {
+            const source = airportsByCode.get(route.source)
+            const target = airportsByCode.get(route.target)
+            return source && target ? [{ ...route, name: `${route.source} to ${route.target}`, sourceAirport: source, targetAirport: target }] : []
+          })
+
+          return [
+            new ScatterplotLayer({
+              id: "weather",
+              data: weather,
+              visible: activeLayers.get("weather"),
+              pickable: true,
+              stroked: true,
+              filled: true,
+              getPosition: (cell) => cell.coordinates,
+              getRadius: (cell) => cell.radiusMeters,
+              radiusMinPixels: 24,
+              radiusMaxPixels: 90,
+              radiusUnits: "meters",
+              getFillColor: (cell) => cell.fillColor,
+              getLineColor: [125, 211, 252, 220],
+              getLineWidth: 2,
+              lineWidthUnits: "pixels",
+            }),
+            new ArcLayer({
+              id: "routes",
+              data: routeData,
+              visible: activeLayers.get("routes"),
+              pickable: true,
+              getSourcePosition: (route) => route.sourceAirport.coordinates,
+              getTargetPosition: (route) => route.targetAirport.coordinates,
+              getSourceColor: (route) => route.color,
+              getTargetColor: (route) => route.color,
+              getWidth: (route) => 2 + Number(route.priority),
+            }),
+            new ScatterplotLayer({
+              id: "airports",
+              data: airports,
+              visible: activeLayers.get("airports"),
+              pickable: true,
+              stroked: true,
+              filled: true,
+              getPosition: (airport) => airport.coordinates,
+              getRadius: (airport) => 6 + Number(airport.capacity) / 12,
+              radiusUnits: "pixels",
+              getFillColor: (airport) => (airport.status === "strained" ? [250, 204, 21, 235] : [34, 197, 94, 235]),
+              getLineColor: [255, 255, 255, 235],
+              getLineWidth: 2,
+              lineWidthUnits: "pixels",
+            }),
+            new TextLayer({
+              id: "airport-labels",
+              data: airports,
+              visible: activeLayers.get("airports"),
+              pickable: false,
+              getPosition: (airport) => airport.coordinates,
+              getText: (airport) => airport.code,
+              getColor: [255, 255, 255, 230],
+              getPixelOffset: [16, 2],
+              getSize: 14,
+              getTextAnchor: "start",
+              getAlignmentBaseline: "center",
+            }),
+          ]
+        },
+        loaded() {
+          document.querySelector("#deck-output").textContent = "Loaded real deck.gl story"
+          globalThis.__webNativeDeckStoriesReady = true
+        },
         layerChanged(event) {
+          activeLayers.set(event.detail.id, event.detail.visible)
+          this.deckElement.layers = this.layers()
           document.querySelector("#deck-output").textContent = `${event.detail.id}: ${event.detail.visible ? "visible" : "hidden"}`
+        },
+        preview(event) {
+          const object = event.detail.info.object
+          if (object) document.querySelector("#deck-output").textContent = `Hovering ${object.name}`
+        },
+        pin(event) {
+          const object = event.detail.info.object
+          if (object) document.querySelector("#deck-output").textContent = `Selected ${object.name}`
         },
         detailsChanged(event) {
           document.querySelector("#deck-output").textContent = `Selected ${event.detail.object.name}`
         },
+        syncView(event) {
+          this.deckElement.viewState = event.detail.viewState
+        },
       }
 
-      await new Promise((resolve) => requestAnimationFrame(resolve))
-      globalThis.__webNativeDeckStoriesReady = true
+      await import("./define.js")
     </script>
   </body>
 </html>

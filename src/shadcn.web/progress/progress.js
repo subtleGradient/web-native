@@ -1,6 +1,6 @@
 // @ts-check
 
-import { BaseProgress, BaseProgressIndicator, BaseProgressLabel, BaseProgressTrack, BaseProgressValue } from "../../progress.web/index.js"
+import { BaseProgress, BaseProgressIndicator, BaseProgressLabel, BaseProgressTrack, BaseProgressValue } from "../../base.web/progress/index.js"
 import { setSlot, syncGeneratedClasses } from "../internal/classes.js"
 
 export class ShadcnProgress extends BaseProgress {

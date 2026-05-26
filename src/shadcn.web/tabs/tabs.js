@@ -1,6 +1,6 @@
 // @ts-check
 
-import { BaseTab, BaseTabs, BaseTabsList, BaseTabsPanel } from "../../tabs.web/index.js"
+import { BaseTab, BaseTabs, BaseTabsList, BaseTabsPanel } from "../../base.web/tabs/index.js"
 import { normalizeToken, setDataAttributes, setSlot, syncGeneratedClasses } from "../internal/classes.js"
 
 const listVariants = ["default", "line"]

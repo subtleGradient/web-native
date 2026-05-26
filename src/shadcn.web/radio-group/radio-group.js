@@ -1,6 +1,6 @@
 // @ts-check
 
-import { BaseRadio, BaseRadioGroup } from "../../radio-group.web/index.js"
+import { BaseRadio, BaseRadioGroup } from "../../base.web/radio-group/index.js"
 import { setSlot, syncGeneratedClasses } from "../internal/classes.js"
 
 export class ShadcnRadioGroup extends BaseRadioGroup {

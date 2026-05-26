@@ -27,7 +27,7 @@ type PageDiagnostics = {
 const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)))
 const port = Number(process.env.E2E_PORT ?? process.env.PORT ?? "4180")
 const timeout = Number(process.env.E2E_TIMEOUT ?? "20000")
-const server = serveStatic({ root, port, defaultPath: "/src/checkbox.web/checkbox.stories.html" })
+const server = serveStatic({ root, port, defaultPath: "/src/base.web/checkbox/checkbox.stories.html" })
 const baseUrl = `http://${server.hostname}:${server.port}`
 const failures: string[] = []
 let browser: Browser | undefined
@@ -35,7 +35,7 @@ let browser: Browser | undefined
 const pages: E2EPage[] = [
   {
     name: "base-checkbox stories",
-    path: "/src/checkbox.web/checkbox.stories.html",
+    path: "/src/base.web/checkbox/checkbox.stories.html",
     readyFlag: "__webNativeCheckboxStoriesReady",
     minimumStories: 3,
     expectedElements: ["base-checkbox"],
@@ -43,7 +43,7 @@ const pages: E2EPage[] = [
   },
   {
     name: "base-switch stories",
-    path: "/src/switch.web/switch.stories.html",
+    path: "/src/base.web/switch/switch.stories.html",
     readyFlag: "__webNativeSwitchStoriesReady",
     minimumStories: 3,
     expectedElements: ["base-switch"],
@@ -51,7 +51,7 @@ const pages: E2EPage[] = [
   },
   {
     name: "base-toggle stories",
-    path: "/src/toggle.web/toggle.stories.html",
+    path: "/src/base.web/toggle/toggle.stories.html",
     readyFlag: "__webNativeToggleStoriesReady",
     minimumStories: 2,
     expectedElements: ["base-toggle"],
@@ -59,7 +59,7 @@ const pages: E2EPage[] = [
   },
   {
     name: "base-toggle-group stories",
-    path: "/src/toggle-group.web/toggle-group.stories.html",
+    path: "/src/base.web/toggle-group/toggle-group.stories.html",
     readyFlag: "__webNativeToggleGroupStoriesReady",
     minimumStories: 4,
     expectedElements: ["base-toggle-group", "base-toggle-group-item"],
@@ -67,7 +67,7 @@ const pages: E2EPage[] = [
   },
   {
     name: "base-radio-group stories",
-    path: "/src/radio-group.web/radio-group.stories.html",
+    path: "/src/base.web/radio-group/radio-group.stories.html",
     readyFlag: "__webNativeRadioStoriesReady",
     minimumStories: 4,
     expectedElements: ["base-radio-group", "base-radio"],
@@ -75,7 +75,7 @@ const pages: E2EPage[] = [
   },
   {
     name: "base-tabs stories",
-    path: "/src/tabs.web/tabs.stories.html",
+    path: "/src/base.web/tabs/tabs.stories.html",
     readyFlag: "__webNativeTabsStoriesReady",
     minimumStories: 3,
     expectedElements: ["base-tabs", "base-tabs-list", "base-tab", "base-tabs-panel"],
@@ -83,7 +83,7 @@ const pages: E2EPage[] = [
   },
   {
     name: "base-progress stories",
-    path: "/src/progress.web/progress.stories.html",
+    path: "/src/base.web/progress/progress.stories.html",
     readyFlag: "__webNativeProgressStoriesReady",
     minimumStories: 3,
     expectedElements: ["base-progress", "base-progress-track", "base-progress-indicator", "base-progress-label", "base-progress-value"],
@@ -91,7 +91,7 @@ const pages: E2EPage[] = [
   },
   {
     name: "base-separator stories",
-    path: "/src/separator.web/separator.stories.html",
+    path: "/src/base.web/separator/separator.stories.html",
     readyFlag: "__webNativeSeparatorStoriesReady",
     minimumStories: 3,
     expectedElements: ["base-separator"],
@@ -517,19 +517,18 @@ async function exerciseDeck(page: Page) {
     const button = list?.shadowRoot?.querySelector<HTMLButtonElement>('button[data-layer-id="weather"]')
     button?.click()
   })
-  await page.evaluate(() => {
-    const deck = document.querySelector("#storybook-deck")
-    const button = deck?.shadowRoot?.querySelector<HTMLButtonElement>("button")
-    button?.click()
-  })
 
   const state = await page.evaluate(() => ({
+    canvasCount: document.querySelector("#storybook-deck")?.shadowRoot?.querySelectorAll("canvas").length ?? 0,
     deckOutput: document.querySelector("#deck-output")?.textContent ?? "",
+    deckLayerCount: Reflect.get(document.querySelector("#storybook-deck") ?? {}, "layers")?.length ?? 0,
     deckState: document.querySelector("#storybook-deck")?.getAttribute("data-deck-state"),
   }))
 
   if (state.deckState !== "ready") failures.push(`deck state was ${state.deckState}`)
-  if (!state.deckOutput.includes("Selected Fixture airport")) failures.push(`deck output was ${state.deckOutput}`)
+  if (state.canvasCount === 0) failures.push("deck.gl canvas was not rendered")
+  if (state.deckLayerCount < 4) failures.push(`expected deck.gl layers, found ${state.deckLayerCount}`)
+  if (!state.deckOutput.includes("weather: visible")) failures.push(`deck output was ${state.deckOutput}`)
 
   return failures
 }

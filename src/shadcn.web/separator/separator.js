@@ -1,6 +1,6 @@
 // @ts-check
 
-import { BaseSeparator } from "../../separator.web/index.js"
+import { BaseSeparator } from "../../base.web/separator/index.js"
 import { setSlot, syncGeneratedClasses } from "../internal/classes.js"
 
 export class ShadcnSeparator extends BaseSeparator {

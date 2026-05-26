@@ -1,6 +1,6 @@
 // @ts-check
 
-import { BaseCheckbox } from "../../checkbox.web/index.js"
+import { BaseCheckbox } from "../../base.web/checkbox/index.js"
 import { normalizeToken, setDataAttributes, setSlot, syncGeneratedClasses } from "../internal/classes.js"
 
 const sizes = ["default", "sm", "lg"]

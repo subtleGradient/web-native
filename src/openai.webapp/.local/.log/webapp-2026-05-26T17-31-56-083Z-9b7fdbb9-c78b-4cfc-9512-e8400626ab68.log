@@ -1,0 +1,7 @@
+bun install v1.3.14 (0d9b296a)
+No packages! Deleted empty lockfile
+
+[12.00ms] done
+$ bun scripts/openai-runner.ts openai.demo.html
+openai.demo.html: http://localhost:4174/src/openai.webapp/openai.demo.html?t=d498eb67-1e60-4b7b-8298-255d5f90a899
+APPIFY_HOST_OPEN_URL=http://localhost:4174/src/openai.webapp/openai.demo.html?t=d498eb67-1e60-4b7b-8298-255d5f90a899

@@ -51,7 +51,8 @@
       }
 
       .map-column {
-        grid-template-rows: auto minmax(30rem, 1fr);
+        align-content: start;
+        grid-template-rows: auto auto;
       }
 
       header {
@@ -91,12 +92,14 @@
       }
 
       .map-shell {
+        height: clamp(30rem, 68vh, 44rem);
         min-height: 30rem;
         overflow: hidden;
         position: relative;
       }
 
       deck-gl {
+        background: linear-gradient(135deg, #020617, #172554 52%, #312e81);
         height: 100%;
         min-height: 30rem;
       }
@@ -522,153 +525,8 @@
     </main>
 
     <script type="module">
-      class DemoLayer {
-        constructor(props) {
-          Object.assign(this, props)
-        }
-      }
-
-      class SqliteDeck {
-        constructor(props) {
-          this.props = {}
-          this.parent = props.parent
-          this.svg = document.createElementNS("http://www.w3.org/2000/svg", "svg")
-          this.svg.setAttribute("viewBox", "0 0 1000 620")
-          this.svg.setAttribute("role", "img")
-          this.svg.setAttribute("aria-label", "SQLite OPFS operations map")
-          this.svg.style.cssText = "display:block;width:100%;height:100%;background:linear-gradient(135deg,#020617,#172554 52%,#312e81);"
-          this.parent.append(this.svg)
-          this.svg.addEventListener("wheel", (event) => this.zoom(event), { passive: false })
-          this.setProps(props)
-          this.props.onLoad?.()
-        }
-
-        setProps(props) {
-          Object.assign(this.props, props)
-          this.draw()
-        }
-
-        redraw() {
-          this.draw()
-        }
-
-        finalize() {
-          this.svg.remove()
-        }
-
-        zoom(event) {
-          event.preventDefault()
-          const base = this.props.viewState ?? this.props.initialViewState ?? { zoom: 3 }
-          const previous = Number(base.zoom ?? 3)
-          const zoom = Math.max(1, Math.min(8, previous + (event.deltaY < 0 ? 0.4 : -0.4)))
-          const viewState = { ...base, zoom: Number(zoom.toFixed(1)) }
-          this.props.viewState = viewState
-          this.props.onViewStateChange?.({ viewState, oldViewState: base })
-        }
-
-        draw() {
-          this.svg.replaceChildren(this.grid())
-          for (const layer of this.props.layers ?? []) {
-            if (layer.visible === false) continue
-            if (layer.type === "capacity") this.drawCapacity(layer)
-            if (layer.type === "movements") this.drawMovements(layer)
-            if (layer.type === "sites") this.drawSites(layer)
-          }
-        }
-
-        grid() {
-          const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
-          group.setAttribute("opacity", "0.24")
-          for (let x = 80; x < 980; x += 120) {
-            const line = document.createElementNS("http://www.w3.org/2000/svg", "line")
-            line.setAttribute("x1", String(x))
-            line.setAttribute("x2", String(x))
-            line.setAttribute("y1", "40")
-            line.setAttribute("y2", "580")
-            line.setAttribute("stroke", "white")
-            group.append(line)
-          }
-          for (let y = 80; y < 600; y += 100) {
-            const line = document.createElementNS("http://www.w3.org/2000/svg", "line")
-            line.setAttribute("x1", "40")
-            line.setAttribute("x2", "960")
-            line.setAttribute("y1", String(y))
-            line.setAttribute("y2", String(y))
-            line.setAttribute("stroke", "white")
-            group.append(line)
-          }
-          return group
-        }
-
-        drawCapacity(layer) {
-          for (const site of layer.data.sites) {
-            const [cx, cy] = project(site)
-            const selected = layer.selected?.kind === "site" && layer.selected.id === site.id
-            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle")
-            circle.setAttribute("cx", String(cx))
-            circle.setAttribute("cy", String(cy))
-            circle.setAttribute("r", String((selected ? 18 : 12) + Number(site.capacity) * 0.34))
-            circle.setAttribute("fill", site.status === "strained" ? "rgba(250,204,21,.15)" : "rgba(167,139,250,.13)")
-            circle.setAttribute("stroke", selected ? "white" : site.status === "strained" ? "rgba(250,204,21,.65)" : "rgba(167,139,250,.55)")
-            circle.setAttribute("stroke-width", selected ? "4" : "2")
-            this.bindFeature(circle, site, layer)
-            this.svg.append(circle)
-          }
-        }
-
-        drawMovements(layer) {
-          const sitesById = new Map(layer.data.sites.map((site) => [site.id, site]))
-          for (const movement of layer.data.movements) {
-            const source = sitesById.get(movement.fromSite)
-            const target = sitesById.get(movement.toSite)
-            if (!source || !target) continue
-            const [sx, sy] = project(source)
-            const [tx, ty] = project(target)
-            const path = document.createElementNS("http://www.w3.org/2000/svg", "path")
-            const lift = Math.min(180, Math.hypot(tx - sx, ty - sy) * 0.28)
-            const selected = layer.selected?.kind === "movement" && layer.selected.id === movement.id
-            path.setAttribute("d", `M ${sx} ${sy} Q ${(sx + tx) / 2} ${Math.min(sy, ty) - lift} ${tx} ${ty}`)
-            path.setAttribute("fill", "none")
-            path.setAttribute("stroke", selected ? "#ffffff" : movement.status === "critical" ? "#ef4444" : "#fb923c")
-            path.setAttribute("stroke-linecap", "round")
-            path.setAttribute("stroke-width", String((selected ? 4 : 1.5) + Number(movement.priority)))
-            this.bindFeature(path, { ...movement, name: `${movement.fromSite} to ${movement.toSite}` }, layer)
-            this.svg.append(path)
-          }
-        }
-
-        drawSites(layer) {
-          for (const site of layer.data.sites) {
-            const [cx, cy] = project(site)
-            const selected = layer.selected?.kind === "site" && layer.selected.id === site.id
-            const group = document.createElementNS("http://www.w3.org/2000/svg", "g")
-            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle")
-            const label = document.createElementNS("http://www.w3.org/2000/svg", "text")
-            circle.setAttribute("cx", String(cx))
-            circle.setAttribute("cy", String(cy))
-            circle.setAttribute("r", String((selected ? 11 : 7) + Math.sqrt(Number(site.capacity))))
-            circle.setAttribute("fill", site.status === "strained" ? "#facc15" : site.kind === "clinic" ? "#38bdf8" : "#22c55e")
-            circle.setAttribute("stroke", selected ? "#f8fafc" : "white")
-            circle.setAttribute("stroke-width", selected ? "5" : "2")
-            label.setAttribute("x", String(cx + 13))
-            label.setAttribute("y", String(cy + 5))
-            label.setAttribute("fill", "white")
-            label.setAttribute("font-size", "18")
-            label.setAttribute("font-weight", "700")
-            label.textContent = site.id
-            group.append(circle, label)
-            this.bindFeature(group, site, layer)
-            this.svg.append(group)
-          }
-        }
-
-        bindFeature(node, object, layer) {
-          node.style.cursor = "default"
-          node.addEventListener("pointerenter", (event) => this.props.onHover?.({ object, layer, picked: true }, event))
-          node.addEventListener("pointerleave", (event) => this.props.onHover?.({ object: null, layer, picked: false }, event))
-          node.addEventListener("click", (event) => this.props.onClick?.({ object, layer, picked: true }, event))
-        }
-      }
+      import { Deck } from "https://esm.sh/@deck.gl/core@9.3.2"
+      import { ArcLayer, ScatterplotLayer, TextLayer } from "https://esm.sh/@deck.gl/layers@9.3.2?deps=@deck.gl/core@9.3.2"
 
       const activeLayers = new Map([
         ["capacity", true],
@@ -686,16 +544,69 @@
         selected: null,
         initDeck() {
           globalThis.OpsBulkDemo.deckElement = this
-          this.deckConstructor = SqliteDeck
+          this.deckConstructor = Deck
+          this.parameters = { clearColor: [0, 0, 0, 0] }
+          this.getTooltip = ({ object }) => object && (object.name ?? object.id)
           this.layers = globalThis.OpsBulkDemo.layers()
         },
         layers() {
           const data = this.currentData
           const selected = this.selected
           return [
-            new DemoLayer({ id: "capacity", type: "capacity", data, selected, visible: activeLayers.get("capacity") }),
-            new DemoLayer({ id: "movements", type: "movements", data, selected, visible: activeLayers.get("movements") }),
-            new DemoLayer({ id: "sites", type: "sites", data, selected, visible: activeLayers.get("sites") }),
+            new ScatterplotLayer({
+              id: "capacity",
+              data: data.sites,
+              visible: activeLayers.get("capacity"),
+              pickable: true,
+              stroked: true,
+              filled: true,
+              getPosition: sitePosition,
+              getRadius: (site) => (isSelected(selected, "site", site.id) ? 18 : 12) + Number(site.capacity) * 0.34,
+              radiusUnits: "pixels",
+              getFillColor: (site) => (site.status === "strained" ? [250, 204, 21, 38] : [167, 139, 250, 33]),
+              getLineColor: (site) => capacityLineColor(site, selected),
+              getLineWidth: (site) => (isSelected(selected, "site", site.id) ? 4 : 2),
+              lineWidthUnits: "pixels",
+            }),
+            new ArcLayer({
+              id: "movements",
+              data: movementRows(data),
+              visible: activeLayers.get("movements"),
+              pickable: true,
+              getSourcePosition: (movement) => sitePosition(movement.sourceSite),
+              getTargetPosition: (movement) => sitePosition(movement.targetSite),
+              getSourceColor: (movement) => movementColor(movement, selected),
+              getTargetColor: (movement) => movementColor(movement, selected),
+              getWidth: (movement) => (isSelected(selected, "movement", movement.id) ? 4 : 1.5) + Number(movement.priority),
+            }),
+            new ScatterplotLayer({
+              id: "sites",
+              data: data.sites,
+              visible: activeLayers.get("sites"),
+              pickable: true,
+              stroked: true,
+              filled: true,
+              getPosition: sitePosition,
+              getRadius: (site) => (isSelected(selected, "site", site.id) ? 11 : 7) + Math.sqrt(Number(site.capacity)),
+              radiusUnits: "pixels",
+              getFillColor: siteFillColor,
+              getLineColor: (site) => (isSelected(selected, "site", site.id) ? [248, 250, 252, 255] : [255, 255, 255, 220]),
+              getLineWidth: (site) => (isSelected(selected, "site", site.id) ? 5 : 2),
+              lineWidthUnits: "pixels",
+            }),
+            new TextLayer({
+              id: "site-labels",
+              data: data.sites,
+              visible: activeLayers.get("sites"),
+              pickable: false,
+              getPosition: sitePosition,
+              getText: (site) => site.id,
+              getColor: [255, 255, 255, 230],
+              getPixelOffset: [16, 2],
+              getSize: 14,
+              getTextAnchor: "start",
+              getAlignmentBaseline: "center",
+            }),
           ]
         },
         applySnapshot(data) {
@@ -960,11 +871,12 @@
         },
         pin(event) {
           const object = event.detail.info.object
-          const layerType = event.detail.info.layer?.type
-          if (object) this.selectItem(layerType === "movements" ? "movement" : "site", object.id)
+          const layerId = event.detail.info.layer?.id
+          if (object) this.selectItem(layerId === "movements" ? "movement" : "site", object.id)
         },
         syncView(event) {
-          this.setStatus(`Wheel zoom: ${event.detail.viewState.zoom}`)
+          this.deckElement.viewState = event.detail.viewState
+          this.setStatus(`Zoom ${event.detail.viewState.zoom.toFixed(2)}`)
         },
         setStatus(message) {
           text("#status", message)
@@ -1064,8 +976,37 @@
         return [term, description]
       }
 
-      function project(site) {
-        return [(Number(site.longitude) + 128) * 16.2, (52 - Number(site.latitude)) * 22.5]
+      function movementRows(data) {
+        const sitesById = new Map(data.sites.map((site) => [site.id, site]))
+        return data.movements.flatMap((movement) => {
+          const sourceSite = sitesById.get(movement.fromSite)
+          const targetSite = sitesById.get(movement.toSite)
+          return sourceSite && targetSite ? [{ ...movement, name: `${movement.fromSite} to ${movement.toSite}`, sourceSite, targetSite }] : []
+        })
+      }
+
+      function sitePosition(site) {
+        return [Number(site.longitude), Number(site.latitude)]
+      }
+
+      function isSelected(selected, kind, id) {
+        return selected?.kind === kind && selected.id === id
+      }
+
+      function capacityLineColor(site, selected) {
+        if (isSelected(selected, "site", site.id)) return [255, 255, 255, 255]
+        return site.status === "strained" ? [250, 204, 21, 166] : [167, 139, 250, 140]
+      }
+
+      function movementColor(movement, selected) {
+        if (isSelected(selected, "movement", movement.id)) return [255, 255, 255, 255]
+        return movement.status === "critical" ? [239, 68, 68, 235] : [251, 146, 60, 225]
+      }
+
+      function siteFillColor(site) {
+        if (site.status === "strained") return [250, 204, 21, 235]
+        if (site.kind === "clinic") return [56, 189, 248, 235]
+        return [34, 197, 94, 235]
       }
 
       function text(selector, value) {

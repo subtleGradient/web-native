@@ -1,6 +1,6 @@
 // @ts-check
 
-import { BaseToggleGroup, BaseToggleGroupItem } from "../../toggle-group.web/index.js"
+import { BaseToggleGroup, BaseToggleGroupItem } from "../../base.web/toggle-group/index.js"
 import { normalizeToken, setDataAttributes, setSlot, syncGeneratedClasses } from "../internal/classes.js"
 
 const variants = ["default", "outline"]
