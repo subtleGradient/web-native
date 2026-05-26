@@ -12,7 +12,7 @@ type ThemeSnapshot = {
 
 const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)))
 const port = Number(process.env.PORT ?? "4175")
-const server = serveStatic({ root, port, defaultPath: "/src/shadcn/shadcn.demo.html" })
+const server = serveStatic({ root, port, defaultPath: "/src/shadcn.web/shadcn.demo.html" })
 
 let browser: Awaited<ReturnType<typeof puppeteer.launch>> | undefined
 
@@ -48,7 +48,7 @@ async function snapshotTheme(preferredScheme: "light" | "dark", explicitTheme?: 
 
   const page = await browser.newPage()
   await page.emulateMediaFeatures([{ name: "prefers-color-scheme", value: preferredScheme }])
-  await page.goto(`http://${server.hostname}:${server.port}/src/shadcn/shadcn.demo.html`, {
+  await page.goto(`http://${server.hostname}:${server.port}/src/shadcn.web/shadcn.demo.html`, {
     timeout: 10000,
     waitUntil: "load",
   })

@@ -68,17 +68,17 @@ Development should follow RGRTDD / demo-first flow:
 
 ## Current Components
 
-- `src/checkbox/` ports Base UI Checkbox as `base-checkbox`.
-- `src/toggle/` ports Base UI Toggle as `base-toggle`.
-- `src/separator/` ports Base UI Separator as `base-separator`.
-- `src/switch/` ports Base UI Switch as `base-switch`.
-- `src/tabs/` ports Base UI Tabs as `base-tabs`, `base-tabs-list`, `base-tab`, and `base-tabs-panel`.
-- `src/chat/` adds `topic-transcript`, `chat-summary`, and `chat-message` elements for lightweight archived chat transcript pages.
-- `src/openai/` adds BYOK OpenAI client helpers plus `openai-client`, `openai-key-field`, and `openai-result` elements.
+- `src/checkbox.web/` ports Base UI Checkbox as `base-checkbox`.
+- `src/toggle.web/` ports Base UI Toggle as `base-toggle`.
+- `src/separator.web/` ports Base UI Separator as `base-separator`.
+- `src/switch.web/` ports Base UI Switch as `base-switch`.
+- `src/tabs.web/` ports Base UI Tabs as `base-tabs`, `base-tabs-list`, `base-tab`, and `base-tabs-panel`.
+- `src/chat.web/` adds `topic-transcript`, `chat-summary`, and `chat-message` elements for lightweight archived chat transcript pages.
+- `src/openai.webapp/` adds BYOK OpenAI client helpers plus `openai-client`, `openai-key-field`, and `openai-result` elements.
 - `src/json-editor/` adds `json-editor` for schema-aware textarea enhancement.
-- `src/deck-gl/` adds deck.gl-inspired `deck-gl`, `deck-layer-list`, and `deck-details-panel` elements for static HTML map examples.
-- `src/json-canvas/` adds `json-canvas`, `json-canvas-node`, `json-canvas-edge`, and `noodle-wire` elements for mapping JSON Canvas documents to HTML.
-- `src/shadcn/` adds styled shadcn-inspired custom elements over those Base UI web components.
+- `src/deck-gl.web/` adds deck.gl-inspired `deck-gl`, `deck-layer-list`, and `deck-details-panel` elements for static HTML map examples.
+- `src/json-canvas.web/` adds `json-canvas`, `json-canvas-node`, `json-canvas-edge`, and `noodle-wire` elements for mapping JSON Canvas documents to HTML.
+- `src/shadcn.web/` adds styled shadcn-inspired custom elements over those Base UI web components.
 
 Each folder includes a `*.demo.html`, `*.test.js`, and `README.md` next to the implementation.
 

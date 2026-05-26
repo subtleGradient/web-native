@@ -42,14 +42,19 @@ try {
     if (activeLabel === "Product updates") break
   }
 
-  const state = await page.evaluate(async () => {
+  const checkboxPoint = await page.$eval('shadcn-checkbox[aria-label="Product updates"]', (element) => {
+    const rect = element.getBoundingClientRect()
+    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
+  })
+  await page.mouse.move(checkboxPoint.x, checkboxPoint.y)
+  await page.mouse.down()
+
+  const state = await page.evaluate(() => {
     const checkbox = document.querySelector<HTMLElement>('shadcn-checkbox[aria-label="Product updates"]')
     const switchControl = document.querySelector<HTMLElement>('shadcn-switch[aria-label="Incident alerts"]')
     const disabledCheckbox = document.querySelector<HTMLElement>('shadcn-checkbox[aria-label="Partner offers"]')
 
     const checkboxFocusShadow = checkbox ? getComputedStyle(checkbox).boxShadow : ""
-    checkbox?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0 }))
-    await new Promise((resolve) => requestAnimationFrame(resolve))
 
     return {
       tabsValue: document.querySelector("#settings-tabs")?.getAttribute("value"),
@@ -63,6 +68,7 @@ try {
       disabledOpacity: disabledCheckbox ? getComputedStyle(disabledCheckbox).opacity : "",
     }
   })
+  await page.mouse.up()
 
   await page.addScriptTag({ path: path.join(root, "node_modules/axe-core/axe.min.js") })
   const seriousViolations = await page.evaluate(async () => {

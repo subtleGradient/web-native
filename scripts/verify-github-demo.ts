@@ -43,8 +43,8 @@ try {
     activeSecurity: document.querySelector('shadcn-tabs-trigger[value="security"]')?.hasAttribute("data-active") ?? false,
   }))
 
-  const loadedFromGithub = Array.from(requestedUrls).some((url) => url.startsWith(cdnPrefix) && url.endsWith("src/shadcn/define.js"))
-  const loadedCssFromGithub = Array.from(requestedUrls).some((url) => url.startsWith(cdnPrefix) && url.endsWith("src/shadcn/styles/base-nova.css"))
+  const loadedFromGithub = Array.from(requestedUrls).some((url) => url.startsWith(cdnPrefix) && url.endsWith("src/shadcn.web/define.js"))
+  const loadedCssFromGithub = Array.from(requestedUrls).some((url) => url.startsWith(cdnPrefix) && url.endsWith("src/shadcn.web/styles/base-nova.css"))
 
   if (!loadedFromGithub || !loadedCssFromGithub || !result.buttonClass || result.toggleLog !== "Pressed: true" || result.tabsValue !== "security" || !result.activeSecurity) {
     console.error({ loadedFromGithub, loadedCssFromGithub, result })

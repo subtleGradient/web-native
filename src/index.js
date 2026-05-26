@@ -2,22 +2,22 @@
 
 export const projectName = "web-native"
 
-export { BaseCheckbox, defineBaseCheckbox } from "./checkbox/index.js"
-export { BaseToggle, defineBaseToggle } from "./toggle/index.js"
+export { BaseCheckbox, defineBaseCheckbox } from "./checkbox.web/index.js"
+export { BaseToggle, defineBaseToggle } from "./toggle.web/index.js"
 export {
   BaseToggleGroup,
   BaseToggleGroupItem,
   defineBaseToggleGroup,
-} from "./toggle-group/index.js"
-export { BaseSeparator, defineBaseSeparator } from "./separator/index.js"
-export { BaseSwitch, defineBaseSwitch } from "./switch/index.js"
+} from "./toggle-group.web/index.js"
+export { BaseSeparator, defineBaseSeparator } from "./separator.web/index.js"
+export { BaseSwitch, defineBaseSwitch } from "./switch.web/index.js"
 export {
   BaseTab,
   BaseTabs,
   BaseTabsList,
   BaseTabsPanel,
   defineBaseTabs,
-} from "./tabs/index.js"
+} from "./tabs.web/index.js"
 export {
   BaseProgress,
   BaseProgressIndicator,
@@ -25,12 +25,12 @@ export {
   BaseProgressTrack,
   BaseProgressValue,
   defineBaseProgress,
-} from "./progress/index.js"
+} from "./progress.web/index.js"
 export {
   BaseRadio,
   BaseRadioGroup,
   defineBaseRadioGroup,
-} from "./radio-group/index.js"
+} from "./radio-group.web/index.js"
 export {
   ChatMessage,
   ChatSummary,
@@ -39,7 +39,7 @@ export {
   defineChatSummary,
   defineChatTranscriptElements,
   defineTopicTranscript,
-} from "./chat/index.js"
+} from "./chat.web/index.js"
 export {
   DeckDetailsPanel,
   DeckGlElement,
@@ -48,7 +48,7 @@ export {
   defineDeckElements,
   defineDeckGl,
   defineDeckLayerList,
-} from "./deck-gl/index.js"
+} from "./deck-gl.web/index.js"
 export {
   JsonEditor,
   defineJsonEditor,
@@ -63,7 +63,7 @@ export {
   defineJsonCanvasElements,
   defineJsonCanvasNode,
   defineNoodleWire,
-} from "./json-canvas/index.js"
+} from "./json-canvas.web/index.js"
 export {
   OpenAIClient,
   OpenAIClientElement,
@@ -73,5 +73,5 @@ export {
   defineOpenAIElements,
   defineOpenAIKeyField,
   defineOpenAIResult,
-} from "./openai/index.js"
-export * from "./shadcn/index.js"
+} from "./openai.webapp/index.js"
+export * from "./shadcn.web/index.js"

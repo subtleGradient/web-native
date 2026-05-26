@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>standalone base-tabs demo</title>
+    <script>
+      (() => {
+        const media = matchMedia("(prefers-color-scheme: dark)")
+        const syncTheme = () => {
+          document.documentElement.dataset.theme = media.matches ? "dark" : "light"
+        }
+
+        syncTheme()
+        media.addEventListener("change", syncTheme)
+      })()
+    </script>
+    <script type="module" src="https://cdn.jsdelivr.net/gh/subtleGradient/web-native@web-native-shadcn-components/src/tabs.web/define.js"></script>
+    <style>
+      :root { color-scheme: light dark; }
+      :root[data-theme="light"] { color-scheme: light; }
+      :root[data-theme="dark"] { color-scheme: dark; }
+      body { background: Canvas; color: CanvasText; font-family: system-ui, sans-serif; margin: 2rem; }
+      main { display: grid; gap: 1rem; max-width: 42rem; }
+      base-tabs { display: grid; gap: 0.75rem; }
+      base-tabs-list { display: flex; gap: 0.25rem; }
+      base-tab { border: 1px solid CanvasText; border-radius: 0.5rem; padding: 0.5rem 0.75rem; }
+      base-tab:focus-visible { outline: 2px solid Highlight; outline-offset: 2px; }
+      base-tab[data-active] { background: Highlight; color: HighlightText; }
+      base-tab[data-disabled] { opacity: 0.5; }
+      base-tabs-panel { border: 1px solid color-mix(in srgb, CanvasText 25%, transparent); border-radius: 0.5rem; padding: 1rem; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>standalone base-tabs</h1>
+      <p>Open this file directly. The component modules are loaded from the GitHub branch through jsDelivr.</p>
+      <base-tabs id="settings-tabs" value="profile">
+        <base-tabs-list aria-label="Account sections">
+          <base-tab value="profile">Profile</base-tab>
+          <base-tab value="security">Security</base-tab>
+          <base-tab value="billing" disabled>Billing</base-tab>
+        </base-tabs-list>
+        <base-tabs-panel value="profile">Profile details go here.</base-tabs-panel>
+        <base-tabs-panel value="security">Security controls go here.</base-tabs-panel>
+        <base-tabs-panel value="billing">Billing is disabled.</base-tabs-panel>
+      </base-tabs>
+    </main>
+    <script type="module">
+      await customElements.whenDefined("base-tabs")
+      Reflect.set(globalThis, "__webNativeStandaloneDemoReady", true)
+    </script>
+  </body>
+</html>

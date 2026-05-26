@@ -27,7 +27,7 @@ type PageDiagnostics = {
 const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)))
 const port = Number(process.env.E2E_PORT ?? process.env.PORT ?? "4180")
 const timeout = Number(process.env.E2E_TIMEOUT ?? "20000")
-const server = serveStatic({ root, port, defaultPath: "/src/checkbox/checkbox.stories.html" })
+const server = serveStatic({ root, port, defaultPath: "/src/checkbox.web/checkbox.stories.html" })
 const baseUrl = `http://${server.hostname}:${server.port}`
 const failures: string[] = []
 let browser: Browser | undefined
@@ -35,7 +35,7 @@ let browser: Browser | undefined
 const pages: E2EPage[] = [
   {
     name: "base-checkbox stories",
-    path: "/src/checkbox/checkbox.stories.html",
+    path: "/src/checkbox.web/checkbox.stories.html",
     readyFlag: "__webNativeCheckboxStoriesReady",
     minimumStories: 3,
     expectedElements: ["base-checkbox"],
@@ -43,7 +43,7 @@ const pages: E2EPage[] = [
   },
   {
     name: "base-switch stories",
-    path: "/src/switch/switch.stories.html",
+    path: "/src/switch.web/switch.stories.html",
     readyFlag: "__webNativeSwitchStoriesReady",
     minimumStories: 3,
     expectedElements: ["base-switch"],
@@ -51,7 +51,7 @@ const pages: E2EPage[] = [
   },
   {
     name: "base-toggle stories",
-    path: "/src/toggle/toggle.stories.html",
+    path: "/src/toggle.web/toggle.stories.html",
     readyFlag: "__webNativeToggleStoriesReady",
     minimumStories: 2,
     expectedElements: ["base-toggle"],
@@ -59,7 +59,7 @@ const pages: E2EPage[] = [
   },
   {
     name: "base-toggle-group stories",
-    path: "/src/toggle-group/toggle-group.stories.html",
+    path: "/src/toggle-group.web/toggle-group.stories.html",
     readyFlag: "__webNativeToggleGroupStoriesReady",
     minimumStories: 4,
     expectedElements: ["base-toggle-group", "base-toggle-group-item"],
@@ -67,7 +67,7 @@ const pages: E2EPage[] = [
   },
   {
     name: "base-radio-group stories",
-    path: "/src/radio-group/radio-group.stories.html",
+    path: "/src/radio-group.web/radio-group.stories.html",
     readyFlag: "__webNativeRadioStoriesReady",
     minimumStories: 4,
     expectedElements: ["base-radio-group", "base-radio"],
@@ -75,7 +75,7 @@ const pages: E2EPage[] = [
   },
   {
     name: "base-tabs stories",
-    path: "/src/tabs/tabs.stories.html",
+    path: "/src/tabs.web/tabs.stories.html",
     readyFlag: "__webNativeTabsStoriesReady",
     minimumStories: 3,
     expectedElements: ["base-tabs", "base-tabs-list", "base-tab", "base-tabs-panel"],
@@ -83,7 +83,7 @@ const pages: E2EPage[] = [
   },
   {
     name: "base-progress stories",
-    path: "/src/progress/progress.stories.html",
+    path: "/src/progress.web/progress.stories.html",
     readyFlag: "__webNativeProgressStoriesReady",
     minimumStories: 3,
     expectedElements: ["base-progress", "base-progress-track", "base-progress-indicator", "base-progress-label", "base-progress-value"],
@@ -91,7 +91,7 @@ const pages: E2EPage[] = [
   },
   {
     name: "base-separator stories",
-    path: "/src/separator/separator.stories.html",
+    path: "/src/separator.web/separator.stories.html",
     readyFlag: "__webNativeSeparatorStoriesReady",
     minimumStories: 3,
     expectedElements: ["base-separator"],
@@ -99,7 +99,7 @@ const pages: E2EPage[] = [
   },
   {
     name: "shadcn stories",
-    path: "/src/shadcn/shadcn.stories.html",
+    path: "/src/shadcn.web/shadcn.stories.html",
     readyFlag: "__webNativeShadcnReady",
     minimumStories: 7,
     expectedElements: [
@@ -134,7 +134,7 @@ const pages: E2EPage[] = [
   },
   {
     name: "chat stories",
-    path: "/src/chat/chat.stories.html",
+    path: "/src/chat.web/chat.stories.html",
     readyFlag: "__webNativeChatStoriesReady",
     minimumStories: 1,
     expectedElements: ["topic-transcript", "chat-summary", "chat-message"],
@@ -142,7 +142,7 @@ const pages: E2EPage[] = [
   },
   {
     name: "deck-gl stories",
-    path: "/src/deck-gl/deck-gl.stories.html",
+    path: "/src/deck-gl.web/deck-gl.stories.html",
     readyFlag: "__webNativeDeckStoriesReady",
     minimumStories: 1,
     expectedElements: ["deck-gl", "deck-layer-list", "deck-details-panel"],
@@ -150,7 +150,7 @@ const pages: E2EPage[] = [
   },
   {
     name: "OpenAI stories",
-    path: "/src/openai/openai.stories.html",
+    path: "/src/openai.webapp/openai.stories.html",
     readyFlag: "__webNativeOpenAIStoriesReady",
     minimumStories: 2,
     expectedElements: ["openai-client", "openai-key-field", "openai-result"],

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>standalone shadcn-toggle demo</title>
+    <script>
+      (() => {
+        const media = matchMedia("(prefers-color-scheme: dark)")
+        const syncTheme = () => {
+          document.documentElement.dataset.theme = media.matches ? "dark" : "light"
+        }
+
+        syncTheme()
+        media.addEventListener("change", syncTheme)
+      })()
+    </script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/subtleGradient/web-native@web-native-shadcn-components/src/shadcn.web/themes/neutral.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/subtleGradient/web-native@web-native-shadcn-components/src/shadcn.web/styles/base-nova.css" />
+    <script type="importmap">{ "imports": { "web-native/": "https://cdn.jsdelivr.net/gh/subtleGradient/web-native@web-native-shadcn-components/src/" } }</script>
+    <script type="module">
+      import "web-native/shadcn.web/toggle/define.js"
+      await customElements.whenDefined("shadcn-toggle")
+      Reflect.set(globalThis, "__webNativeStandaloneDemoReady", true)
+    </script>
+    <style>body { margin: 2rem; } main { display: grid; gap: 1rem; max-width: 40rem; } .row { display: flex; flex-wrap: wrap; gap: 0.5rem; }</style>
+  </head>
+  <body>
+    <main>
+      <h1>standalone shadcn-toggle</h1>
+      <p>Open this file directly. CSS and ESM load from GitHub through jsDelivr.</p>
+      <section class="row" aria-label="Toggle controls">
+        <shadcn-toggle variant="outline">Bold</shadcn-toggle>
+        <shadcn-toggle pressed>Italic</shadcn-toggle>
+        <shadcn-toggle disabled>Disabled</shadcn-toggle>
+      </section>
+    </main>
+  </body>
+</html>
