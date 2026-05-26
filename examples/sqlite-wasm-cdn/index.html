@@ -6,18 +6,26 @@
     <meta name="color-scheme" content="light dark" />
     <title>SQLite Wasm CDN example</title>
     <script>
-      (() => {
+      ;(() => {
         const media = matchMedia("(prefers-color-scheme: dark)")
         const syncTheme = () => {
-          document.documentElement.dataset.theme = media.matches ? "dark" : "light"
+          document.documentElement.dataset.theme = media.matches
+            ? "dark"
+            : "light"
         }
 
         syncTheme()
         media.onchange = syncTheme
       })()
     </script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/subtleGradient/web-native@7ed806104e4b9dcce8b91044149cb721f2b1e9cf/src/shadcn.web/themes/neutral.css" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/subtleGradient/web-native@7ed806104e4b9dcce8b91044149cb721f2b1e9cf/src/shadcn.web/styles/base-nova.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/subtleGradient/web-native@7ed806104e4b9dcce8b91044149cb721f2b1e9cf/src/shadcn.web/themes/neutral.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/subtleGradient/web-native@7ed806104e4b9dcce8b91044149cb721f2b1e9cf/src/shadcn.web/styles/base-nova.css"
+    />
     <script type="importmap">
       {
         "imports": {
@@ -194,8 +202,10 @@
         <shadcn-badge variant="secondary">CDN-loaded SQLite Wasm</shadcn-badge>
         <h1 id="title">SQLite in a plain page.</h1>
         <p class="muted">
-          This example imports the official SQLite Wasm ESM build from jsDelivr, resolves
-          <code>sqlite3.wasm</code> from the same CDN, creates a transient <code>:memory:</code>
+          This example imports the official SQLite Wasm ESM build from jsDelivr,
+          resolves
+          <code>sqlite3.wasm</code> from the same CDN, creates a transient
+          <code>:memory:</code>
           database, and queries it on the main thread.
         </p>
       </section>
@@ -204,31 +214,52 @@
         <shadcn-card aria-labelledby="db-title">
           <shadcn-card-header>
             <shadcn-card-title id="db-title">Notes table</shadcn-card-title>
-            <shadcn-card-description>Insert a row, then inspect the live query result.</shadcn-card-description>
+            <shadcn-card-description
+              >Insert a row, then inspect the live query
+              result.</shadcn-card-description
+            >
           </shadcn-card-header>
           <shadcn-card-content class="stack">
             <shadcn-alert id="status-alert">
               <shadcn-alert-title>SQLite loader</shadcn-alert-title>
               <shadcn-alert-description class="status-line" aria-live="polite">
-                <shadcn-badge id="status-badge" variant="secondary">Loading</shadcn-badge>
-                <span id="status-text">Loading SQLite Wasm from the CDN...</span>
+                <shadcn-badge id="status-badge" variant="secondary"
+                  >Loading</shadcn-badge
+                >
+                <span id="status-text"
+                  >Loading SQLite Wasm from the CDN...</span
+                >
               </shadcn-alert-description>
             </shadcn-alert>
 
-            <form id="note-form" class="insert-form" onsubmit="sqliteWasmCdnDemo.insertNote(event)">
+            <form
+              id="note-form"
+              class="insert-form"
+              onsubmit="sqliteWasmCdnDemo.insertNote(event)"
+            >
               <label class="field">
                 <span class="muted">Insert a row</span>
-                <input id="note-input" name="body" autocomplete="off" disabled value="Hello from SQLite Wasm" />
+                <input
+                  id="note-input"
+                  name="body"
+                  autocomplete="off"
+                  disabled
+                  value="Hello from SQLite Wasm"
+                />
               </label>
               <span onclick="globalThis.sqliteWasmCdnDemo?.insertNote(event)">
-                <shadcn-button id="insert-button" disabled>Insert row</shadcn-button>
+                <shadcn-button id="insert-button" disabled
+                  >Insert row</shadcn-button
+                >
               </span>
             </form>
 
             <shadcn-tabs value="rows">
               <shadcn-tabs-list variant="line" aria-label="SQLite output views">
                 <shadcn-tabs-trigger value="rows">Rows</shadcn-tabs-trigger>
-                <shadcn-tabs-trigger value="query">Query output</shadcn-tabs-trigger>
+                <shadcn-tabs-trigger value="query"
+                  >Query output</shadcn-tabs-trigger
+                >
               </shadcn-tabs-list>
               <shadcn-tabs-content value="rows">
                 <div class="table-wrap">
@@ -250,16 +281,25 @@
           </shadcn-card-content>
           <shadcn-card-footer class="actions">
             <span onclick="globalThis.sqliteWasmCdnDemo?.renderRows(event)">
-              <shadcn-button id="query-button" variant="outline" disabled>Run sample query</shadcn-button>
+              <shadcn-button id="query-button" variant="outline" disabled
+                >Run sample query</shadcn-button
+              >
             </span>
             <shadcn-badge id="row-count" variant="outline">0 rows</shadcn-badge>
           </shadcn-card-footer>
         </shadcn-card>
 
-        <shadcn-card class="runtime-card" size="sm" aria-labelledby="runtime-title">
+        <shadcn-card
+          class="runtime-card"
+          size="sm"
+          aria-labelledby="runtime-title"
+        >
           <shadcn-card-header>
             <shadcn-card-title id="runtime-title">Runtime</shadcn-card-title>
-            <shadcn-card-description>Everything here runs without a bundler or local install.</shadcn-card-description>
+            <shadcn-card-description
+              >Everything here runs without a bundler or local
+              install.</shadcn-card-description
+            >
           </shadcn-card-header>
           <shadcn-card-content class="stack">
             <div class="metric">
@@ -267,7 +307,9 @@
               <strong id="sqlite-version">pending</strong>
             </div>
             <shadcn-separator></shadcn-separator>
-            <p class="muted">Database: <code>:memory:</code> so refreshes start fresh.</p>
+            <p class="muted">
+              Database: <code>:memory:</code> so refreshes start fresh.
+            </p>
             <p class="muted">Wasm URL: <code id="wasm-url"></code></p>
             <div class="actions" aria-label="Runtime features">
               <shadcn-kbd>ESM</shadcn-kbd>
@@ -291,7 +333,8 @@
         customElements.whenDefined("shadcn-tabs"),
       ])
 
-      const cdnRoot = "https://cdn.jsdelivr.net/npm/@sqlite.org/sqlite-wasm@3.53.0-build1/dist/"
+      const cdnRoot =
+        "https://cdn.jsdelivr.net/npm/@sqlite.org/sqlite-wasm@3.53.0-build1/dist/"
       const wasmUrl = `${cdnRoot}sqlite3.wasm`
       const input = document.querySelector("#note-input")
       const insertButton = document.querySelector("#insert-button")
@@ -305,6 +348,8 @@
       const statusText = document.querySelector("#status-text")
       const wasmUrlElement = document.querySelector("#wasm-url")
 
+      const sql = String.raw
+
       wasmUrlElement.textContent = wasmUrl
 
       try {
@@ -313,7 +358,7 @@
         })
         const db = new sqlite3.oo1.DB(":memory:", "c")
 
-        db.exec(`
+        db.exec(sql`
           create table notes (
             id integer primary key,
             body text not null,
@@ -351,13 +396,21 @@
 
         Reflect.set(globalThis, "__webNativeSqliteWasmCdnDemoReady", true)
       } catch (error) {
-        setStatus("error", "SQLite Wasm failed to load. Serve this page over HTTP and check the console.")
-        output.textContent = error instanceof Error ? error.stack ?? error.message : String(error)
+        setStatus(
+          "error",
+          "SQLite Wasm failed to load. Serve this page over HTTP and check the console.",
+        )
+        output.textContent =
+          error instanceof Error
+            ? (error.stack ?? error.message)
+            : String(error)
         console.error(error)
       }
 
       function renderRows(db) {
-        const rows = db.selectObjects("select body, created_at as createdAt from notes order by id desc")
+        const rows = db.selectObjects(
+          sql`select body, created_at as createdAt from notes order by id desc`,
+        )
         notesBody.replaceChildren(
           ...rows.map((row) => {
             const tr = document.createElement("tr")
@@ -372,7 +425,7 @@
         )
 
         output.textContent = [
-          "select body, created_at from notes order by id desc;",
+          sql`select body, created_at from notes order by id desc;`,
           "",
           ...rows.map((row) => `- ${row.body} (${row.createdAt})`),
         ].join("\n")
@@ -387,8 +440,14 @@
 
       function setStatus(kind, message) {
         statusAlert.variant = kind === "error" ? "destructive" : "default"
-        statusBadge.variant = kind === "error" ? "destructive" : kind === "ready" ? "default" : "secondary"
-        statusBadge.textContent = kind === "error" ? "Error" : kind === "ready" ? "Ready" : "Loading"
+        statusBadge.variant =
+          kind === "error"
+            ? "destructive"
+            : kind === "ready"
+              ? "default"
+              : "secondary"
+        statusBadge.textContent =
+          kind === "error" ? "Error" : kind === "ready" ? "Ready" : "Loading"
         statusText.textContent = message
       }
     </script>
