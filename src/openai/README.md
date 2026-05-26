@@ -1,6 +1,7 @@
 # openai
 
-Browser-native OpenAI client helpers and custom elements for BYOK workflows.
+Browser-native OpenAI client helpers and custom elements for direct, brokered,
+and Codex-backed workflows.
 
 ```html
 <script type="module" src="./define.js"></script>
@@ -33,7 +34,7 @@ for await (const event of client.streamResponse({
 }
 ```
 
-The demo page includes executable Responses examples for the current hosted tool shapes: `web_search`, `file_search`, `computer`, `code_interpreter`, `mcp` remote servers/connectors, `image_generation`, and `tool_search`. Use `respondWithTools(event)` from markup when a demo should pass a raw `tools` array to `/v1/responses`:
+The demo index links to focused executable pages for the current hosted tool shapes: `web_search`, `file_search`, `computer`, `code_interpreter`, `mcp` remote servers/connectors, `image_generation`, and `tool_search`. The checked-in demo pages are hard-coded to `transport="codex-broker"` and expect the local runner. Use `respondWithTools(event)` from markup when a page should pass a raw `tools` array to `/v1/responses`:
 
 ```html
 <form onsubmit="ai.respondWithTools(event)">
@@ -57,16 +58,42 @@ for await (const output of client.runToolCalls(toolCalls)) {
 
 Realtime session creation is available through `client.realtimeSession()`. WebSocket connections use `client.realtimeSocket({ url })`, which wraps incoming messages as an async generator. Browser WebSockets cannot set arbitrary auth headers, and the local runner only brokers session creation, so pass an explicit WebSocket URL from a negotiated realtime session or another realtime gateway.
 
-Broker and Codex modes are available when the page is launched with the local runner:
+Run the Codex-broker demos from GitHub:
 
 ```sh
-bunx --bun -p https://github.com/subtleGradient/web-native/archive/refs/heads/openai.tar.gz web-native-openai src/openai/openai.demo.html
+bunx --bun -p https://github.com/subtleGradient/web-native/archive/refs/heads/openai.tar.gz web-native-openai src/openai/examples.web/index.html
 ```
 
-Local checkout usage:
+Or from a local checkout:
 
 ```sh
-bun ./src/openai/scripts/openai-runner.ts src/openai/openai.demo.html
+bun ./src/openai/examples.web/scripts/openai-runner.ts src/openai/examples.web/index.html
 ```
 
-The runner serves the demo from localhost and exposes guarded proxy endpoints under `/__web-native-openai`. `transport="api-key-broker"` uses `OPENAI_API_KEY` or an entered key. `transport="codex-broker"` reads OpenCode OAuth auth from `OPENCODE_AUTH_FILE`, `$XDG_DATA_HOME/opencode/auth.json`, or `~/.local/share/opencode/auth.json`.
+To open one small demo directly, replace the path with a focused page such as `src/openai/examples.web/openai.web-search.demo.html`.
+
+Responses WebSocket Mode demo with sandboxed local `eval_js` tool:
+
+```sh
+bun ./src/openai/examples.web/scripts/openai-runner.ts src/openai/examples.web/openai.responses-websocket-eval.demo.html
+```
+
+The runner serves demo pages from localhost and exposes guarded proxy endpoints under `/__web-native-openai`. `transport="codex-broker"` reads OpenCode OAuth auth from `OPENCODE_AUTH_FILE`, `$XDG_DATA_HOME/opencode/auth.json`, or `~/.local/share/opencode/auth.json`.
+
+Transport can still be swapped in your own markup or client code:
+
+```html
+<openai-client id="direct" model="gpt-5.5" transport="api-key-direct"></openai-client>
+<openai-client id="api-broker" model="gpt-5.5" transport="api-key-broker"></openai-client>
+<openai-client id="codex" model="gpt-5.5" transport="codex-broker"></openai-client>
+```
+
+```js
+import { OpenAIClient } from "./client.js"
+
+const direct = new OpenAIClient({ apiKey: "sk-...", transport: "api-key-direct" })
+const apiBroker = new OpenAIClient({ transport: "api-key-broker" })
+const codexBroker = new OpenAIClient({ transport: "codex-broker" })
+```
+
+`api-key-direct` calls `https://api.openai.com/v1` from the browser and requires an API key. `api-key-broker` sends requests through `/__web-native-openai/api/*` and uses `OPENAI_API_KEY` or a key forwarded with `openai-key-field`. `codex-broker` sends requests through `/__web-native-openai/codex/*` and never needs a visible key control in the page.

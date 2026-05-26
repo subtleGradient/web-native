@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>web-native settings console</title>
+    <script>
+      (() => {
+        const media = matchMedia("(prefers-color-scheme: dark)")
+        const syncTheme = () => {
+          document.documentElement.dataset.theme = media.matches ? "dark" : "light"
+        }
+
+        syncTheme()
+        media.addEventListener("change", syncTheme)
+      })()
+    </script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/subtleGradient/web-native@561265129bd238e6e6b4dd4650a6ff6402ea16d4/src/shadcn.web/themes/neutral.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/subtleGradient/web-native@561265129bd238e6e6b4dd4650a6ff6402ea16d4/src/shadcn.web/styles/base-nova.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "web-native/": "https://cdn.jsdelivr.net/gh/subtleGradient/web-native@561265129bd238e6e6b4dd4650a6ff6402ea16d4/src/"
+        }
+      }
+    </script>
+    <script type="module">
+      import "https://cdn.jsdelivr.net/gh/subtleGradient/web-native@561265129bd238e6e6b4dd4650a6ff6402ea16d4/src/shadcn.web/define.js"
+
+      const activity = document.querySelector("#activity")
+      const save = document.querySelector("#save-button")
+
+      document.addEventListener("shadcn:checked-change", (event) => {
+        const source = event.target?.getAttribute("aria-label") ?? "Control"
+        activity.textContent = `${source}: ${event.detail.checked ? "on" : "off"}`
+      })
+
+      document.addEventListener("shadcn:value-change", (event) => {
+        activity.textContent = `Opened ${event.detail.value} settings`
+      })
+
+      save?.addEventListener("click", () => {
+        activity.textContent = "Settings saved"
+      })
+
+      globalThis.__webNativeCompositeDemoReady = true
+    </script>
+    <style>
+      body {
+        margin: 0;
+      }
+
+      main {
+        display: grid;
+        gap: 1.5rem;
+        margin-inline: auto;
+        max-width: 72rem;
+        padding: clamp(1rem, 4vw, 3rem);
+      }
+
+      .hero {
+        align-items: end;
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: 1fr auto;
+      }
+
+      .hero h1 {
+        font-size: clamp(2rem, 6vw, 4.5rem);
+        letter-spacing: -0.06em;
+        line-height: 0.9;
+        margin: 0;
+      }
+
+      .hero p,
+      .muted {
+        color: var(--muted-foreground);
+      }
+
+      .layout {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: minmax(0, 1fr) 18rem;
+      }
+
+      .grid {
+        display: grid;
+        gap: 0.75rem;
+      }
+
+      .row,
+      .control-row,
+      .toolbar {
+        align-items: center;
+        display: flex;
+        gap: 0.75rem;
+      }
+
+      .toolbar {
+        flex-wrap: wrap;
+      }
+
+      .control-row {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        justify-content: space-between;
+        padding: 0.875rem;
+      }
+
+      .control-copy {
+        display: grid;
+        gap: 0.125rem;
+      }
+
+      .status-card {
+        align-self: start;
+      }
+
+      .metric {
+        display: grid;
+        gap: 0.25rem;
+      }
+
+      .metric strong {
+        font-size: 2rem;
+        letter-spacing: -0.04em;
+      }
+
+      @media (max-width: 760px) {
+        .hero,
+        .layout {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <div>
+          <shadcn-badge variant="secondary">Composite demo</shadcn-badge>
+          <h1>Settings without a framework.</h1>
+          <p>Buttons, tabs, toggles, checkboxes, switches, alerts, badges, cards, separators, skeletons, and keyboard hints composed as plain custom elements.</p>
+        </div>
+        <div class="toolbar" aria-label="Global actions">
+          <shadcn-button id="save-button">Save changes</shadcn-button>
+          <shadcn-button variant="outline">Export</shadcn-button>
+          <shadcn-button variant="ghost" disabled>Syncing</shadcn-button>
+        </div>
+      </section>
+
+      <section class="layout">
+        <shadcn-card>
+          <shadcn-card-header>
+            <shadcn-card-title>Account controls</shadcn-card-title>
+            <shadcn-card-description>Exercise keyboard focus, active press feedback, checked states, indeterminate states, and disabled styling.</shadcn-card-description>
+          </shadcn-card-header>
+          <shadcn-card-content>
+            <shadcn-tabs id="settings-tabs" value="profile">
+              <shadcn-tabs-list variant="line" aria-label="Settings sections">
+                <shadcn-tabs-trigger value="profile">Profile</shadcn-tabs-trigger>
+                <shadcn-tabs-trigger value="security">Security</shadcn-tabs-trigger>
+                <shadcn-tabs-trigger value="notifications">Notifications</shadcn-tabs-trigger>
+              </shadcn-tabs-list>
+
+              <shadcn-tabs-content value="profile">
+                <div class="grid">
+                  <div class="control-row">
+                    <span class="control-copy"><strong>Public profile</strong><span class="muted">Make your profile visible to teammates.</span></span>
+                    <shadcn-switch checked aria-label="Public profile"></shadcn-switch>
+                  </div>
+                  <div class="control-row">
+                    <span class="control-copy"><strong>Beta editor</strong><span class="muted">Try the next editor shell.</span></span>
+                    <shadcn-toggle variant="outline" size="sm">Preview</shadcn-toggle>
+                  </div>
+                  <div class="control-row">
+                    <span class="control-copy"><strong>Archived workspace</strong><span class="muted">Disabled controls stay visually and behaviorally inert.</span></span>
+                    <shadcn-switch disabled aria-label="Archived workspace"></shadcn-switch>
+                  </div>
+                </div>
+              </shadcn-tabs-content>
+
+              <shadcn-tabs-content value="security">
+                <div class="grid">
+                  <shadcn-alert>
+                    <shadcn-alert-title>Security posture is strong</shadcn-alert-title>
+                    <shadcn-alert-description>Two-factor authentication and login alerts are currently enabled.</shadcn-alert-description>
+                  </shadcn-alert>
+                  <div class="control-row">
+                    <span class="control-copy"><strong>Two-factor authentication</strong><span class="muted">Require a second factor on every sign-in.</span></span>
+                    <shadcn-switch checked aria-label="Two-factor authentication"></shadcn-switch>
+                  </div>
+                  <div class="control-row">
+                    <span class="control-copy"><strong>Trusted devices</strong><span class="muted">Partially selected because this workspace has mixed device policies.</span></span>
+                    <shadcn-checkbox indeterminate aria-label="Trusted devices"></shadcn-checkbox>
+                  </div>
+                </div>
+              </shadcn-tabs-content>
+
+              <shadcn-tabs-content value="notifications">
+                <div class="grid">
+                  <div class="control-row">
+                    <span class="control-copy"><strong>Product updates</strong><span class="muted">Monthly release summaries.</span></span>
+                    <shadcn-checkbox checked aria-label="Product updates"></shadcn-checkbox>
+                  </div>
+                  <div class="control-row">
+                    <span class="control-copy"><strong>Incident alerts</strong><span class="muted">Immediate alerts for service issues.</span></span>
+                    <shadcn-switch checked aria-label="Incident alerts"></shadcn-switch>
+                  </div>
+                  <div class="control-row">
+                    <span class="control-copy"><strong>Partner offers</strong><span class="muted">Disabled by administrator policy.</span></span>
+                    <shadcn-checkbox disabled aria-label="Partner offers"></shadcn-checkbox>
+                  </div>
+                </div>
+              </shadcn-tabs-content>
+            </shadcn-tabs>
+          </shadcn-card-content>
+          <shadcn-card-footer>
+            <span class="muted" id="activity" aria-live="polite">Ready</span>
+          </shadcn-card-footer>
+        </shadcn-card>
+
+        <shadcn-card class="status-card" size="sm">
+          <shadcn-card-header>
+            <shadcn-card-title>Workspace status</shadcn-card-title>
+            <shadcn-card-description>Small components in context.</shadcn-card-description>
+          </shadcn-card-header>
+          <shadcn-card-content>
+            <div class="grid">
+              <div class="metric"><span class="muted">Members</span><strong>24</strong></div>
+              <shadcn-separator></shadcn-separator>
+              <div class="row"><shadcn-badge>Live</shadcn-badge><span class="muted">All systems normal</span></div>
+              <div class="row"><shadcn-kbd-group><shadcn-kbd>Tab</shadcn-kbd><shadcn-kbd>Space</shadcn-kbd></shadcn-kbd-group><span class="muted">Keyboard ready</span></div>
+              <shadcn-skeleton style="height: 0.75rem; width: 100%"></shadcn-skeleton>
+            </div>
+          </shadcn-card-content>
+        </shadcn-card>
+      </section>
+    </main>
+  </body>
+</html>

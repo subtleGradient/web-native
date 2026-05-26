@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>base-toggle-group stories</title>
+    <script type="module" src="./define.js"></script>
+    <style>
+      :root { color-scheme: light dark; }
+      * { box-sizing: border-box; }
+      body { background: Canvas; color: CanvasText; font-family: ui-sans-serif, system-ui, sans-serif; margin: 0; }
+      main { display: grid; gap: 1rem; margin-inline: auto; max-width: 56rem; padding: clamp(1rem, 4vw, 3rem); }
+      h1 { font-size: clamp(2rem, 7vw, 4rem); letter-spacing: -0.06em; line-height: 0.9; margin: 0; }
+      h2, p { margin-block: 0; }
+      .grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); }
+      [data-story] { background: color-mix(in oklch, Canvas 92%, CanvasText 8%); border: 1px solid color-mix(in oklch, CanvasText 14%, transparent); border-radius: 1rem; display: grid; gap: 0.75rem; padding: 1rem; }
+      form { display: grid; gap: 0.5rem; }
+      .row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+      base-toggle-group { display: flex; flex-wrap: wrap; gap: 0.375rem; }
+      base-toggle-group[orientation="vertical"] { align-items: flex-start; flex-direction: column; }
+      base-toggle-group-item { align-items: center; background: Canvas; border: 1px solid color-mix(in oklch, CanvasText 24%, transparent); border-radius: 0.65rem; display: inline-flex; min-height: 2.4rem; padding: 0.45rem 0.75rem; }
+      base-toggle-group-item[aria-pressed="true"] { background: Highlight; border-color: Highlight; color: HighlightText; }
+      base-toggle-group-item[data-disabled], base-toggle-group[data-disabled] { opacity: 0.5; }
+      base-toggle-group-item:focus-visible, button:focus-visible { outline: 3px solid Highlight; outline-offset: 2px; }
+      button { background: CanvasText; border: 0; border-radius: 0.65rem; color: Canvas; font: inherit; font-weight: 700; min-height: 2.4rem; padding-inline: 0.85rem; }
+      output { color: color-mix(in oklch, CanvasText 62%, transparent); min-height: 1.5rem; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>base-toggle-group</h1>
+        <p>Local stories for single, multiple, vertical, disabled, implicit values, no-loop focus, cancelation, and forms.</p>
+      </header>
+      <div class="grid">
+        <section data-story="single-selection">
+          <h2>Single selection</h2>
+          <base-toggle-group id="toggle-group-single" value="left" aria-label="Text alignment">
+            <base-toggle-group-item value="left">Left</base-toggle-group-item>
+            <base-toggle-group-item value="center">Center</base-toggle-group-item>
+            <base-toggle-group-item value="right" disabled>Right disabled</base-toggle-group-item>
+          </base-toggle-group>
+        </section>
+        <section data-story="multiple-selection">
+          <h2>Multiple vertical</h2>
+          <base-toggle-group id="toggle-group-multiple" multiple value="bold" orientation="vertical" aria-label="Text styles">
+            <base-toggle-group-item value="bold">Bold</base-toggle-group-item>
+            <base-toggle-group-item value="italic">Italic</base-toggle-group-item>
+            <base-toggle-group-item value="underline">Underline</base-toggle-group-item>
+          </base-toggle-group>
+        </section>
+        <section data-story="implicit-no-loop-disabled">
+          <h2>Implicit values and disabled group</h2>
+          <base-toggle-group id="toggle-group-no-loop" loop-focus="false" aria-label="No loop example">
+            <base-toggle-group-item>Implicit 0</base-toggle-group-item>
+            <base-toggle-group-item>Implicit 1</base-toggle-group-item>
+          </base-toggle-group>
+          <base-toggle-group disabled value="locked" aria-label="Disabled group">
+            <base-toggle-group-item value="locked">Locked</base-toggle-group-item>
+          </base-toggle-group>
+        </section>
+        <section data-story="form-and-cancelation">
+          <h2>Form and cancelation</h2>
+          <form id="toggle-group-form" onsubmit="ToggleGroupStories.readForm(event)" onreset="ToggleGroupStories.resetForm()">
+            <base-toggle-group id="toggle-group-form-control" name="format" multiple value="bold" aria-label="Format form">
+              <base-toggle-group-item value="bold">Bold</base-toggle-group-item>
+              <base-toggle-group-item value="italic">Italic</base-toggle-group-item>
+            </base-toggle-group>
+            <base-toggle-group id="toggle-group-cancel" aria-label="Canceled group">
+              <base-toggle-group-item value="blocked">Blocked</base-toggle-group-item>
+            </base-toggle-group>
+            <div class="row"><button>Read FormData</button><button type="reset">Reset</button></div>
+          </form>
+          <output id="toggle-group-output">Submit to inspect values.</output>
+        </section>
+      </div>
+    </main>
+    <script type="module">
+      await Promise.all([customElements.whenDefined("base-toggle-group"), customElements.whenDefined("base-toggle-group-item")])
+      document.querySelector("#toggle-group-cancel")?.addEventListener("base-ui:value-change", (event) => {
+        event.preventDefault()
+        document.querySelector("#toggle-group-output").textContent = "Canceled value change."
+      })
+      globalThis.ToggleGroupStories = {
+        readForm(event) {
+          event.preventDefault()
+          document.querySelector("#toggle-group-output").textContent = new URLSearchParams(new FormData(event.currentTarget)).toString()
+        },
+        resetForm() {
+          requestAnimationFrame(() => {
+            document.querySelector("#toggle-group-output").textContent = "Form reset."
+          })
+        },
+      }
+      globalThis.__webNativeToggleGroupStoriesReady = true
+    </script>
+  </body>
+</html>

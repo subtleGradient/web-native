@@ -1,0 +1,42 @@
+<!doctype html>
+<!--
+Run this demo with the Codex broker
+These demos are hard-coded to the local Codex broker exposed by openai-runner.
+GitHub:
+bunx --bun -p https://github.com/subtleGradient/web-native/archive/refs/heads/main.tar.gz web-native-openai src/openai/examples.web/openai.embedding.demo.html
+Local checkout:
+bun "./src/openai/Example OpenAI Codex Broker.webapp/openai-runner.ts" src/openai/examples.web/openai.embedding.demo.html
+
+Security: only run demos you trust. This page sends requests through the runner's local Codex broker.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="./openai.demo.css" />
+    <title>OpenAI embedding demo</title>
+    <script type="module" src="../define.js"></script>
+    <script type="module" src="./openai.demo.js"></script>
+  </head>
+  <body>
+    <main>
+      <a class="back" data-preserve-search href="./index.html">← All OpenAI demos</a>
+      <header>
+        <h1>Embedding</h1>
+        <p>Create an embedding vector for input text.</p>
+      </header>
+
+      <openai-client id="ai" model="gpt-5.5" transport="codex-broker"></openai-client>
+
+      <form class="panel" onsubmit="ai.embed(event)">
+        <h2>Request</h2>
+        <label>Input<textarea name="prompt">hello vector space</textarea></label>
+        <button>Embed</button>
+      </form>
+
+      <openai-result for="ai"></openai-result>
+    </main>
+  </body>
+</html>

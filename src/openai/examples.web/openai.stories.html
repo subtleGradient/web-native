@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>OpenAI component stories</title>
+    <script type="module" src="../define.js"></script>
+    <style>
+      :root { color-scheme: light dark; }
+      * { box-sizing: border-box; }
+      body { background: Canvas; color: CanvasText; font-family: ui-sans-serif, system-ui, sans-serif; margin: 0; }
+      main { display: grid; gap: 1rem; margin-inline: auto; max-width: 56rem; padding: clamp(1rem, 4vw, 3rem); }
+      h1 { font-size: clamp(2rem, 7vw, 4rem); letter-spacing: -0.06em; line-height: 0.9; margin: 0; }
+      h2, p { margin-block: 0; }
+      [data-story] { background: color-mix(in oklch, Canvas 92%, CanvasText 8%); border: 1px solid color-mix(in oklch, CanvasText 14%, transparent); border-radius: 1rem; display: grid; gap: 1rem; padding: 1rem; }
+      form { display: grid; gap: 0.75rem; }
+      label { display: grid; gap: 0.25rem; font-weight: 700; }
+      textarea, button { border-radius: 0.65rem; font: inherit; }
+      textarea { background: Canvas; border: 1px solid color-mix(in oklch, CanvasText 18%, transparent); color: CanvasText; min-height: 5rem; padding: 0.65rem; }
+      button { background: CanvasText; border: 0; color: Canvas; font-weight: 750; min-height: 2.5rem; padding-inline: 0.9rem; }
+      openai-key-field, openai-result { display: block; }
+      output { color: color-mix(in oklch, CanvasText 62%, transparent); min-height: 1.5rem; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>OpenAI elements</h1>
+        <p>Local fixture stories for key binding, request form wiring, busy state, text result, JSON result, image result, and error result.</p>
+      </header>
+      <section data-story="fixture-client">
+        <h2>Fixture client</h2>
+        <openai-client id="fixture-ai" model="gpt-fixture"></openai-client>
+        <openai-key-field id="fixture-key" target="fixture-ai" label="Fixture API key"></openai-key-field>
+        <form id="fixture-ai-form" onsubmit="OpenAIStories.respond(event)">
+          <label>Instructions<textarea name="instructions">Answer from the local fixture.</textarea></label>
+          <label>Prompt<textarea name="prompt">What should this offline story return?</textarea></label>
+          <button>Run fixture response</button>
+        </form>
+        <openai-result id="fixture-result" for="fixture-ai"></openai-result>
+        <output id="openai-output">No request yet.</output>
+      </section>
+      <section data-story="result-states">
+        <h2>Result states</h2>
+        <openai-client id="text-ai" hidden></openai-client>
+        <openai-client id="json-ai" hidden></openai-client>
+        <openai-client id="image-ai" hidden></openai-client>
+        <openai-client id="error-ai" hidden></openai-client>
+        <openai-result id="text-result" for="text-ai"></openai-result>
+        <openai-result id="json-result" for="json-ai"></openai-result>
+        <openai-result id="image-result" for="image-ai"></openai-result>
+        <openai-result id="error-result" for="error-ai"></openai-result>
+      </section>
+    </main>
+    <script type="module">
+      await Promise.all([customElements.whenDefined("openai-client"), customElements.whenDefined("openai-key-field"), customElements.whenDefined("openai-result")])
+
+      const ai = document.querySelector("#fixture-ai")
+      ai.apiKey = "sk-fixture"
+      ai.client.fetchFn = async (_input, init) => {
+        const body = JSON.parse(String(init?.body ?? "{}"))
+        document.querySelector("#openai-output").textContent = `Requested ${body.model ?? "unknown"}`
+        return new Response(JSON.stringify({ output_text: `Fixture answer for: ${body.input?.[0]?.content?.[0]?.text ?? body.input ?? "unknown"}` }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        })
+      }
+
+      const fixtures = new Map([
+        ["#text-ai", { kind: "text", text: "Fixture text", raw: "Fixture text" }],
+        ["#json-ai", { kind: "json", json: { ok: true }, raw: { ok: true } }],
+        ["#image-ai", { kind: "image", image: { dataUrl: "data:image/gif;base64,R0lGODlhAQABAAAAACw=", base64: "R0lGODlhAQABAAAAACw=", mediaType: "image/gif", raw: "fixture" }, raw: "fixture" }],
+        ["#error-ai", { kind: "error", error: "Fixture error", raw: "Fixture error" }],
+      ])
+
+      for (const [selector, result] of fixtures) {
+        const target = document.querySelector(selector)
+        target.lastResult = result
+        target.dispatchEvent(new CustomEvent(result.kind === "error" ? "openai:error" : "openai:result", { bubbles: true, composed: true, detail: result }))
+      }
+
+      globalThis.OpenAIStories = {
+        async respond(event) {
+          event.preventDefault()
+          await ai.respond(event)
+        },
+      }
+
+      globalThis.__webNativeOpenAIStoriesReady = true
+    </script>
+  </body>
+</html>

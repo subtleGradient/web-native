@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>base-toggle stories</title>
+    <script type="module" src="./define.js"></script>
+    <style>
+      :root { color-scheme: light dark; }
+      * { box-sizing: border-box; }
+      body { background: Canvas; color: CanvasText; font-family: ui-sans-serif, system-ui, sans-serif; margin: 0; }
+      main { display: grid; gap: 1rem; margin-inline: auto; max-width: 48rem; padding: clamp(1rem, 4vw, 3rem); }
+      h1 { font-size: clamp(2rem, 7vw, 4rem); letter-spacing: -0.06em; line-height: 0.9; margin: 0; }
+      h2, p { margin-block: 0; }
+      .grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); }
+      [data-story] { background: color-mix(in oklch, Canvas 92%, CanvasText 8%); border: 1px solid color-mix(in oklch, CanvasText 14%, transparent); border-radius: 1rem; display: grid; gap: 0.75rem; padding: 1rem; }
+      .row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+      base-toggle { align-items: center; background: Canvas; border: 1px solid color-mix(in oklch, CanvasText 24%, transparent); border-radius: 0.65rem; display: inline-flex; min-height: 2.4rem; padding: 0.45rem 0.75rem; }
+      base-toggle[aria-pressed="true"] { background: Highlight; border-color: Highlight; color: HighlightText; }
+      base-toggle[data-disabled] { opacity: 0.5; }
+      base-toggle[data-active] { transform: translateY(1px); }
+      base-toggle:focus-visible { outline: 3px solid Highlight; outline-offset: 2px; }
+      output { color: color-mix(in oklch, CanvasText 62%, transparent); min-height: 1.5rem; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>base-toggle</h1>
+        <p>Local stories for unpressed, pressed, disabled, keyboard activation, and cancelable pressed-change.</p>
+      </header>
+      <div class="grid">
+        <section data-story="states">
+          <h2>States</h2>
+          <div class="row">
+            <base-toggle id="toggle-interactive">Bold</base-toggle>
+            <base-toggle pressed>Pressed</base-toggle>
+            <base-toggle disabled>Disabled</base-toggle>
+          </div>
+          <output id="toggle-output">No toggle event yet.</output>
+        </section>
+        <section data-story="cancelable-event">
+          <h2>Cancelable event</h2>
+          <base-toggle id="toggle-cancel">Canceled toggle</base-toggle>
+          <output id="toggle-cancel-output">No cancel event yet.</output>
+        </section>
+      </div>
+    </main>
+    <script type="module">
+      await customElements.whenDefined("base-toggle")
+      document.querySelector("#toggle-interactive")?.addEventListener("base-ui:pressed-change", (event) => {
+        document.querySelector("#toggle-output").textContent = `Next pressed: ${event.detail.pressed}`
+      })
+      document.querySelector("#toggle-cancel")?.addEventListener("base-ui:pressed-change", (event) => {
+        event.preventDefault()
+        document.querySelector("#toggle-cancel-output").textContent = "Canceled pressed change."
+      })
+      globalThis.__webNativeToggleStoriesReady = true
+    </script>
+  </body>
+</html>

@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+find_bun() {
+  if command -v bun >/dev/null 2>&1; then
+    command -v bun
+    return
+  fi
+
+  local candidate
+  for candidate in "${BUN_INSTALL:-"$HOME/.bun"}/bin/bun" "$HOME/.bun/bin/bun" /opt/homebrew/bin/bun /usr/local/bin/bun; do
+    if [[ -x "$candidate" ]]; then
+      printf '%s\n' "$candidate"
+      return
+    fi
+  done
+
+  echo "pre-push: bun is required but was not found on PATH or in the usual install locations." >&2
+  echo "pre-push: install Bun or set BUN_INSTALL so the hook can run standalone CDN normalization." >&2
+  exit 127
+}
+
+needs_standalone_check=0
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  if [[ "$remote_ref" == "refs/heads/main" ]]; then
+    needs_standalone_check=1
+  fi
+done
+
+if [[ "$needs_standalone_check" != "1" ]]; then
+  exit 0
+fi
+
+if [[ -n "$(git status --porcelain)" ]]; then
+  echo "pre-push: push to main requires a clean worktree before standalone CDN normalization." >&2
+  exit 1
+fi
+
+"$(find_bun)" run standalone --cdn --all --allow-pending-push
+
+if [[ -z "$(git status --porcelain -- '*.html')" ]]; then
+  exit 0
+fi
+
+git add -- '*.html'
+
+git commit -m "Normalize standalone CDN urls"
+
+echo "pre-push: created a standalone CDN normalization commit. Run git push again." >&2
+exit 1

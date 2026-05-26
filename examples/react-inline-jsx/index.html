@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Inline JSX without a build step</title>
+    <link rel="icon" href="data:," />
+    <script>
+      (() => {
+        const media = matchMedia("(prefers-color-scheme: dark)")
+        const syncTheme = () => {
+          document.documentElement.dataset.theme = media.matches ? "dark" : "light"
+        }
+
+        syncTheme()
+        media.addEventListener("change", syncTheme)
+      })()
+    </script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/subtleGradient/web-native@561265129bd238e6e6b4dd4650a6ff6402ea16d4/examples/react-inline-jsx/react-no-build.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "react": "https://esm.sh/react@19.2.0?dev",
+          "react/jsx-dev-runtime": "https://esm.sh/react@19.2.0/jsx-dev-runtime?dev",
+          "react/jsx-runtime": "https://esm.sh/react@19.2.0/jsx-runtime?dev",
+          "react-dom/client": "https://esm.sh/react-dom@19.2.0/client?dev"
+        }
+      }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.28.5/babel.min.js" crossorigin="anonymous"></script>
+    <script>
+      Babel.registerPreset("react-automatic", {
+        presets: [[Babel.availablePresets.react, { runtime: "automatic", development: true }]],
+      })
+    </script>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero" aria-labelledby="title">
+        <span class="eyebrow">Inline browser transform</span>
+        <h1 id="title">JSX in the page.</h1>
+        <p class="lead">
+          This is the old browser JSX trick updated for React 19: the page imports React through an import map, Babel transforms this inline JSX script at load time, and the result executes as a native ESM module.
+        </p>
+      </section>
+
+      <section class="two-column">
+        <div class="demo-frame">
+          <div id="root" class="react-mount">Loading React from ESM and transforming JSX...</div>
+        </div>
+
+        <aside class="demo-frame" aria-labelledby="proof-title">
+          <h2 id="proof-title">What proves it</h2>
+          <ul class="source-list">
+            <li>The React imports are bare specifiers resolved by the import map.</li>
+            <li>The JSX script is not a module script; Babel turns it into one with <code>data-type="module"</code>.</li>
+            <li>No npm install, bundler, transpiler process, or generated file is involved.</li>
+          </ul>
+        </aside>
+      </section>
+    </main>
+
+    <script type="text/babel" data-type="module" data-presets="react-automatic">
+      import { useState, useTransition } from "react"
+      import { createRoot } from "react-dom/client"
+
+      const baseSignals = [
+        { label: "Import map", value: 91 },
+        { label: "Native ESM", value: 86 },
+        { label: "JIT JSX", value: 78 },
+      ]
+
+      function App() {
+        const [runs, setRuns] = useState(1)
+        const [signals, setSignals] = useState(baseSignals)
+        const [isPending, startTransition] = useTransition()
+
+        const advance = () => {
+          startTransition(() => {
+            setRuns((value) => value + 1)
+            setSignals((items) =>
+              items.map((item, index) => ({
+                ...item,
+                value: 64 + ((item.value + runs * 7 + index * 11) % 35),
+              })),
+            )
+          })
+        }
+
+        return (
+          <article className="app-card" aria-labelledby="app-title">
+            <header className="app-header">
+              <div>
+                <span className="status" data-state={isPending ? "working" : "ready"}>
+                  {isPending ? "Transforming" : "Live"}
+                </span>
+                <h2 id="app-title">No-build React control room</h2>
+              </div>
+              <button className="button" type="button" onClick={advance}>Recompute signals</button>
+            </header>
+
+            <div className="signal-grid">
+              {signals.map((signal) => (
+                <section className="signal" key={signal.label}>
+                  <div className="metric-row">
+                    <span>{signal.label}</span>
+                    <strong>{signal.value}%</strong>
+                  </div>
+                  <div className="meter" aria-label={`${signal.label} score ${signal.value}%`}>
+                    <span style={{ width: `${signal.value}%` }} />
+                  </div>
+                </section>
+              ))}
+            </div>
+
+            <p>
+              Render pass <strong>{runs}</strong> is running from JSX that was transformed in this browser after the HTML loaded.
+            </p>
+          </article>
+        )
+      }
+
+      createRoot(document.getElementById("root")).render(<App />)
+      globalThis.__webNativeReactInlineDemoReady = true
+    </script>
+  </body>
+</html>

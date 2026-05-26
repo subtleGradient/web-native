@@ -1,0 +1,173 @@
+<!doctype html>
+<!--
+IDEA: generic chat document bundles
+
+This is a proposal note, not an executable document. Keep HTML examples runnable
+through explicit SGML run comments rather than shebangs.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Generic Chat Document Bundles</title>
+    <style>
+      :root { color-scheme: light dark; }
+      body {
+        background: Canvas;
+        color: CanvasText;
+        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        line-height: 1.55;
+        margin: 0;
+      }
+      main {
+        display: grid;
+        gap: 1.5rem;
+        margin-inline: auto;
+        max-inline-size: 72rem;
+        padding: clamp(1rem, 4vw, 3rem);
+      }
+      section {
+        border: 1px solid color-mix(in oklch, CanvasText 14%, transparent);
+        border-radius: 1rem;
+        display: grid;
+        gap: 0.75rem;
+        padding: 1rem;
+      }
+      h1, h2, p { margin: 0; }
+      h1 { font-size: clamp(2rem, 6vw, 4.5rem); letter-spacing: -0.06em; line-height: 0.95; }
+      h2 { font-size: 1.1rem; }
+      pre, code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      pre {
+        background: color-mix(in oklch, CanvasText 8%, Canvas);
+        border-radius: 0.75rem;
+        overflow-x: auto;
+        padding: 1rem;
+        white-space: pre;
+      }
+      ul { margin-block: 0; padding-inline-start: 1.25rem; }
+      .lede { color: color-mix(in oklch, CanvasText 68%, transparent); font-size: 1.1rem; max-inline-size: 58rem; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Generic Chat Document Bundles</h1>
+        <p class="lede">
+          A <code>.chat</code> folder should behave like a portable document: double-clickable on macOS when registered, executable everywhere through a local <code>run</code> file, forkable by folder duplication, and self-contained with all turns, requests, responses, and generated assets inside the bundle.
+        </p>
+      </header>
+
+      <section aria-labelledby="principles-title">
+        <h2 id="principles-title">Principles</h2>
+        <ul>
+          <li>Avoid OpenAI-specific user-facing names. Use generic chat, AI, provider, model, and transport names.</li>
+          <li>Use TOML for human-authored metadata and turn files.</li>
+          <li>Use JSON5 for raw provider-shaped request and response sidecars.</li>
+          <li>Avoid JSON and JSONL for primary document state.</li>
+          <li>Keep generated assets in the bundle so copying the folder copies the whole conversation.</li>
+          <li>Make filesystem duplication the default conversation fork operation.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="layout-title">
+        <h2 id="layout-title">Bundle Layout</h2>
+        <pre><code>project.chat/
+  run
+  Chat.toml
+  Settings.toml
+  turns/
+    000001.user.toml
+    000002.assistant.toml
+    000003.tool.toml
+  requests/
+    000001.request.json5
+    000001.response.json5
+  assets/
+    images/
+    attachments/
+  cache/
+    traffic.sqlite</code></pre>
+      </section>
+
+      <section aria-labelledby="manifest-title">
+        <h2 id="manifest-title">Chat.toml</h2>
+        <pre><code>type = "web-native.chat"
+version = 1
+title = "Project Idea"
+created_at = "2026-05-14T19:00:00Z"
+updated_at = "2026-05-14T19:30:00Z"</code></pre>
+      </section>
+
+      <section aria-labelledby="settings-title">
+        <h2 id="settings-title">Settings.toml</h2>
+        <pre><code>[model]
+provider = "openai"
+name = "gpt-5.5"
+
+[auth]
+mode = "api-key-direct"
+
+[storage]
+traffic = "cache/traffic.sqlite"
+assets = "assets"</code></pre>
+      </section>
+
+      <section aria-labelledby="turn-title">
+        <h2 id="turn-title">Turn File</h2>
+        <pre><code>id = 1
+role = "user"
+created_at = "2026-05-14T19:31:00Z"
+content_type = "text/markdown"
+
+body = """
+Continue the conversation from here.
+"""</code></pre>
+      </section>
+
+      <section aria-labelledby="image-title">
+        <h2 id="image-title">Generated Image Turn</h2>
+        <pre><code>id = 7
+role = "assistant"
+kind = "image"
+created_at = "2026-05-14T19:40:00Z"
+
+[[assets]]
+type = "image"
+path = "assets/images/000007-001.png"
+request = "requests/000007.request.json5"
+response = "requests/000007.response.json5"</code></pre>
+      </section>
+
+      <section aria-labelledby="run-title">
+        <h2 id="run-title">Portable Run File</h2>
+        <p>
+          The bundle-local <code>run</code> executable is the portable launch surface for macOS and Linux.
+        </p>
+        <pre><code>#!/usr/bin/env bash
+exec bunx --bun -p https://github.com/subtleGradient/web-native/archive/refs/heads/openai.tar.gz web-native-chat "$(dirname "$0")"</code></pre>
+      </section>
+
+      <section aria-labelledby="runner-title">
+        <h2 id="runner-title">Runner Responsibilities</h2>
+        <ul>
+          <li><code>web-native-chat ./project.chat</code> creates missing bundle structure.</li>
+          <li>Serve the chat document UI from the package.</li>
+          <li>Read and write TOML/JSON5 with Bun native support on the server side.</li>
+          <li>Scope provider auth and broker routes to the active bundle.</li>
+          <li>Append turns as TOML files under <code>turns/</code>.</li>
+          <li>Save raw provider request and response sidecars as JSON5 under <code>requests/</code>.</li>
+          <li>Save generated images and attachments under <code>assets/</code>.</li>
+          <li>Write searchable/debuggable traffic into <code>cache/traffic.sqlite</code>.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="macos-title">
+        <h2 id="macos-title">macOS Document Behavior</h2>
+        <p>
+          Finder can treat specially registered extensions as document packages, but arbitrary folders named <code>*.chat</code> will not automatically open as documents until LaunchServices knows the type. The portable layer is <code>project.chat/run</code>. A later <code>web-native-chat install-macos</code> command can register a tiny app handler for <code>.chat</code> package folders.
+        </p>
+      </section>
+    </main>
+  </body>
+</html>

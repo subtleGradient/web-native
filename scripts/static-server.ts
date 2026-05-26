@@ -1,9 +1,12 @@
+import { watch, type FSWatcher } from "node:fs"
 import path from "node:path"
 
 type StaticServerOptions = {
   root: string
   port: number
   defaultPath?: string
+  liveReload?: boolean
+  transformHtml?: (html: string, filePath: string) => Promise<string> | string
 }
 
 const MIME_TYPES = new Map([
@@ -17,10 +20,23 @@ const MIME_TYPES = new Map([
   [".wasm", "application/wasm"],
 ])
 
-export function serveStatic({ root, port, defaultPath = "/test/index.html" }: StaticServerOptions) {
+export function serveStatic({ root, port, defaultPath = "/test/index.html", liveReload = false, transformHtml }: StaticServerOptions) {
   const rootPath = path.resolve(root)
+  const reloadClients = new Set<ReadableStreamDefaultController<string>>()
+  let watcher: FSWatcher | undefined
 
-  return Bun.serve({
+  if (liveReload) {
+    try {
+      watcher = watch(rootPath, { recursive: true }, (_event, filename) => {
+        if (!filename || String(filename).startsWith(".git/")) return
+        for (const client of reloadClients) client.enqueue("event: reload\ndata: changed\n\n")
+      })
+    } catch {
+      watcher = undefined
+    }
+  }
+
+  const server = Bun.serve({
     port,
     async fetch(request) {
       const url = new URL(request.url)
@@ -30,6 +46,27 @@ export function serveStatic({ root, port, defaultPath = "/test/index.html" }: St
         pathname = decodeURIComponent(pathname)
       } catch {
         return new Response("Bad request", { status: 400 })
+      }
+
+      if (liveReload && pathname === "/__web-native-dev/events") {
+        let streamController: ReadableStreamDefaultController<string> | undefined
+        const stream = new ReadableStream<string>({
+          start(controller) {
+            streamController = controller
+            reloadClients.add(controller)
+            controller.enqueue("event: ready\ndata: ready\n\n")
+          },
+          cancel() {
+            if (streamController) reloadClients.delete(streamController)
+          },
+        })
+
+        return new Response(stream, {
+          headers: {
+            "cache-control": "no-store",
+            "content-type": "text/event-stream; charset=utf-8",
+          },
+        })
       }
 
       if (pathname === "/") pathname = defaultPath
@@ -42,13 +79,43 @@ export function serveStatic({ root, port, defaultPath = "/test/index.html" }: St
       if (!(await file.exists())) return new Response("Not found", { status: 404 })
 
       const contentType = MIME_TYPES.get(path.extname(filePath)) ?? "application/octet-stream"
+
+      if (path.extname(filePath) === ".html" && transformHtml) {
+        const source = await file.text()
+        const transformed = await transformHtml(source, filePath)
+        const body = liveReload ? injectLiveReloadClient(transformed) : transformed
+        return new Response(body, { headers: { "cache-control": "no-store", "content-type": contentType } })
+      }
+
       return new Response(file, { headers: { "content-type": contentType } })
     },
   })
+
+  return {
+    hostname: server.hostname,
+    port: server.port,
+    stop(closeActiveConnections?: boolean) {
+      watcher?.close()
+      return server.stop(closeActiveConnections)
+    },
+  }
 }
 
 function resolvePublicPath(rootPath: string, pathname: string) {
   const filePath = path.resolve(rootPath, `.${pathname}`)
   const insideRoot = filePath === rootPath || filePath.startsWith(`${rootPath}${path.sep}`)
   return insideRoot ? filePath : undefined
+}
+
+function injectLiveReloadClient(html: string) {
+  if (html.includes("/__web-native-dev/events")) return html
+
+  const script = `<script type="module">
+const webNativeDevEvents = new EventSource("/__web-native-dev/events")
+webNativeDevEvents.addEventListener("reload", () => location.reload())
+</script>`
+
+  if (html.includes("</body>")) return html.replace("</body>", `${script}</body>`)
+  if (html.includes("</html>")) return html.replace("</html>", `${script}</html>`)
+  return `${html}${script}`
 }

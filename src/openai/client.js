@@ -199,6 +199,16 @@ export class OpenAIClient {
     })
   }
 
+  /** @param {RealtimeSocketOptions} [options] */
+  responsesSocket(options = {}) {
+    const WebSocketCtor = options.WebSocketCtor ?? WebSocket
+    return new OpenAIRealtimeSocket({
+      protocols: options.protocols,
+      url: options.url ?? responsesSocketUrl(this),
+      WebSocketCtor,
+    })
+  }
+
   /**
    * @param {"responses" | "embeddings" | "realtime/session"} resource
    * @param {unknown} request
@@ -504,6 +514,17 @@ function endpointFor(client, resource) {
  */
 function realtimeSocketUrl(client) {
   throw new Error(`No default realtime WebSocket route is available for ${client.transport}. Create a realtime session and pass its WebSocket URL with realtimeSocket({ url }).`)
+}
+
+/** @param {OpenAIClient} client */
+function responsesSocketUrl(client) {
+  const resource = client.transport === "codex-broker" ? "codex/responses/ws" : "api/responses/ws"
+  if (typeof location === "undefined") return `${client.brokerUrl}/${resource}`
+  const brokerUrl = new URL(`${client.brokerUrl}/${resource}`, location.href)
+  brokerUrl.protocol = brokerUrl.protocol === "https:" ? "wss:" : "ws:"
+  const runnerToken = runnerTokenFromLocation()
+  if (runnerToken !== undefined) brokerUrl.searchParams.set("t", runnerToken)
+  return brokerUrl.href
 }
 
 /** @param {OpenAIClient} client */

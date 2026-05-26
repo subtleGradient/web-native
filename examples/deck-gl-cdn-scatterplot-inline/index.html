@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>deck-gl CDN scatterplot with inline handlers</title>
+    <script>
+      (() => {
+        const media = matchMedia("(prefers-color-scheme: dark)")
+        const syncTheme = () => {
+          document.documentElement.dataset.theme = media.matches ? "dark" : "light"
+        }
+
+        syncTheme()
+        media.addEventListener("change", syncTheme)
+      })()
+    </script>
+    <script type="module">
+      import { Deck } from "https://esm.sh/@deck.gl/core@9.3.2"
+      import { ScatterplotLayer } from "https://esm.sh/@deck.gl/layers@9.3.2?deps=@deck.gl/core@9.3.2"
+
+      const DATA_URL = "https://raw.githubusercontent.com/visgl/deck.gl-data/master/examples/scatterplot/manhattan.json"
+      const activeLayers = new Map([
+        ["female", true],
+        ["male", true],
+      ])
+
+      globalThis.ManhattanScatterplot = {
+        deckElement: null,
+        init(event) {
+          this.deckElement = this
+          globalThis.ManhattanScatterplot.deckElement = this
+          this.deckConstructor = Deck
+          this.getTooltip = ({ object }) => object && `${object[2] === 1 ? "Male" : "Female"} resident near ${object[0].toFixed(3)}, ${object[1].toFixed(3)}`
+          this.layers = globalThis.ManhattanScatterplot.layers()
+        },
+        layers() {
+          return [
+            new ScatterplotLayer({
+              id: "female",
+              data: DATA_URL,
+              dataTransform: (rows) => rows.filter((row) => row[2] !== 1),
+              visible: activeLayers.get("female"),
+              pickable: true,
+              radiusScale: 35,
+              radiusMinPixels: 1,
+              getPosition: (row) => [row[0], row[1], 0],
+              getFillColor: [255, 0, 128, 180],
+              getRadius: 1,
+            }),
+            new ScatterplotLayer({
+              id: "male",
+              data: DATA_URL,
+              dataTransform: (rows) => rows.filter((row) => row[2] === 1),
+              visible: activeLayers.get("male"),
+              pickable: true,
+              radiusScale: 35,
+              radiusMinPixels: 1,
+              getPosition: (row) => [row[0], row[1], 0],
+              getFillColor: [0, 128, 255, 180],
+              getRadius: 1,
+            }),
+          ]
+        },
+        setLayerVisible(event) {
+          activeLayers.set(event.detail.id, event.detail.visible)
+          this.deckElement.layers = this.layers()
+          this.setStatus(`${event.detail.item.label}: ${event.detail.visible ? "shown" : "hidden"}`)
+        },
+        hover(event) {
+          const object = event.detail.info.object
+          if (object) this.setStatus(`Hover: ${object[2] === 1 ? "male" : "female"} at ${object[0].toFixed(3)}, ${object[1].toFixed(3)}`)
+        },
+        click(event) {
+          const object = event.detail.info.object
+          if (object) this.setStatus(`Selected ${object[2] === 1 ? "male" : "female"} record`)
+        },
+        view(event) {
+          this.setStatus(`Zoom ${event.detail.viewState.zoom.toFixed(2)}`)
+        },
+        details(event) {
+          const object = event.detail.object
+          this.setStatus(`Details panel received row ${object.join(", ")}`)
+        },
+        setStatus(message) {
+          document.getElementById("status").textContent = message
+        },
+      }
+
+      await import("https://cdn.jsdelivr.net/gh/subtleGradient/web-native@561265129bd238e6e6b4dd4650a6ff6402ea16d4/src/deck-gl.web/define.js")
+    </script>
+    <style>
+      :root { color-scheme: light dark; }
+      :root[data-theme="light"] { color-scheme: light; }
+      :root[data-theme="dark"] { color-scheme: dark; }
+
+      body {
+        background: Canvas;
+        color: CanvasText;
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        margin: 0;
+      }
+
+      main {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: minmax(0, 1fr) 19rem;
+        min-height: 100vh;
+        padding: clamp(1rem, 4vw, 2rem);
+      }
+
+      .map-shell {
+        border-radius: 1.25rem;
+        min-height: 34rem;
+        overflow: hidden;
+        position: relative;
+      }
+
+      deck-gl {
+        background: #050816;
+        height: 100%;
+        min-height: 34rem;
+      }
+
+      aside {
+        display: grid;
+        gap: 1rem;
+        align-content: start;
+      }
+
+      .panel {
+        background: color-mix(in oklch, Canvas 90%, CanvasText 10%);
+        border: 1px solid color-mix(in oklch, CanvasText 14%, transparent);
+        border-radius: 1rem;
+        padding: 1rem;
+      }
+
+      h1,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: clamp(2rem, 6vw, 4rem);
+        letter-spacing: -0.06em;
+        line-height: 0.9;
+      }
+
+      #status {
+        color: color-mix(in oklch, CanvasText 68%, transparent);
+      }
+
+      @media (max-width: 840px) {
+        main {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="map-shell">
+        <deck-gl
+          id="manhattan"
+          controller
+          initial-view-state='{"longitude":-74,"latitude":40.7,"zoom":11,"maxZoom":16,"pitch":0,"bearing":0}'
+          oninit="ManhattanScatterplot.init.call(this, event)"
+          onload="ManhattanScatterplot.setStatus('Loaded Manhattan scatterplot from CDN ESM')"
+          onhover="ManhattanScatterplot.hover(event)"
+          ondeckclick="ManhattanScatterplot.click(event)"
+          onviewstatechange="ManhattanScatterplot.view(event)"
+        ></deck-gl>
+      </section>
+
+      <aside>
+        <section class="panel">
+          <h1>Manhattan scatterplot.</h1>
+          <p id="status" aria-live="polite">Loading deck.gl from ESM CDN...</p>
+        </section>
+
+        <section class="panel">
+          <deck-layer-list
+            label="Population layers"
+            items='[
+              {"id":"female","label":"Female records","visible":true,"swatch":"rgb(255,0,128)","count":"remote"},
+              {"id":"male","label":"Male records","visible":true,"swatch":"rgb(0,128,255)","count":"remote"}
+            ]'
+            onlayervisibilitychange="ManhattanScatterplot.setLayerVisible(event)"
+          ></deck-layer-list>
+        </section>
+
+        <deck-details-panel
+          for="manhattan"
+          empty="Hover or click a point."
+          ondetailschange="ManhattanScatterplot.details(event)"
+        ></deck-details-panel>
+      </aside>
+    </main>
+  </body>
+</html>

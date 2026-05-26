@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import puppeteer from "puppeteer-core"
@@ -5,8 +6,8 @@ import { serveStatic } from "./static-server.ts"
 
 const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)))
 const port = Number(process.env.PORT ?? "4174")
-const server = serveStatic({ root, port, defaultPath: "/examples/standalone/shadcn-github.html" })
-const cdnPrefix = "https://cdn.jsdelivr.net/gh/subtleGradient/web-native@web-native-shadcn-components/"
+const server = serveStatic({ root, port, defaultPath: "/examples/shadcn-github/index.html" })
+const cdnPrefix = "https://cdn.jsdelivr.net/gh/subtleGradient/web-native@"
 const requestedUrls = new Set<string>()
 
 let browser: Awaited<ReturnType<typeof puppeteer.launch>> | undefined
@@ -14,14 +15,14 @@ let browser: Awaited<ReturnType<typeof puppeteer.launch>> | undefined
 try {
   browser = await puppeteer.launch({
     args: ["--disable-setuid-sandbox", "--no-sandbox"],
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH ?? process.env.CHROME_BIN ?? "/usr/bin/chromium",
+    executablePath: findChromeExecutable(),
     headless: true,
   })
 
   const page = await browser.newPage()
   page.on("request", (request) => requestedUrls.add(request.url()))
 
-  await page.goto(`http://${server.hostname}:${server.port}/examples/standalone/shadcn-github.html`, {
+  await page.goto(`http://${server.hostname}:${server.port}/examples/shadcn-github/index.html`, {
     timeout: 20000,
     waitUntil: "load",
   })
@@ -43,8 +44,8 @@ try {
     activeSecurity: document.querySelector('shadcn-tabs-trigger[value="security"]')?.hasAttribute("data-active") ?? false,
   }))
 
-  const loadedFromGithub = Array.from(requestedUrls).some((url) => url.startsWith(cdnPrefix) && url.endsWith("src/shadcn/define.js"))
-  const loadedCssFromGithub = Array.from(requestedUrls).some((url) => url.startsWith(cdnPrefix) && url.endsWith("src/shadcn/styles/base-nova.css"))
+  const loadedFromGithub = Array.from(requestedUrls).some((url) => url.startsWith(cdnPrefix) && url.includes("/src/shadcn.web/define.js"))
+  const loadedCssFromGithub = Array.from(requestedUrls).some((url) => url.startsWith(cdnPrefix) && url.includes("/src/shadcn.web/styles/base-nova.css"))
 
   if (!loadedFromGithub || !loadedCssFromGithub || !result.buttonClass || result.toggleLog !== "Pressed: true" || result.tabsValue !== "security" || !result.activeSecurity) {
     console.error({ loadedFromGithub, loadedCssFromGithub, result })
@@ -55,4 +56,22 @@ try {
 } finally {
   await browser?.close()
   server.stop(true)
+}
+
+function findChromeExecutable() {
+  const configured = process.env.PUPPETEER_EXECUTABLE_PATH ?? process.env.CHROME_BIN
+  if (configured) return configured
+
+  const candidates = [
+    "/usr/bin/chromium",
+    "/usr/bin/chromium-browser",
+    "/usr/bin/google-chrome-stable",
+    "/usr/bin/google-chrome",
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+  ]
+
+  const executable = candidates.find((candidate) => existsSync(candidate))
+  if (executable) return executable
+
+  throw new Error("No Chrome/Chromium executable found. Set PUPPETEER_EXECUTABLE_PATH or CHROME_BIN.")
 }

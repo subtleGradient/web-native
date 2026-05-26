@@ -3,10 +3,17 @@ import path from "node:path"
 import { fileURLToPath } from "node:url"
 import puppeteer from "puppeteer-core"
 import { serveStatic } from "./static-server.ts"
+import { getGitHubRepo, localizeRepoCdnHtml } from "./standalone-rewriter.ts"
 
 const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)))
 const port = Number(process.env.PORT ?? "4176")
-const server = serveStatic({ root, port, defaultPath: "/examples/composite/settings-console.html" })
+const repo = await getGitHubRepo(root)
+const server = serveStatic({
+  root,
+  port,
+  defaultPath: "/examples/composite-settings-console/index.html",
+  transformHtml: (html, htmlPath) => localizeRepoCdnHtml(html, { root, htmlPath, repo, localUrlStyle: "root" }),
+})
 
 let browser: Awaited<ReturnType<typeof puppeteer.launch>> | undefined
 
@@ -18,7 +25,7 @@ try {
   })
 
   const page = await browser.newPage()
-  await page.goto(`http://${server.hostname}:${server.port}/examples/composite/settings-console.html`, {
+  await page.goto(`http://${server.hostname}:${server.port}/examples/composite-settings-console/index.html`, {
     timeout: 10000,
     waitUntil: "load",
   })
@@ -42,14 +49,19 @@ try {
     if (activeLabel === "Product updates") break
   }
 
-  const state = await page.evaluate(async () => {
+  const checkboxPoint = await page.$eval('shadcn-checkbox[aria-label="Product updates"]', (element) => {
+    const rect = element.getBoundingClientRect()
+    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
+  })
+  await page.mouse.move(checkboxPoint.x, checkboxPoint.y)
+  await page.mouse.down()
+
+  const state = await page.evaluate(() => {
     const checkbox = document.querySelector<HTMLElement>('shadcn-checkbox[aria-label="Product updates"]')
     const switchControl = document.querySelector<HTMLElement>('shadcn-switch[aria-label="Incident alerts"]')
     const disabledCheckbox = document.querySelector<HTMLElement>('shadcn-checkbox[aria-label="Partner offers"]')
 
     const checkboxFocusShadow = checkbox ? getComputedStyle(checkbox).boxShadow : ""
-    checkbox?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0 }))
-    await new Promise((resolve) => requestAnimationFrame(resolve))
 
     return {
       tabsValue: document.querySelector("#settings-tabs")?.getAttribute("value"),
@@ -63,6 +75,7 @@ try {
       disabledOpacity: disabledCheckbox ? getComputedStyle(disabledCheckbox).opacity : "",
     }
   })
+  await page.mouse.up()
 
   await page.addScriptTag({ path: path.join(root, "node_modules/axe-core/axe.min.js") })
   const seriousViolations = await page.evaluate(async () => {

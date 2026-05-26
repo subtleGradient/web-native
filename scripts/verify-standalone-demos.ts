@@ -1,27 +1,20 @@
 import { existsSync } from "node:fs"
 import path from "node:path"
-import { fileURLToPath, pathToFileURL } from "node:url"
+import { fileURLToPath } from "node:url"
 import puppeteer from "puppeteer-core"
+import { serveStatic } from "./static-server.ts"
+import { discoverVerifiableStandaloneHtmlFiles } from "./standalone-discovery.ts"
+import { getGitHubRepo, localizeRepoCdnHtml } from "./standalone-rewriter.ts"
 
 const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)))
-const standalonePages = [
-  "examples/standalone/shadcn-github.html",
-  "examples/composite/settings-console.standalone.html",
-  "src/checkbox/checkbox.standalone.html",
-  "src/switch/switch.standalone.html",
-  "src/toggle/toggle.standalone.html",
-  "src/separator/separator.standalone.html",
-  "src/tabs/tabs.standalone.html",
-  "src/shadcn/shadcn.standalone.html",
-  "src/shadcn/button/button.standalone.html",
-  "src/shadcn/checkbox/checkbox.standalone.html",
-  "src/shadcn/switch/switch.standalone.html",
-  "src/shadcn/toggle/toggle.standalone.html",
-  "src/shadcn/separator/separator.standalone.html",
-  "src/shadcn/tabs/tabs.standalone.html",
-  "src/shadcn/presentational/presentational.standalone.html",
-  "src/openai/openai.standalone.html",
-]
+const repo = await getGitHubRepo(root)
+const port = Number(process.env.PORT ?? "4177")
+const server = serveStatic({
+  root,
+  port,
+  transformHtml: (html, htmlPath) => localizeRepoCdnHtml(html, { root, htmlPath, repo, localUrlStyle: "root" }),
+})
+const standalonePages = await discoverVerifiableStandaloneHtmlFiles(root, repo)
 
 let browser: Awaited<ReturnType<typeof puppeteer.launch>> | undefined
 
@@ -32,13 +25,17 @@ try {
     headless: true,
   })
 
-  for (const pagePath of standalonePages) {
+  for (const filePath of standalonePages) {
+    const pagePath = path.relative(root, filePath)
     for (const preferredScheme of ["light", "dark"] as const) {
       const page = await browser.newPage()
       await page.emulateMediaFeatures([{ name: "prefers-color-scheme", value: preferredScheme }])
-      await page.goto(pathToFileURL(path.join(root, pagePath)).href, { timeout: 30000, waitUntil: "load" })
+      await page.goto(`http://${server.hostname}:${server.port}/${pagePath}`, { timeout: 30000, waitUntil: "load" })
       await page.waitForFunction(
-        () => Reflect.get(globalThis, "__webNativeStandaloneDemoReady") === true || Reflect.get(globalThis, "__webNativeGithubDemoReady") === true,
+        () =>
+          Reflect.get(globalThis, "__webNativeStandaloneDemoReady") === true ||
+          Reflect.get(globalThis, "__webNativeGithubDemoReady") === true ||
+          Reflect.get(globalThis, "__webNativeCompositeDemoReady") === true,
         { timeout: 30000 },
       )
 
@@ -52,7 +49,7 @@ try {
 
       await page.close()
 
-      if (result.dataTheme !== preferredScheme || result.customElements.length === 0) {
+      if ((result.dataTheme && result.dataTheme !== preferredScheme) || result.customElements.length === 0) {
         console.error({ pagePath, preferredScheme, result })
         process.exitCode = 1
       }
@@ -62,6 +59,7 @@ try {
   if (!process.exitCode) console.log("Standalone demos verified")
 } finally {
   await browser?.close()
+  server.stop(true)
 }
 
 function findChromeExecutable() {

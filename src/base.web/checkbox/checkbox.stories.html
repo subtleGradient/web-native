@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>base-checkbox stories</title>
+    <script type="module" src="./define.js"></script>
+    <style>
+      :root { color-scheme: light dark; }
+      * { box-sizing: border-box; }
+      body { background: Canvas; color: CanvasText; font-family: ui-sans-serif, system-ui, sans-serif; margin: 0; }
+      main { display: grid; gap: 1rem; margin-inline: auto; max-width: 48rem; padding: clamp(1rem, 4vw, 3rem); }
+      h1 { font-size: clamp(2rem, 7vw, 4rem); letter-spacing: -0.06em; line-height: 0.9; margin: 0; }
+      h2, p { margin-block: 0; }
+      .grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); }
+      [data-story] { background: color-mix(in oklch, Canvas 92%, CanvasText 8%); border: 1px solid color-mix(in oklch, CanvasText 14%, transparent); border-radius: 1rem; display: grid; gap: 0.75rem; padding: 1rem; }
+      .stack, form { display: grid; gap: 0.5rem; }
+      .row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+      base-checkbox { align-items: center; background: Canvas; border: 1px solid color-mix(in oklch, CanvasText 24%, transparent); border-radius: 0.65rem; display: inline-flex; gap: 0.5rem; min-height: 2.4rem; padding: 0.45rem 0.75rem; width: fit-content; }
+      base-checkbox::before { align-items: center; background: color-mix(in oklch, Canvas 86%, CanvasText 14%); border: 1px solid color-mix(in oklch, CanvasText 32%, transparent); border-radius: 0.25rem; block-size: 1rem; content: ""; display: inline-flex; inline-size: 1rem; justify-content: center; }
+      base-checkbox[data-checked]::before { background: Highlight; color: HighlightText; content: "x"; }
+      base-checkbox[data-indeterminate]::before { background: Highlight; color: HighlightText; content: "-"; }
+      base-checkbox[data-checked], base-checkbox[data-indeterminate] { border-color: Highlight; }
+      base-checkbox[data-disabled] { opacity: 0.5; }
+      base-checkbox[data-active] { transform: translateY(1px); }
+      base-checkbox:focus-visible, button:focus-visible { outline: 3px solid Highlight; outline-offset: 2px; }
+      button { background: CanvasText; border: 0; border-radius: 0.65rem; color: Canvas; font: inherit; font-weight: 700; min-height: 2.4rem; padding-inline: 0.85rem; }
+      output { color: color-mix(in oklch, CanvasText 62%, transparent); min-height: 1.5rem; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>base-checkbox</h1>
+        <p>Local stories for checked, unchecked, indeterminate, disabled, required, canceled, and form-associated states.</p>
+      </header>
+      <div class="grid">
+        <section data-story="states">
+          <h2>States</h2>
+          <div class="stack">
+            <base-checkbox id="checkbox-interactive" name="terms" value="accepted">Unchecked interactive</base-checkbox>
+            <base-checkbox checked>Email updates</base-checkbox>
+            <base-checkbox id="checkbox-indeterminate" indeterminate>Select visible projects</base-checkbox>
+            <base-checkbox disabled>Disabled option</base-checkbox>
+          </div>
+        </section>
+        <section data-story="validation">
+          <h2>Validation</h2>
+          <form id="checkbox-form" onsubmit="CheckboxStories.readForm(event)" onreset="CheckboxStories.resetForm()">
+            <base-checkbox id="checkbox-required" name="required" required>Required checkbox</base-checkbox>
+            <base-checkbox name="explicit" value="yes" unchecked-value="no">Explicit unchecked value</base-checkbox>
+            <div class="row">
+              <button>Read FormData</button>
+              <button type="reset">Reset</button>
+            </div>
+          </form>
+          <output id="checkbox-form-output">Submit to inspect values.</output>
+        </section>
+        <section data-story="cancelable-event">
+          <h2>Cancelable event</h2>
+          <base-checkbox id="checkbox-cancel">Canceled change stays unchecked</base-checkbox>
+          <output id="checkbox-event-output">No event yet.</output>
+        </section>
+      </div>
+    </main>
+    <script type="module">
+      await customElements.whenDefined("base-checkbox")
+      const eventOutput = document.querySelector("#checkbox-event-output")
+      document.querySelector("#checkbox-cancel")?.addEventListener("base-ui:checked-change", (event) => {
+        event.preventDefault()
+        eventOutput.textContent = "Canceled checked change."
+      })
+      globalThis.CheckboxStories = {
+        readForm(event) {
+          event.preventDefault()
+          document.querySelector("#checkbox-form-output").textContent = new URLSearchParams(new FormData(event.currentTarget)).toString()
+        },
+        resetForm() {
+          requestAnimationFrame(() => {
+            document.querySelector("#checkbox-form-output").textContent = "Form reset."
+          })
+        },
+      }
+      globalThis.__webNativeCheckboxStoriesReady = true
+    </script>
+  </body>
+</html>

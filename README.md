@@ -16,7 +16,7 @@ bun run verify:standalone
 bun run dev
 ```
 
-`bun run dev` serves the repository as static files and opens the browser-facing test harness at `http://localhost:4173/test/`.
+`bun run dev` serves the repository as static files at `http://localhost:4173/`, rewrites this repo's CDN-backed standalone HTML imports to local `/src/...` URLs in memory, and injects live reload. Files on disk stay CDN-backed.
 
 `bun run test` starts the same static server, launches Chromium through `puppeteer-core`, runs the browser-native Mocha/Chai tests, and exits non-zero on failures.
 
@@ -26,7 +26,7 @@ bun run dev
 
 `bun run verify:demos` launches Chromium against the composite demos, interacts with tabs, switches, and checkboxes, verifies focus/active/disabled styles, and runs axe against the page.
 
-`bun run verify:standalone` opens every standalone GitHub-linked demo as a `file://` page, verifies it defines custom elements, and checks automatic light/dark theme sync in both system modes.
+`bun run verify:standalone` serves the standalone GitHub-linked demos through the localizing dev transform, verifies they define custom elements, and checks automatic light/dark theme sync where the page supports it.
 
 Set `PUPPETEER_EXECUTABLE_PATH` or `CHROME_BIN` if Chromium is not installed at a common system path.
 
@@ -68,20 +68,37 @@ Development should follow RGRTDD / demo-first flow:
 
 ## Current Components
 
-- `src/checkbox/` ports Base UI Checkbox as `base-checkbox`.
-- `src/toggle/` ports Base UI Toggle as `base-toggle`.
-- `src/separator/` ports Base UI Separator as `base-separator`.
-- `src/switch/` ports Base UI Switch as `base-switch`.
-- `src/tabs/` ports Base UI Tabs as `base-tabs`, `base-tabs-list`, `base-tab`, and `base-tabs-panel`.
-- `src/chat/` adds `topic-transcript`, `chat-summary`, and `chat-message` elements for lightweight archived chat transcript pages.
+- `src/base.web/checkbox/` ports Base UI Checkbox as `base-checkbox`.
+- `src/base.web/toggle/` ports Base UI Toggle as `base-toggle`.
+- `src/base.web/toggle-group/` ports Base UI Toggle Group as `base-toggle-group` and `base-toggle-group-item`.
+- `src/base.web/separator/` ports Base UI Separator as `base-separator`.
+- `src/base.web/switch/` ports Base UI Switch as `base-switch`.
+- `src/base.web/tabs/` ports Base UI Tabs as `base-tabs`, `base-tabs-list`, `base-tab`, and `base-tabs-panel`.
+- `src/base.web/progress/` ports Base UI Progress as `base-progress`, `base-progress-track`, `base-progress-indicator`, `base-progress-label`, and `base-progress-value`.
+- `src/base.web/radio-group/` ports Base UI Radio Group as `base-radio-group` and `base-radio`.
+- `src/chat.web/` adds `topic-transcript`, `chat-summary`, and `chat-message` elements for lightweight archived chat transcript pages.
 - `src/openai/` adds BYOK OpenAI client helpers plus `openai-client`, `openai-key-field`, and `openai-result` elements.
 - `src/json-editor/` adds `json-editor` for schema-aware textarea enhancement.
-- `src/deck-gl/` adds deck.gl-inspired `deck-gl`, `deck-layer-list`, and `deck-details-panel` elements for static HTML map examples.
-- `src/shadcn/` adds styled shadcn-inspired custom elements over those Base UI web components.
+- `src/deck-gl.web/` adds deck.gl-inspired `deck-gl`, `deck-layer-list`, and `deck-details-panel` elements for static HTML map examples.
+- `src/json-canvas.web/` adds `json-canvas`, `json-canvas-node`, `json-canvas-edge`, and `noodle-wire` elements for mapping JSON Canvas documents to HTML.
+- `src/shadcn.web/` adds styled shadcn-inspired custom elements over those Base UI web components.
 
 Each folder includes a `*.demo.html`, `*.test.js`, and `README.md` next to the implementation.
 
-The standalone GitHub import-map demo lives at `examples/standalone/shadcn-github.html`. The SQLite Wasm CDN example lives at `examples/standalone/sqlite-wasm-cdn.html`. Composite local demos live in `examples/composite/`. deck.gl-style examples live in `examples/deck-gl/`. React no-build research demos live in `examples/react/`. Each component/demo folder also has a `*.standalone.html` page that can be opened directly without running a server.
+Standalone examples live in one-example folders under `examples/`, using prefixes to keep related pages together, such as `examples/react-inline-jsx/`, `examples/react-service-worker-jsx/`, `examples/deck-gl-cdn-scatterplot-inline/`, and `examples/deck-gl-sqlite-opfs-bulk/`. Each example folder owns the files it needs. Component folders also include CDN-backed standalone pages named without a `.standalone` suffix, such as `src/shadcn.web/button/button.html`. Local `*.demo.html` pages use browser ESM and should be opened through `bun run dev`, not directly as `file://` URLs.
+
+## Standalone CDN Pages
+
+Standalone pages are CDN-backed on disk so they can be opened directly from GitHub or a local file. For local development, `bun dev` rewrites this repo's CDN URLs to local server paths in memory and live-reloads edits.
+
+```sh
+bun run standalone --cdn --all
+bun run standalone --local --all
+bun run standalone --cdn --all --check
+bun run hooks:install
+```
+
+`bun run standalone --cdn --all` discovers standalone HTML pages from repo conventions and repo CDN usage, then pins this repo's CSS imports to the newest commit that changed their CSS import graph, and JS imports to the newest commit that changed their transitive JS module graph. `bun run standalone --local --all` removes only this repo's jsDelivr GitHub CDN URLs; third-party CDN dependencies are preserved.
 
 ## Browser Imports
 
@@ -91,11 +108,11 @@ External browser usage can point at GitHub through jsDelivr:
 
 ```html
 <script type="importmap">
-{
-  "imports": {
-    "web-native/": "https://cdn.jsdelivr.net/gh/subtleGradient/web-native@main/src/"
+  {
+    "imports": {
+      "web-native/": "https://cdn.jsdelivr.net/gh/subtleGradient/web-native@main/src/"
+    }
   }
-}
 </script>
 ```
 

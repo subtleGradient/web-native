@@ -1,0 +1,8 @@
+{
+  "name": "openai-examples-codex-broker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --hot openai-runner.ts ../examples.web/index.html"
+  }
+}

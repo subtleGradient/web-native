@@ -224,6 +224,34 @@ describe("openai browser client", () => {
     expect(await events.next()).to.deep.equal({ value: undefined, done: true })
   })
 
+  it("opens Responses WebSocket relay connections through the runner", () => {
+    MockWebSocket.instances = []
+    const originalUrl = location.href
+    history.pushState(null, "", "/?t=runner-token")
+    try {
+      const client = new OpenAIClient({ brokerUrl: "/broker" })
+      client.responsesSocket({ WebSocketCtor: MockWebSocket })
+
+      expect(MockWebSocket.instances[0]?.url).to.equal(`ws://${location.host}/broker/api/responses/ws?t=runner-token`)
+    } finally {
+      history.replaceState(null, "", originalUrl)
+    }
+  })
+
+  it("opens Codex Responses WebSocket relay connections through the runner", () => {
+    MockWebSocket.instances = []
+    const originalUrl = location.href
+    history.pushState(null, "", "/?t=runner-token")
+    try {
+      const client = new OpenAIClient({ brokerUrl: "/broker", transport: "codex-broker" })
+      client.responsesSocket({ WebSocketCtor: MockWebSocket })
+
+      expect(MockWebSocket.instances[0]?.url).to.equal(`ws://${location.host}/broker/codex/responses/ws?t=runner-token`)
+    } finally {
+      history.replaceState(null, "", originalUrl)
+    }
+  })
+
   it("drives one-off calls from form markup through openai-client", async () => {
     /** @type {unknown[]} */
     const bodies = []

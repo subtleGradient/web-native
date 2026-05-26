@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>deck-gl component demo</title>
+    <script>
+      (() => {
+        const media = matchMedia("(prefers-color-scheme: dark)")
+        const syncTheme = () => {
+          document.documentElement.dataset.theme = media.matches ? "dark" : "light"
+        }
+
+        syncTheme()
+        media.addEventListener("change", syncTheme)
+      })()
+    </script>
+    <style>
+      :root { color-scheme: light dark; }
+      :root[data-theme="light"] { color-scheme: light; }
+      :root[data-theme="dark"] { color-scheme: dark; }
+
+      body {
+        background: Canvas;
+        color: CanvasText;
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        margin: 0;
+      }
+
+      main {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: minmax(0, 1fr) 20rem;
+        min-height: 100vh;
+        padding: clamp(1rem, 4vw, 2rem);
+      }
+
+      header,
+      aside {
+        display: grid;
+        gap: 1rem;
+      }
+
+      h1,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: clamp(2rem, 7vw, 4.5rem);
+        letter-spacing: -0.06em;
+        line-height: 0.9;
+      }
+
+      .muted {
+        color: color-mix(in oklch, CanvasText 62%, transparent);
+      }
+
+      .map-shell {
+        background: color-mix(in oklch, Canvas 88%, CanvasText 12%);
+        border: 1px solid color-mix(in oklch, CanvasText 16%, transparent);
+        border-radius: 1.5rem;
+        min-height: 34rem;
+        overflow: hidden;
+        position: relative;
+      }
+
+      deck-gl {
+        background: linear-gradient(135deg, #0f172a, #172554 55%, #312e81);
+        height: 100%;
+        min-height: 34rem;
+      }
+
+      .status {
+        background: color-mix(in oklch, Canvas 85%, CanvasText 15%);
+        border-radius: 999px;
+        bottom: 1rem;
+        color: CanvasText;
+        font-size: 0.875rem;
+        inset-inline: 1rem;
+        padding: 0.625rem 0.875rem;
+        position: absolute;
+      }
+
+      .panel {
+        background: color-mix(in oklch, Canvas 92%, CanvasText 8%);
+        border: 1px solid color-mix(in oklch, CanvasText 14%, transparent);
+        border-radius: 1rem;
+        padding: 1rem;
+      }
+
+      button {
+        background: CanvasText;
+        border: 0;
+        border-radius: 999px;
+        color: Canvas;
+        font: inherit;
+        padding: 0.625rem 0.875rem;
+      }
+
+      @media (max-width: 860px) {
+        main {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section>
+        <header>
+          <h1>Relief flights, no framework.</h1>
+          <p class="muted">The custom element hosts the real deck.gl renderer while markup owns the layer controls and domain actions.</p>
+        </header>
+
+        <div class="map-shell">
+          <deck-gl
+            id="relief-deck"
+            controller
+            initial-view-state='{"longitude":-98,"latitude":39,"zoom":3}'
+            oninit="ReliefMap.init.call(this, event)"
+            onload="ReliefMap.setStatus('Renderer ready. Hover airports, routes, and weather cells.')"
+            onhover="ReliefMap.preview(event)"
+            ondeckclick="ReliefMap.pin(event)"
+            onviewstatechange="ReliefMap.syncView(event)"
+          ></deck-gl>
+          <p class="status" id="status" aria-live="polite">Loading map...</p>
+        </div>
+      </section>
+
+      <aside>
+        <section class="panel">
+          <deck-layer-list
+            label="Operational layers"
+            items='[
+              {"id":"regions","label":"Regions","visible":true,"swatch":"#94a3b8","count":4},
+              {"id":"weather","label":"Weather cells","visible":true,"swatch":"#38bdf8","count":3},
+              {"id":"routes","label":"Priority routes","visible":true,"swatch":"#f97316","count":6},
+              {"id":"airports","label":"Airports","visible":true,"swatch":"#22c55e","count":7}
+            ]'
+            onlayervisibilitychange="ReliefMap.setLayerVisible(event)"
+          ></deck-layer-list>
+        </section>
+
+        <deck-details-panel
+          for="relief-deck"
+          empty="Hover an airport, route, or storm cell."
+          ondetailschange="ReliefMap.describe(event)"
+        ></deck-details-panel>
+
+        <section class="panel">
+          <p class="muted">The button calls a domain method from markup and updates the existing deck instance through properties.</p>
+          <button onclick="ReliefMap.focusIncident()">Focus incident corridor</button>
+        </section>
+      </aside>
+    </main>
+
+    <script type="module">
+      import { Deck } from "https://esm.sh/@deck.gl/core@9.3.2"
+      import { ArcLayer, PolygonLayer, ScatterplotLayer, TextLayer } from "https://esm.sh/@deck.gl/layers@9.3.2?deps=@deck.gl/core@9.3.2"
+
+      const airports = [
+        { code: "SEA", name: "Seattle Field", coordinates: [-122.3, 47.6], capacity: 76, status: "stable" },
+        { code: "DEN", name: "Denver Hub", coordinates: [-104.9, 39.7], capacity: 88, status: "stable" },
+        { code: "MSP", name: "Twin Cities Depot", coordinates: [-93.2, 44.9], capacity: 58, status: "strained" },
+        { code: "DFW", name: "Dallas Staging", coordinates: [-97, 32.8], capacity: 91, status: "stable" },
+        { code: "ATL", name: "Atlanta Relief", coordinates: [-84.4, 33.6], capacity: 84, status: "stable" },
+        { code: "MIA", name: "Miami Medical", coordinates: [-80.2, 25.8], capacity: 49, status: "strained" },
+        { code: "JFK", name: "New York Intake", coordinates: [-73.8, 40.7], capacity: 67, status: "stable" },
+      ]
+
+      const routes = [
+        { source: "SEA", target: "DEN", priority: 2, cargo: "generators", color: [251, 146, 60, 220] },
+        { source: "DEN", target: "DFW", priority: 3, cargo: "water", color: [249, 115, 22, 230] },
+        { source: "DFW", target: "ATL", priority: 4, cargo: "medical kits", color: [239, 68, 68, 235] },
+        { source: "ATL", target: "MIA", priority: 3, cargo: "field beds", color: [249, 115, 22, 230] },
+        { source: "MSP", target: "JFK", priority: 2, cargo: "food pallets", color: [251, 146, 60, 220] },
+        { source: "JFK", target: "ATL", priority: 1, cargo: "staff", color: [253, 186, 116, 220] },
+      ]
+
+      const regions = [
+        { name: "Northwest corridor", fillColor: [148, 163, 184, 46], points: [[-125, 49], [-111, 49], [-107, 42], [-119, 39], [-125, 44]] },
+        { name: "Central staging", fillColor: [99, 102, 241, 51], points: [[-111, 45], [-91, 48], [-91, 34], [-106, 32], [-112, 38]] },
+        { name: "Southeast response", fillColor: [34, 197, 94, 41], points: [[-92, 36], [-75, 38], [-78, 25], [-91, 25], [-99, 31]] },
+        { name: "Northeast intake", fillColor: [14, 165, 233, 41], points: [[-86, 46], [-70, 45], [-67, 39], [-75, 36], [-91, 40]] },
+      ]
+
+      const weather = [
+        { name: "Icing watch", coordinates: [-96, 44], radiusMeters: 270000, severity: "moderate", fillColor: [56, 189, 248, 46] },
+        { name: "Thunderstorm cell", coordinates: [-88, 31], radiusMeters: 310000, severity: "high", fillColor: [14, 165, 233, 64] },
+        { name: "Crosswind band", coordinates: [-112, 37], radiusMeters: 240000, severity: "low", fillColor: [125, 211, 252, 38] },
+      ]
+
+      const airportsByCode = new Map(airports.map((airport) => [airport.code, airport]))
+
+      const activeLayers = new Map([
+        ["regions", true],
+        ["weather", true],
+        ["routes", true],
+        ["airports", true],
+      ])
+
+      globalThis.ReliefMap = {
+        deckElement: null,
+        init(event) {
+          globalThis.ReliefMap.deckElement = this
+          this.deckConstructor = Deck
+          this.parameters = { clearColor: [0, 0, 0, 0] }
+          this.getTooltip = ({ object }) => object?.name
+          this.layers = globalThis.ReliefMap.layers()
+        },
+        layers() {
+          const routeData = routes.flatMap((route) => {
+            const source = airportsByCode.get(route.source)
+            const target = airportsByCode.get(route.target)
+            return source && target ? [{ ...route, name: `${route.source} to ${route.target}`, sourceAirport: source, targetAirport: target }] : []
+          })
+
+          return [
+            new PolygonLayer({
+              id: "regions",
+              data: regions,
+              visible: activeLayers.get("regions"),
+              pickable: true,
+              stroked: true,
+              filled: true,
+              getPolygon: (region) => region.points,
+              getFillColor: (region) => region.fillColor,
+              getLineColor: [255, 255, 255, 72],
+              getLineWidth: 2,
+              lineWidthUnits: "pixels",
+            }),
+            new ScatterplotLayer({
+              id: "weather",
+              data: weather,
+              visible: activeLayers.get("weather"),
+              pickable: true,
+              stroked: true,
+              filled: true,
+              getPosition: (cell) => cell.coordinates,
+              getRadius: (cell) => cell.radiusMeters,
+              radiusMinPixels: 24,
+              radiusMaxPixels: 90,
+              radiusUnits: "meters",
+              getFillColor: (cell) => cell.fillColor,
+              getLineColor: [125, 211, 252, 220],
+              getLineWidth: 2,
+              lineWidthUnits: "pixels",
+            }),
+            new ArcLayer({
+              id: "routes",
+              data: routeData,
+              visible: activeLayers.get("routes"),
+              pickable: true,
+              getSourcePosition: (route) => route.sourceAirport.coordinates,
+              getTargetPosition: (route) => route.targetAirport.coordinates,
+              getSourceColor: (route) => route.color,
+              getTargetColor: (route) => route.color,
+              getWidth: (route) => 2 + Number(route.priority),
+            }),
+            new ScatterplotLayer({
+              id: "airports",
+              data: airports,
+              visible: activeLayers.get("airports"),
+              pickable: true,
+              stroked: true,
+              filled: true,
+              getPosition: (airport) => airport.coordinates,
+              getRadius: (airport) => 6 + Number(airport.capacity) / 12,
+              radiusUnits: "pixels",
+              getFillColor: (airport) => (airport.status === "strained" ? [250, 204, 21, 235] : [34, 197, 94, 235]),
+              getLineColor: [255, 255, 255, 235],
+              getLineWidth: 2,
+              lineWidthUnits: "pixels",
+            }),
+            new TextLayer({
+              id: "airport-labels",
+              data: airports,
+              visible: activeLayers.get("airports"),
+              pickable: false,
+              getPosition: (airport) => airport.coordinates,
+              getText: (airport) => airport.code,
+              getColor: [255, 255, 255, 230],
+              getPixelOffset: [16, 2],
+              getSize: 14,
+              getTextAnchor: "start",
+              getAlignmentBaseline: "center",
+            }),
+          ]
+        },
+        setLayerVisible(event) {
+          activeLayers.set(event.detail.id, event.detail.visible)
+          this.deckElement.layers = this.layers()
+          this.setStatus(`${event.detail.item.label}: ${event.detail.visible ? "visible" : "hidden"}`)
+        },
+        preview(event) {
+          const object = event.detail.info.object
+          if (object) this.setStatus(`Hovering ${object.name}`)
+        },
+        pin(event) {
+          const object = event.detail.info.object
+          if (object) this.setStatus(`Pinned ${object.name}`)
+        },
+        describe(event) {
+          this.setStatus(`Details panel: ${event.detail.object.name}`)
+        },
+        syncView(event) {
+          this.deckElement.viewState = event.detail.viewState
+          this.setStatus(`Zoom ${event.detail.viewState.zoom.toFixed(2)}`)
+        },
+        focusIncident() {
+          this.deckElement.setProps({ viewState: { longitude: -88, latitude: 31, zoom: 5 } })
+          this.setStatus("Focused thunderstorm corridor")
+        },
+        setStatus(message) {
+          document.getElementById("status").textContent = message
+        },
+      }
+
+      await import("./define.js")
+    </script>
+  </body>
+</html>

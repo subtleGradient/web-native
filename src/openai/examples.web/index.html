@@ -1,0 +1,122 @@
+<!doctype html>
+<!--
+Run this demo with the Codex broker
+These demos are hard-coded to the local Codex broker exposed by openai-runner.
+GitHub:
+bunx --bun -p https://github.com/subtleGradient/web-native/archive/refs/heads/main.tar.gz web-native-openai src/openai/examples.web/index.html
+Local checkout:
+bun "./src/openai/Example OpenAI Codex Broker.webapp/openai-runner.ts" src/openai/examples.web/index.html
+
+Security: only run demos you trust. Linked demos send requests through the runner's local Codex broker.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="./openai.demo.css" />
+    <title>OpenAI demos</title>
+    <script type="module" src="./openai.demo.js"></script>
+  </head>
+  <body>
+    <main class="index">
+      <header>
+        <h1>OpenAI demos</h1>
+        <p>
+          Pick a focused demo. Each page owns one request shape and is wired to
+          the Codex broker exposed by the local runner.
+        </p>
+      </header>
+
+      <section class="demo-list" aria-label="OpenAI demos">
+        <a class="card" data-preserve-search href="./openai.text.demo.html">
+          <strong>Text</strong>
+          <span>Send instructions and a prompt to the Responses API.</span>
+        </a>
+        <a
+          class="card"
+          data-preserve-search
+          href="./openai.responses-websocket-eval.demo.html"
+        >
+          <strong>Responses WebSocket eval</strong>
+          <span
+            >Stream over Responses WebSocket Mode and run local
+            <code>eval_js</code> tool calls in a sandbox.</span
+          >
+        </a>
+        <a class="card" data-preserve-search href="./openai.image.demo.html">
+          <strong>Image</strong>
+          <span
+            >Generate an image through the Responses image generation
+            tool.</span
+          >
+        </a>
+        <a
+          class="card"
+          data-preserve-search
+          href="./openai.embedding.demo.html"
+        >
+          <strong>Embedding</strong>
+          <span>Create an embedding vector for input text.</span>
+        </a>
+        <a
+          class="card"
+          data-preserve-search
+          href="./openai.web-search.demo.html"
+        >
+          <strong>Web search</strong>
+          <span
+            >Use the hosted <code>web_search</code> tool with citations.</span
+          >
+        </a>
+        <a
+          class="card"
+          data-preserve-search
+          href="./openai.file-search.demo.html"
+        >
+          <strong>File search</strong>
+          <span>Query a pre-populated vector store.</span>
+        </a>
+        <a
+          class="card"
+          data-preserve-search
+          href="./openai.code-interpreter.demo.html"
+        >
+          <strong>Code interpreter</strong>
+          <span>Run hosted Python in an ephemeral container.</span>
+        </a>
+        <a
+          class="card"
+          data-preserve-search
+          href="./openai.computer-use.demo.html"
+        >
+          <strong>Computer use</strong>
+          <span
+            >Request <code>computer_call</code> actions for a harness to
+            execute.</span
+          >
+        </a>
+        <a
+          class="card"
+          data-preserve-search
+          href="./openai.remote-mcp.demo.html"
+        >
+          <strong>Remote MCP</strong>
+          <span>Call a public demo MCP server.</span>
+        </a>
+        <a
+          class="card"
+          data-preserve-search
+          href="./openai.tool-search.demo.html"
+        >
+          <strong>Tool search</strong>
+          <span
+            >Demonstrate deferred tool loading with
+            <code>tool_search</code>.</span
+          >
+        </a>
+      </section>
+    </main>
+  </body>
+</html>
