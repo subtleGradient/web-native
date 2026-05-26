@@ -77,8 +77,9 @@ Development should follow RGRTDD / demo-first flow:
 - `src/base.web/progress/` ports Base UI Progress as `base-progress`, `base-progress-track`, `base-progress-indicator`, `base-progress-label`, and `base-progress-value`.
 - `src/base.web/radio-group/` ports Base UI Radio Group as `base-radio-group` and `base-radio`.
 - `src/chat.web/` adds `topic-transcript`, `chat-summary`, and `chat-message` elements for lightweight archived chat transcript pages.
+- `src/codemirror.web/` adds `codemirror-editor` and language aliases for CodeMirror-backed textarea enhancement.
 - `src/openai/` adds BYOK OpenAI client helpers plus `openai-client`, `openai-key-field`, and `openai-result` elements.
-- `src/json-editor/` adds `json-editor` for schema-aware textarea enhancement.
+- `src/json-editor.web/` adds `json-editor` for schema-aware textarea enhancement.
 - `src/deck-gl.web/` adds deck.gl-inspired `deck-gl`, `deck-layer-list`, and `deck-details-panel` elements for static HTML map examples.
 - `src/json-canvas.web/` adds `json-canvas`, `json-canvas-node`, `json-canvas-edge`, and `noodle-wire` elements for mapping JSON Canvas documents to HTML.
 - `src/shadcn.web/` adds styled shadcn-inspired custom elements over those Base UI web components.
