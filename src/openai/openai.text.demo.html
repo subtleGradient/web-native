@@ -3,7 +3,7 @@
 Run from a local checkout:
 bun ./src/openai/scripts/openai-runner.ts src/openai/openai.text.demo.html
 
-Security: only run demos you trust. API keys entered here are visible to this page's JavaScript.
+Security: only run demos you trust. This page sends requests through the runner's local Codex broker.
 -->
 <html lang="en">
   <head>
@@ -24,20 +24,7 @@ Security: only run demos you trust. API keys entered here are visible to this pa
         <p>Send instructions and a prompt to the Responses API.</p>
       </header>
 
-      <openai-client id="ai" model="gpt-5.5"></openai-client>
-
-      <section class="panel" aria-label="OpenAI auth and transport">
-        <openai-key-field target="ai"></openai-key-field>
-        <label>
-          Transport
-          <select onchange="ai.setAttribute('transport', this.value)">
-            <option value="api-key-direct">API key direct</option>
-            <option value="api-key-broker">API key broker</option>
-            <option value="codex-broker">Codex broker</option>
-          </select>
-        </label>
-        <p class="note">For broker mode, run this page with <code>web-native-openai</code>. For API-key broker without typing a key, set <code>OPENAI_API_KEY</code>.</p>
-      </section>
+      <openai-client id="ai" model="gpt-5.5" transport="codex-broker"></openai-client>
 
       <form class="panel" onsubmit="ai.respond(event)">
         <h2>Request</h2>

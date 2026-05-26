@@ -31,6 +31,7 @@ type ResponsesRelayData = {
   organization?: string
   project?: string
   queue: string[]
+  transport: "api-key-broker" | "codex-broker"
   upstream?: WebSocket
 }
 
@@ -65,7 +66,8 @@ async function handleFetch(request: Request) {
 
   if (url.pathname.startsWith("/__web-native-openai/")) {
     if (!authorized(request, url)) return new Response("Forbidden", { status: 403 })
-    if (url.pathname === "/__web-native-openai/api/responses/ws") return handleResponsesWebSocket(request)
+    if (url.pathname === "/__web-native-openai/api/responses/ws") return handleResponsesWebSocket(request, "api-key-broker")
+    if (url.pathname === "/__web-native-openai/codex/responses/ws") return handleResponsesWebSocket(request, "codex-broker")
     return handleBrokerFetch(request, url)
   }
 
@@ -81,13 +83,14 @@ async function handleFetch(request: Request) {
   })
 }
 
-function handleResponsesWebSocket(request: Request) {
+function handleResponsesWebSocket(request: Request, transport: ResponsesRelayData["transport"]) {
   const upgraded = server.upgrade(request, {
     data: {
       apiKey: request.headers.get("x-openai-api-key") ?? undefined,
       organization: request.headers.get("openai-organization") ?? process.env.OPENAI_ORGANIZATION,
       project: request.headers.get("openai-project") ?? process.env.OPENAI_PROJECT,
       queue: [],
+      transport,
     } satisfies ResponsesRelayData,
   })
   return upgraded ? undefined : new Response("WebSocket upgrade failed", { status: 400 })
@@ -98,7 +101,7 @@ function handleWebSocketMessage(ws: ServerWebSocket<ResponsesRelayData>, message
   const text = typeof message === "string" ? message : message.toString()
   const control = parseRelayConnectMessage(text)
   if (control !== undefined) {
-    if (typeof control.apiKey === "string" && control.apiKey.length > 0) data.apiKey = control.apiKey
+    if (data.transport !== "codex-broker" && typeof control.apiKey === "string" && control.apiKey.length > 0) data.apiKey = control.apiKey
     if (typeof control.organization === "string" && control.organization.length > 0) data.organization = control.organization
     if (typeof control.project === "string" && control.project.length > 0) data.project = control.project
     void connectResponsesUpstream(ws, data)
@@ -173,6 +176,9 @@ async function connectResponsesUpstreamOnce(ws: ServerWebSocket<ResponsesRelayDa
 }
 
 async function responsesRelayConnection(data: ResponsesRelayData) {
+  if (data.transport === "codex-broker") {
+    return { headers: await codexHeaders(), url: CODEX_RESPONSES_WS_URL }
+  }
   if (data.apiKey) {
     return {
       headers: openAIAuthHeaders({ apiKey: data.apiKey, organization: data.organization, project: data.project }),

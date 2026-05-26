@@ -6,7 +6,7 @@ bunx --bun -p https://github.com/subtleGradient/web-native/archive/refs/heads/op
 Run from a local checkout:
 bun ./src/openai/scripts/openai-runner.ts src/openai/openai.demo.html
 
-Security: only run demos you trust. API keys entered in linked demos are visible to that page's JavaScript.
+Security: only run demos you trust. Linked demos send requests through the runner's local Codex broker.
 -->
 <html lang="en">
   <head>
@@ -15,26 +15,18 @@ Security: only run demos you trust. API keys entered in linked demos are visible
     <meta name="color-scheme" content="light dark" />
     <link rel="icon" href="data:," />
     <link rel="stylesheet" href="./openai.demo.css" />
-    <title>OpenAI BYOK demos</title>
+    <title>OpenAI demos</title>
     <script type="module" src="./openai.demo.js"></script>
   </head>
   <body>
     <main class="index">
       <header>
-        <h1>OpenAI BYOK demos</h1>
+        <h1>OpenAI demos</h1>
         <p>
-          Pick a focused demo. Each page owns one request shape and shares the
-          same client/auth controls.
+          Pick a focused demo. Each page owns one request shape and is wired to
+          the Codex broker exposed by the local runner.
         </p>
       </header>
-
-      <section class="panel">
-        <p>
-          For broker modes, run these pages with <code>web-native-openai</code>.
-          For API-key broker without typing a key, set
-          <code>OPENAI_API_KEY</code>.
-        </p>
-      </section>
 
       <section class="demo-list" aria-label="OpenAI demos">
         <a class="card" data-preserve-search href="./openai.text.demo.html">

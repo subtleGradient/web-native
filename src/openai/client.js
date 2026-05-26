@@ -518,8 +518,9 @@ function realtimeSocketUrl(client) {
 
 /** @param {OpenAIClient} client */
 function responsesSocketUrl(client) {
-  if (typeof location === "undefined") return `${client.brokerUrl}/api/responses/ws`
-  const brokerUrl = new URL(`${client.brokerUrl}/api/responses/ws`, location.href)
+  const resource = client.transport === "codex-broker" ? "codex/responses/ws" : "api/responses/ws"
+  if (typeof location === "undefined") return `${client.brokerUrl}/${resource}`
+  const brokerUrl = new URL(`${client.brokerUrl}/${resource}`, location.href)
   brokerUrl.protocol = brokerUrl.protocol === "https:" ? "wss:" : "ws:"
   const runnerToken = runnerTokenFromLocation()
   if (runnerToken !== undefined) brokerUrl.searchParams.set("t", runnerToken)
