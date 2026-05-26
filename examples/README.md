@@ -12,6 +12,7 @@ Each example lives in its own folder and uses `index.html` as its entrypoint. Re
 - `react-service-worker-jsx/` demonstrates multi-file JSX transformed by a local service worker.
 - `shadcn-github/` verifies CDN-backed GitHub import-map usage.
 - `sqlite-wasm-cdn/` runs SQLite Wasm from CDN imports without a build step.
+- `todomvc/` uses the shadcn web components with a TodoMVC-shaped UI backed by SQLite OPFS.
 
 ## React Without A Build Step
 

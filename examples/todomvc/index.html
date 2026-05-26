@@ -1,0 +1,1072 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>TodoMVC with web-native components and SQLite OPFS</title>
+    <script>
+      (() => {
+        const media = matchMedia("(prefers-color-scheme: dark)")
+        const syncTheme = () => {
+          document.documentElement.dataset.theme = media.matches
+            ? "dark"
+            : "light"
+        }
+
+        syncTheme()
+        media.addEventListener("change", syncTheme)
+      })()
+    </script>
+    <link rel="stylesheet" href="../../src/shadcn.web/themes/neutral.css" />
+    <link rel="stylesheet" href="../../src/shadcn.web/styles/base-nova.css" />
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+      }
+
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+
+      main {
+        display: grid;
+        gap: 1rem;
+        margin-inline: auto;
+        max-width: 78rem;
+        min-height: 100dvh;
+        padding: clamp(1rem, 4vw, 2rem);
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: clamp(2.25rem, 7vw, 5rem);
+        letter-spacing: -0.04em;
+        line-height: 0.92;
+      }
+
+      .shell {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: minmax(0, 1fr) minmax(19rem, 24rem);
+      }
+
+      .hero,
+      .hero-copy,
+      .stack,
+      .todo-list,
+      .sql-stack,
+      .coverage-grid,
+      .metric,
+      .empty-state,
+      .query-table {
+        display: grid;
+      }
+
+      .hero {
+        align-items: end;
+        gap: 1rem;
+        grid-template-columns: minmax(0, 1fr) auto;
+      }
+
+      .hero-copy,
+      .stack,
+      .todo-list,
+      .sql-stack,
+      .empty-state {
+        gap: 0.75rem;
+      }
+
+      .hero-copy {
+        max-width: 48rem;
+      }
+
+      .muted {
+        color: var(--muted-foreground);
+      }
+
+      .toolbar,
+      .row,
+      .actions,
+      .status-line,
+      .meta-row,
+      .avatar-row {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .toolbar {
+        justify-content: space-between;
+      }
+
+      .actions {
+        justify-content: flex-end;
+      }
+
+      .todo-form-grid {
+        display: grid;
+        gap: 0.75rem;
+        grid-template-columns: minmax(0, 1fr) minmax(9rem, 12rem);
+      }
+
+      .todo-form-grid shadcn-field:last-child {
+        grid-column: 1 / -1;
+      }
+
+      .todo-item {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        display: grid;
+        gap: 0.75rem;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        padding: 0.875rem;
+      }
+
+      .todo-item[data-completed="true"] .todo-title {
+        color: var(--muted-foreground);
+        text-decoration: line-through;
+      }
+
+      .todo-item[data-density="compact"] {
+        gap: 0.5rem;
+        padding: 0.625rem;
+      }
+
+      .todo-copy {
+        display: grid;
+        gap: 0.25rem;
+        min-width: 0;
+      }
+
+      .todo-title,
+      .todo-notes {
+        overflow-wrap: anywhere;
+      }
+
+      .check-wrap {
+        display: inline-flex;
+        padding-block-start: 0.125rem;
+      }
+
+      .danger-zone {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        display: grid;
+        gap: 0.75rem;
+        padding: 0.875rem;
+      }
+
+      .metrics {
+        display: grid;
+        gap: 0.75rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .metric strong {
+        font-size: 1.875rem;
+        letter-spacing: -0.04em;
+        line-height: 1;
+      }
+
+      .side-panel {
+        align-self: start;
+      }
+
+      .query-table {
+        gap: 0.5rem;
+      }
+
+      shadcn-table {
+        max-height: 18rem;
+      }
+
+      pre,
+      code {
+        font-family:
+          "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      }
+
+      code {
+        background: var(--muted);
+        border-radius: var(--radius-sm);
+        padding: 0.125rem 0.25rem;
+      }
+
+      pre {
+        background: var(--muted);
+        border-radius: var(--radius-lg);
+        margin: 0;
+        max-height: 16rem;
+        overflow: auto;
+        padding: 0.875rem;
+        white-space: pre-wrap;
+      }
+
+      .coverage-grid {
+        gap: 0.75rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .coverage-item {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        display: grid;
+        gap: 0.5rem;
+        padding: 0.75rem;
+      }
+
+      .radio-label,
+      .select-row {
+        align-items: center;
+        display: inline-flex;
+        gap: 0.5rem;
+      }
+
+      .sr-only {
+        border: 0;
+        clip: rect(0, 0, 0, 0);
+        height: 1px;
+        margin: -1px;
+        overflow: hidden;
+        padding: 0;
+        position: absolute;
+        white-space: nowrap;
+        width: 1px;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      @media (max-width: 900px) {
+        .hero,
+        .shell,
+        .todo-form-grid,
+        .coverage-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .actions {
+          justify-content: flex-start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="hero" aria-labelledby="page-title">
+        <div class="hero-copy">
+          <div class="row">
+            <shadcn-badge>TodoMVC</shadcn-badge>
+            <shadcn-badge variant="secondary">SQLite OPFS</shadcn-badge>
+            <shadcn-badge variant="outline">No framework</shadcn-badge>
+          </div>
+          <h1 id="page-title">Todos that survive reloads.</h1>
+          <p class="muted">
+            A TodoMVC-shaped fixture for the shadcn web components, persisted by
+            the official SQLite Wasm build in an OPFS-backed worker.
+          </p>
+        </div>
+
+        <div class="avatar-row" aria-label="Example maintainers">
+          <shadcn-avatar-group>
+            <shadcn-avatar size="lg">
+              <shadcn-avatar-image>
+                <img
+                  alt=""
+                  src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'%3E%3Crect width='80' height='80' fill='%232563eb'/%3E%3Cpath d='M18 44h44v8H18zM18 28h44v8H18z' fill='white'/%3E%3C/svg%3E"
+                />
+              </shadcn-avatar-image>
+              <shadcn-avatar-fallback>WN</shadcn-avatar-fallback>
+              <shadcn-avatar-badge></shadcn-avatar-badge>
+            </shadcn-avatar>
+            <shadcn-avatar size="lg">
+              <shadcn-avatar-fallback>DB</shadcn-avatar-fallback>
+              <shadcn-avatar-badge></shadcn-avatar-badge>
+            </shadcn-avatar>
+            <shadcn-avatar-group-count>+8</shadcn-avatar-group-count>
+          </shadcn-avatar-group>
+        </div>
+      </section>
+
+      <section class="shell">
+        <shadcn-card aria-labelledby="todo-card-title">
+          <shadcn-card-header>
+            <div>
+              <shadcn-card-title id="todo-card-title">Tasks</shadcn-card-title>
+              <shadcn-card-description>
+                Create, filter, complete, and clear todos through a persisted
+                SQLite table.
+              </shadcn-card-description>
+            </div>
+            <shadcn-card-action>
+              <span onclick="TodoMvc.exportJson(event)">
+                <shadcn-button variant="outline" size="sm" id="export-button" disabled
+                  >Export JSON</shadcn-button
+                >
+              </span>
+            </shadcn-card-action>
+          </shadcn-card-header>
+
+          <shadcn-card-content class="stack">
+            <shadcn-alert id="status-alert">
+              <shadcn-alert-title id="status-title">Starting worker</shadcn-alert-title>
+              <shadcn-alert-description class="status-line" aria-live="polite">
+                <shadcn-badge id="status-badge" variant="secondary"
+                  >Loading</shadcn-badge
+                >
+                <span id="status-text"
+                  >Opening the SQLite OPFS worker...</span
+                >
+              </shadcn-alert-description>
+            </shadcn-alert>
+
+            <form id="todo-form" onsubmit="TodoMvc.add(event)">
+              <shadcn-field-set>
+                <shadcn-field-legend>Add a todo</shadcn-field-legend>
+                <shadcn-field-description>
+                  Form-associated custom inputs flow into FormData.
+                </shadcn-field-description>
+                <shadcn-field-group>
+                  <div class="todo-form-grid">
+                    <shadcn-field>
+                      <shadcn-field-label for="todo-title"
+                        >Title</shadcn-field-label
+                      >
+                      <shadcn-input
+                        id="todo-title"
+                        name="title"
+                        autocomplete="off"
+                        placeholder="What needs to be done?"
+                        required
+                        disabled
+                      ></shadcn-input>
+                      <shadcn-field-error id="title-error" hidden>
+                        Enter a todo title before saving.
+                      </shadcn-field-error>
+                    </shadcn-field>
+
+                    <shadcn-field>
+                      <shadcn-field-label for="todo-priority"
+                        >Priority</shadcn-field-label
+                      >
+                      <shadcn-native-select size="sm">
+                        <select id="todo-priority" name="priority" disabled>
+                          <option value="normal">Normal</option>
+                          <option value="high">High</option>
+                          <option value="low">Low</option>
+                        </select>
+                      </shadcn-native-select>
+                    </shadcn-field>
+
+                    <shadcn-field>
+                      <shadcn-field-label for="todo-notes"
+                        >Notes</shadcn-field-label
+                      >
+                      <shadcn-textarea
+                        id="todo-notes"
+                        name="notes"
+                        rows="3"
+                        placeholder="Optional detail"
+                        disabled
+                      ></shadcn-textarea>
+                    </shadcn-field>
+                  </div>
+
+                  <shadcn-field orientation="horizontal">
+                    <span onclick="TodoMvc.toggleCompleteOnCreate(event)">
+                      <shadcn-checkbox
+                        id="complete-on-create"
+                        name="completed"
+                        value="1"
+                        unchecked-value="0"
+                        aria-label="Complete new todo immediately"
+                        disabled
+                      ></shadcn-checkbox>
+                    </span>
+                    <shadcn-field-content>
+                      <shadcn-field-title
+                        >Complete new todo immediately</shadcn-field-title
+                      >
+                      <shadcn-field-description>
+                        Demonstrates checkbox FormData values.
+                      </shadcn-field-description>
+                    </shadcn-field-content>
+                  </shadcn-field>
+
+                  <div class="actions">
+                    <shadcn-button id="add-button" disabled>Add todo</shadcn-button>
+                  </div>
+                </shadcn-field-group>
+              </shadcn-field-set>
+            </form>
+
+            <shadcn-field-separator>View</shadcn-field-separator>
+
+            <div class="toolbar">
+              <shadcn-toggle-group
+                id="filter-group"
+                value="all"
+                variant="outline"
+                size="sm"
+                spacing="1"
+                aria-label="Todo filters"
+              >
+                <shadcn-toggle-group-item value="all" onclick="TodoMvc.setFilter('all')"
+                  >All</shadcn-toggle-group-item
+                >
+                <shadcn-toggle-group-item
+                  value="active"
+                  onclick="TodoMvc.setFilter('active')"
+                  >Active</shadcn-toggle-group-item
+                >
+                <shadcn-toggle-group-item
+                  value="completed"
+                  onclick="TodoMvc.setFilter('completed')"
+                  >Completed</shadcn-toggle-group-item
+                >
+              </shadcn-toggle-group>
+
+              <div class="row">
+                <span onclick="TodoMvc.toggleDensity(event)">
+                  <shadcn-toggle
+                    id="density-toggle"
+                    variant="outline"
+                    size="sm"
+                    aria-label="Compact density"
+                    >Compact</shadcn-toggle
+                  >
+                </span>
+                <span onclick="TodoMvc.clearCompleted(event)">
+                  <shadcn-button
+                    id="clear-button"
+                    variant="outline"
+                    size="sm"
+                    disabled
+                    >Clear completed</shadcn-button
+                  >
+                </span>
+              </div>
+            </div>
+
+            <shadcn-progress id="completion-progress" value="0" max="100">
+              <div class="toolbar">
+                <shadcn-progress-label>Completed</shadcn-progress-label>
+                <shadcn-progress-value id="progress-value"></shadcn-progress-value>
+              </div>
+            </shadcn-progress>
+
+            <shadcn-tabs id="content-tabs" value="list">
+              <shadcn-tabs-list variant="line" aria-label="Todo views">
+                <shadcn-tabs-trigger value="list">List</shadcn-tabs-trigger>
+                <shadcn-tabs-trigger value="table">Table</shadcn-tabs-trigger>
+                <shadcn-tabs-trigger value="sql">SQL</shadcn-tabs-trigger>
+              </shadcn-tabs-list>
+
+              <shadcn-tabs-content value="list">
+                <div id="todo-list" class="todo-list" role="list"></div>
+                <div id="empty-state" class="empty-state" hidden>
+                  <shadcn-skeleton style="height: 0.75rem; width: 70%"></shadcn-skeleton>
+                  <p class="muted">No todos match this view.</p>
+                </div>
+              </shadcn-tabs-content>
+
+              <shadcn-tabs-content value="table">
+                <shadcn-table>
+                  <table is="shadcn-table-element">
+                    <caption is="shadcn-table-caption">
+                      Persisted rows from SQLite.
+                    </caption>
+                    <thead is="shadcn-table-header">
+                      <tr is="shadcn-table-row">
+                        <th is="shadcn-table-head" scope="col">Title</th>
+                        <th is="shadcn-table-head" scope="col">Priority</th>
+                        <th is="shadcn-table-head" scope="col">State</th>
+                      </tr>
+                    </thead>
+                    <tbody is="shadcn-table-body" id="todo-table-body"></tbody>
+                    <tfoot is="shadcn-table-footer">
+                      <tr is="shadcn-table-row">
+                        <td is="shadcn-table-cell" colspan="3" id="table-summary">
+                          Waiting for SQLite...
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </shadcn-table>
+              </shadcn-tabs-content>
+
+              <shadcn-tabs-content value="sql">
+                <form class="sql-stack" onsubmit="TodoMvc.runQuery(event)">
+                  <shadcn-field>
+                    <shadcn-field-label for="sql-query">Read-only SQL</shadcn-field-label>
+                    <shadcn-textarea id="sql-query" name="sql" rows="5" disabled
+                      >select id, title, priority, completed, created_at from todos order by created_at desc;</shadcn-textarea
+                    >
+                    <shadcn-field-description>
+                      Accepts SELECT, WITH, and safe PRAGMA statements.
+                    </shadcn-field-description>
+                  </shadcn-field>
+                  <div class="actions">
+                    <shadcn-button id="query-button" disabled>Run query</shadcn-button>
+                  </div>
+                </form>
+                <pre id="query-output">Waiting for SQLite...</pre>
+              </shadcn-tabs-content>
+            </shadcn-tabs>
+          </shadcn-card-content>
+
+          <shadcn-card-footer class="toolbar">
+            <span class="muted" id="footer-copy">0 items left</span>
+            <shadcn-kbd-group>
+              <shadcn-kbd>Tab</shadcn-kbd>
+              <shadcn-kbd>Space</shadcn-kbd>
+              <shadcn-kbd>Enter</shadcn-kbd>
+            </shadcn-kbd-group>
+          </shadcn-card-footer>
+        </shadcn-card>
+
+        <aside class="stack">
+          <shadcn-card class="side-panel" size="sm" aria-labelledby="runtime-title">
+            <shadcn-card-header>
+              <shadcn-card-title id="runtime-title">Runtime</shadcn-card-title>
+              <shadcn-card-description>
+                Worker, VFS, and query state.
+              </shadcn-card-description>
+            </shadcn-card-header>
+            <shadcn-card-content class="stack">
+              <div class="metrics">
+                <div class="metric">
+                  <span class="muted">Total</span>
+                  <strong id="total-count">0</strong>
+                </div>
+                <div class="metric">
+                  <span class="muted">Active</span>
+                  <strong id="active-count">0</strong>
+                </div>
+                <div class="metric">
+                  <span class="muted">Done</span>
+                  <strong id="done-count">0</strong>
+                </div>
+                <div class="metric">
+                  <span class="muted">High</span>
+                  <strong id="high-count">0</strong>
+                </div>
+              </div>
+              <shadcn-separator></shadcn-separator>
+              <p class="muted">
+                SQLite <span id="sqlite-version">pending</span> via
+                <code id="vfs-name">pending</code>
+              </p>
+              <p class="muted">Database: <code id="database-name">opening...</code></p>
+              <p class="muted">Pool files: <span id="pool-files">pending</span></p>
+
+              <shadcn-field>
+                <shadcn-field-label>Sort list</shadcn-field-label>
+                <shadcn-radio-group
+                  id="sort-group"
+                  name="sort"
+                  value="smart"
+                  aria-label="Sort todos"
+                >
+                  <span class="radio-label">
+                    <shadcn-radio-group-item
+                      value="smart"
+                      onclick="TodoMvc.setSort('smart')"
+                    ></shadcn-radio-group-item>
+                    Smart
+                  </span>
+                  <span class="radio-label">
+                    <shadcn-radio-group-item
+                      value="newest"
+                      onclick="TodoMvc.setSort('newest')"
+                    ></shadcn-radio-group-item>
+                    Newest
+                  </span>
+                  <span class="radio-label">
+                    <shadcn-radio-group-item
+                      value="oldest"
+                      onclick="TodoMvc.setSort('oldest')"
+                    ></shadcn-radio-group-item>
+                    Oldest
+                  </span>
+                </shadcn-radio-group>
+              </shadcn-field>
+
+              <shadcn-field orientation="horizontal">
+                <span onclick="TodoMvc.toggleAll(event)">
+                  <shadcn-switch
+                    id="toggle-all-switch"
+                    aria-label="Mark all complete"
+                    disabled
+                  ></shadcn-switch>
+                </span>
+                <shadcn-field-content>
+                  <shadcn-field-title>Mark all complete</shadcn-field-title>
+                  <shadcn-field-description>
+                    Switch state mirrors the current snapshot.
+                  </shadcn-field-description>
+                </shadcn-field-content>
+              </shadcn-field>
+            </shadcn-card-content>
+          </shadcn-card>
+
+          <shadcn-card class="side-panel" size="sm" aria-labelledby="coverage-title">
+            <shadcn-card-header>
+              <shadcn-card-title id="coverage-title">Component coverage</shadcn-card-title>
+              <shadcn-card-description>
+                Every shadcn component exported by the bundle appears in this
+                example.
+              </shadcn-card-description>
+            </shadcn-card-header>
+            <shadcn-card-content class="coverage-grid">
+              <div class="coverage-item">
+                <strong>Input stack</strong>
+                <span class="muted">field, label, input, textarea, select, error</span>
+              </div>
+              <div class="coverage-item">
+                <strong>Commands</strong>
+                <span class="muted">button, checkbox, switch, toggle, group</span>
+              </div>
+              <div class="coverage-item">
+                <strong>Views</strong>
+                <span class="muted">tabs, table, progress, separator</span>
+              </div>
+              <div class="coverage-item">
+                <strong>Status</strong>
+                <span class="muted">alert, badge, skeleton, kbd, avatar</span>
+              </div>
+            </shadcn-card-content>
+          </shadcn-card>
+
+          <shadcn-card class="side-panel" size="sm" aria-labelledby="danger-title">
+            <shadcn-card-header>
+              <shadcn-card-title id="danger-title">Reset</shadcn-card-title>
+              <shadcn-card-description>
+                Restore the seed rows in the SQLite database.
+              </shadcn-card-description>
+            </shadcn-card-header>
+            <shadcn-card-content>
+              <div class="danger-zone">
+                <p class="muted">
+                  This removes current rows and inserts the TodoMVC fixture rows.
+                </p>
+                <span onclick="TodoMvc.reset(event)">
+                  <shadcn-button
+                    id="reset-button"
+                    variant="destructive"
+                    size="sm"
+                    disabled
+                    >Reset seed data</shadcn-button
+                  >
+                </span>
+              </div>
+            </shadcn-card-content>
+          </shadcn-card>
+        </aside>
+      </section>
+    </main>
+
+    <script type="module">
+      import "../../src/shadcn.web/define.js"
+
+      await Promise.all([
+        customElements.whenDefined("shadcn-alert"),
+        customElements.whenDefined("shadcn-avatar"),
+        customElements.whenDefined("shadcn-badge"),
+        customElements.whenDefined("shadcn-button"),
+        customElements.whenDefined("shadcn-card"),
+        customElements.whenDefined("shadcn-checkbox"),
+        customElements.whenDefined("shadcn-input"),
+        customElements.whenDefined("shadcn-progress"),
+        customElements.whenDefined("shadcn-radio-group"),
+        customElements.whenDefined("shadcn-switch"),
+        customElements.whenDefined("shadcn-tabs"),
+        customElements.whenDefined("shadcn-toggle"),
+        customElements.whenDefined("shadcn-toggle-group"),
+      ])
+
+      const worker = new Worker(new URL("./sqlite-opfs-worker.js", import.meta.url), {
+        type: "module",
+      })
+
+      const state = {
+        ready: false,
+        filter: "all",
+        sort: "smart",
+        dense: false,
+        todos: [],
+        stats: { total: 0, active: 0, completed: 0, highPriority: 0 },
+      }
+
+      const elements = {
+        activeCount: document.querySelector("#active-count"),
+        addButton: document.querySelector("#add-button"),
+        clearButton: document.querySelector("#clear-button"),
+        completeOnCreate: document.querySelector("#complete-on-create"),
+        databaseName: document.querySelector("#database-name"),
+        densityToggle: document.querySelector("#density-toggle"),
+        doneCount: document.querySelector("#done-count"),
+        emptyState: document.querySelector("#empty-state"),
+        exportButton: document.querySelector("#export-button"),
+        filterGroup: document.querySelector("#filter-group"),
+        footerCopy: document.querySelector("#footer-copy"),
+        highCount: document.querySelector("#high-count"),
+        list: document.querySelector("#todo-list"),
+        poolFiles: document.querySelector("#pool-files"),
+        priority: document.querySelector("#todo-priority"),
+        progress: document.querySelector("#completion-progress"),
+        progressValue: document.querySelector("#progress-value"),
+        query: document.querySelector("#sql-query"),
+        queryButton: document.querySelector("#query-button"),
+        queryOutput: document.querySelector("#query-output"),
+        resetButton: document.querySelector("#reset-button"),
+        sortGroup: document.querySelector("#sort-group"),
+        sqliteVersion: document.querySelector("#sqlite-version"),
+        statusAlert: document.querySelector("#status-alert"),
+        statusBadge: document.querySelector("#status-badge"),
+        statusText: document.querySelector("#status-text"),
+        statusTitle: document.querySelector("#status-title"),
+        tableBody: document.querySelector("#todo-table-body"),
+        tableSummary: document.querySelector("#table-summary"),
+        title: document.querySelector("#todo-title"),
+        titleError: document.querySelector("#title-error"),
+        notes: document.querySelector("#todo-notes"),
+        toggleAllSwitch: document.querySelector("#toggle-all-switch"),
+        totalCount: document.querySelector("#total-count"),
+        vfsName: document.querySelector("#vfs-name"),
+      }
+
+      globalThis.TodoMvc = {
+        add(event) {
+          event.preventDefault()
+
+          const form = event.currentTarget
+          const data = new FormData(form)
+          const title = String(data.get("title") ?? "").trim()
+
+          elements.titleError.hidden = Boolean(title)
+          if (!title) {
+            elements.title.focus()
+            return
+          }
+
+          post("add", {
+            todo: {
+              title,
+              notes: String(data.get("notes") ?? ""),
+              priority: String(data.get("priority") ?? "normal"),
+              completed: data.get("completed") === "1",
+            },
+          })
+          form.reset()
+          elements.titleError.hidden = true
+          setStatus("loading", "Saving todo to SQLite OPFS...")
+        },
+        clearCompleted(event) {
+          event.preventDefault()
+          if (state.stats.completed === 0) return
+          post("clear-completed")
+          setStatus("loading", "Deleting completed rows from SQLite...")
+        },
+        exportJson(event) {
+          event.preventDefault()
+          post("export-json")
+        },
+        remove(event, id) {
+          event.preventDefault()
+          post("remove", { id })
+        },
+        reset(event) {
+          event.preventDefault()
+          post("reset")
+          setStatus("loading", "Resetting seed data...")
+        },
+        runQuery(event) {
+          event.preventDefault()
+          post("query", { sql: elements.query.value })
+          setStatus("loading", "Running read-only SQL...")
+        },
+        setFilter(filter) {
+          state.filter = filter
+          render()
+        },
+        setSort(sort) {
+          state.sort = sort
+          render()
+        },
+        toggle(id) {
+          post("toggle", { id })
+        },
+        toggleAll(event) {
+          event.preventDefault()
+          post("toggle-all", { completed: state.stats.active > 0 })
+        },
+        toggleCompleteOnCreate(event) {
+          if (!state.ready) event.preventDefault()
+        },
+        toggleDensity(event) {
+          event.preventDefault()
+          state.dense = !state.dense
+          render()
+        },
+      }
+
+      worker.onmessage = (event) => {
+        const message = event.data ?? {}
+
+        if (message.type === "started") {
+          setStatus(
+            "loading",
+            message.detail?.hasOpfs
+              ? "Worker started. Opening SQLite OPFS..."
+              : "Worker started, but OPFS support is missing in this browser context.",
+          )
+        }
+
+        if (message.type === "ready") {
+          state.ready = true
+          setRuntime(message.detail ?? {})
+          setControlsEnabled(true)
+          setStatus("ready", "SQLite OPFS database ready. Changes survive reloads.")
+        }
+
+        if (message.type === "snapshot") {
+          state.todos = message.detail?.todos ?? []
+          state.stats = message.detail?.stats ?? state.stats
+          render()
+        }
+
+        if (message.type === "query-result") {
+          renderQuery(message.detail?.sql, message.detail?.rows ?? [])
+          setStatus("ready", `Query returned ${(message.detail?.rows ?? []).length} rows.`)
+        }
+
+        if (message.type === "saved") {
+          setStatus("ready", `Saved "${message.detail?.label ?? "todo"}".`)
+        }
+
+        if (message.type === "cleared") {
+          setStatus("ready", `Cleared ${message.detail?.count ?? 0} completed todos.`)
+        }
+
+        if (message.type === "deleted") {
+          setStatus("ready", "Deleted todo.")
+        }
+
+        if (message.type === "reset") {
+          setStatus("ready", "Seed data restored.")
+        }
+
+        if (message.type === "exported") {
+          downloadText(message.detail)
+          setStatus("ready", `Exported ${message.detail?.filename ?? "todos.json"}.`)
+        }
+
+        if (message.type === "error") {
+          setStatus("error", message.message ?? "Unknown SQLite worker error.")
+          elements.queryOutput.textContent = message.message ?? "Unknown error."
+        }
+      }
+
+      post("init")
+
+      function post(type, payload = {}) {
+        worker.postMessage({ type, ...payload })
+      }
+
+      function render() {
+        const todos = visibleTodos()
+        const { total, active, completed, highPriority } = state.stats
+        const percent = total === 0 ? 0 : Math.round((completed / total) * 100)
+
+        elements.totalCount.textContent = String(total)
+        elements.activeCount.textContent = String(active)
+        elements.doneCount.textContent = String(completed)
+        elements.highCount.textContent = String(highPriority)
+        elements.footerCopy.textContent = `${active} ${active === 1 ? "item" : "items"} left`
+        elements.progress.setAttribute("value", String(percent))
+        elements.progressValue.textContent = `${percent}%`
+        elements.filterGroup.setAttribute("value", state.filter)
+        elements.sortGroup.setAttribute("value", state.sort)
+        elements.densityToggle.toggleAttribute("pressed", state.dense)
+        elements.clearButton.disabled = completed === 0 || !state.ready
+        elements.toggleAllSwitch.toggleAttribute("checked", total > 0 && active === 0)
+
+        elements.list.replaceChildren(...todos.map(renderTodoItem))
+        elements.emptyState.hidden = todos.length > 0
+        renderTable(todos)
+      }
+
+      function visibleTodos() {
+        const filtered = state.todos.filter((todo) => {
+          if (state.filter === "active") return !todo.completed
+          if (state.filter === "completed") return todo.completed
+          return true
+        })
+
+        return filtered.toSorted((a, b) => {
+          if (state.sort === "newest") return b.createdAt.localeCompare(a.createdAt)
+          if (state.sort === "oldest") return a.createdAt.localeCompare(b.createdAt)
+
+          const priorityRank = { high: 0, normal: 1, low: 2 }
+          return (
+            Number(a.completed) - Number(b.completed) ||
+            priorityRank[a.priority] - priorityRank[b.priority] ||
+            b.createdAt.localeCompare(a.createdAt)
+          )
+        })
+      }
+
+      function renderTodoItem(todo) {
+        const item = document.createElement("div")
+        item.className = "todo-item"
+        item.dataset.completed = String(todo.completed)
+        item.dataset.density = state.dense ? "compact" : "comfortable"
+        item.setAttribute("role", "listitem")
+
+        const checkWrap = document.createElement("span")
+        checkWrap.className = "check-wrap"
+        checkWrap.onclick = () => TodoMvc.toggle(todo.id)
+
+        const checkbox = document.createElement("shadcn-checkbox")
+        checkbox.setAttribute("aria-label", `Toggle ${todo.title}`)
+        checkbox.toggleAttribute("checked", todo.completed)
+        checkWrap.append(checkbox)
+
+        const copy = document.createElement("div")
+        copy.className = "todo-copy"
+
+        const title = document.createElement("strong")
+        title.className = "todo-title"
+        title.textContent = todo.title
+
+        const meta = document.createElement("div")
+        meta.className = "meta-row"
+
+        const priority = document.createElement("shadcn-badge")
+        priority.variant = todo.priority === "high" ? "destructive" : todo.priority === "low" ? "outline" : "secondary"
+        priority.textContent = todo.priority
+
+        const created = document.createElement("span")
+        created.className = "muted"
+        created.textContent = todo.createdAt
+
+        meta.append(priority, created)
+        copy.append(title, meta)
+
+        if (todo.notes && !state.dense) {
+          const notes = document.createElement("p")
+          notes.className = "todo-notes muted"
+          notes.textContent = todo.notes
+          copy.append(notes)
+        }
+
+        const action = document.createElement("span")
+        action.onclick = (event) => TodoMvc.remove(event, todo.id)
+
+        const button = document.createElement("shadcn-button")
+        button.variant = "ghost"
+        button.size = "sm"
+        button.textContent = "Delete"
+        action.append(button)
+
+        item.append(checkWrap, copy, action)
+        return item
+      }
+
+      function renderTable(todos) {
+        elements.tableBody.replaceChildren(
+          ...todos.map((todo) => {
+            const row = document.createElement("tr", { is: "shadcn-table-row" })
+            const title = document.createElement("td", { is: "shadcn-table-cell" })
+            const priority = document.createElement("td", { is: "shadcn-table-cell" })
+            const stateCell = document.createElement("td", { is: "shadcn-table-cell" })
+
+            title.textContent = todo.title
+            priority.textContent = todo.priority
+            stateCell.textContent = todo.completed ? "completed" : "active"
+            row.append(title, priority, stateCell)
+            return row
+          }),
+        )
+
+        elements.tableSummary.textContent = `${todos.length} visible of ${state.stats.total} persisted rows.`
+      }
+
+      function renderQuery(sql, rows) {
+        elements.query.value = sql ?? elements.query.value
+        elements.queryOutput.textContent = JSON.stringify(rows, null, 2)
+      }
+
+      function setControlsEnabled(enabled) {
+        for (const element of [
+          elements.addButton,
+          elements.clearButton,
+          elements.completeOnCreate,
+          elements.exportButton,
+          elements.priority,
+          elements.query,
+          elements.queryButton,
+          elements.resetButton,
+          elements.title,
+          elements.notes,
+          elements.toggleAllSwitch,
+        ]) {
+          element.disabled = !enabled
+        }
+      }
+
+      function setRuntime(detail) {
+        elements.databaseName.textContent = detail.databaseName ?? "unknown"
+        elements.poolFiles.textContent = String(detail.fileCount ?? "unknown")
+        elements.sqliteVersion.textContent = detail.sqliteVersion ?? "unknown"
+        elements.vfsName.textContent = detail.vfsName ?? "unknown"
+      }
+
+      function setStatus(kind, message) {
+        elements.statusAlert.variant = kind === "error" ? "destructive" : "default"
+        elements.statusBadge.variant =
+          kind === "error" ? "destructive" : kind === "ready" ? "default" : "secondary"
+        elements.statusBadge.textContent =
+          kind === "error" ? "Error" : kind === "ready" ? "Ready" : "Loading"
+        elements.statusTitle.textContent =
+          kind === "error" ? "SQLite error" : kind === "ready" ? "Database ready" : "Working"
+        elements.statusText.textContent = message
+      }
+
+      function downloadText(detail = {}) {
+        const blob = new Blob([detail.text ?? ""], {
+          type: detail.mimeType ?? "text/plain;charset=utf-8",
+        })
+        const url = URL.createObjectURL(blob)
+        const anchor = document.createElement("a")
+
+        anchor.href = url
+        anchor.download = detail.filename ?? "todomvc-export.txt"
+        document.body.append(anchor)
+        anchor.click()
+        anchor.remove()
+        setTimeout(() => URL.revokeObjectURL(url), 0)
+      }
+
+      Reflect.set(globalThis, "__webNativeTodoMvcDemoReady", true)
+    </script>
+  </body>
+</html>
