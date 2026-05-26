@@ -16,7 +16,7 @@ type OpenAIOAuth = {
 
 const HOST = "localhost"
 const DEFAULT_PORT = 4174
-const DEFAULT_DEMO_PATH = "../examples.web/index.html"
+const DEFAULT_DEMO_PATH = "../examples/index.html"
 const OPENAI_API_BASE_URL = "https://api.openai.com/v1"
 const OPENAI_RESPONSES_WS_URL = "wss://api.openai.com/v1/responses"
 const CODEX_RESPONSES_URL = "https://chatgpt.com/backend-api/codex/responses"

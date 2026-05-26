@@ -61,21 +61,21 @@ Realtime session creation is available through `client.realtimeSession()`. WebSo
 Run the Codex-broker demos from GitHub:
 
 ```sh
-bunx --bun -p https://github.com/subtleGradient/web-native/archive/refs/heads/openai.tar.gz web-native-openai src/openai/examples.web/index.html
+bunx --bun -p https://github.com/subtleGradient/web-native/archive/refs/heads/openai.tar.gz web-native-openai src/openai/examples/index.html
 ```
 
 Or from a local checkout:
 
 ```sh
-bun ./src/openai/examples.web/scripts/openai-runner.ts src/openai/examples.web/index.html
+bun ./src/openai/examples/scripts/openai-runner.ts src/openai/examples/index.html
 ```
 
-To open one small demo directly, replace the path with a focused page such as `src/openai/examples.web/openai.web-search.demo.html`.
+To open one small demo directly, replace the path with a focused page such as `src/openai/examples/openai.web-search.demo.html`.
 
 Responses WebSocket Mode demo with sandboxed local `eval_js` tool:
 
 ```sh
-bun ./src/openai/examples.web/scripts/openai-runner.ts src/openai/examples.web/openai.responses-websocket-eval.demo.html
+bun ./src/openai/examples/scripts/openai-runner.ts src/openai/examples/openai.responses-websocket-eval.demo.html
 ```
 
 The runner serves demo pages from localhost and exposes guarded proxy endpoints under `/__web-native-openai`. `transport="codex-broker"` reads OpenCode OAuth auth from `OPENCODE_AUTH_FILE`, `$XDG_DATA_HOME/opencode/auth.json`, or `~/.local/share/opencode/auth.json`.

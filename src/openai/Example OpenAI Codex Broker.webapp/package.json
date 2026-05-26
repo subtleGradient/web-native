@@ -3,6 +3,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun --hot openai-runner.ts ../examples.web/index.html"
+    "dev": "bun --hot openai-runner.ts ../examples/index.html"
   }
 }

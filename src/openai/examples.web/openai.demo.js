@@ -25,7 +25,7 @@ function showRunnerWarning() {
   const anchor = main.querySelector("header")?.nextSibling ?? main.firstChild
   const demoPath = currentDemoPath()
   const githubCommand = `bunx --bun -p https://github.com/subtleGradient/web-native/archive/refs/heads/openai.tar.gz web-native-openai ${demoPath}`
-  const localCommand = `bun ./src/openai/examples.web/scripts/openai-runner.ts ${demoPath}`
+  const localCommand = `bun ./src/openai/examples/scripts/openai-runner.ts ${demoPath}`
   const warning = document.createElement("shadcn-alert")
   warning.className = "runner-warning"
   warning.dataset.runnerWarning = ""
@@ -65,16 +65,16 @@ function commandBlock(label, command) {
 }
 
 function currentDemoPath() {
-  let pathname = "src/openai/examples.web/index.html"
+  let pathname = "src/openai/examples/index.html"
   try {
     pathname = decodeURIComponent(location.pathname).replace(/^\/+/, "")
   } catch {
     return pathname
   }
-  const marker = "src/openai/examples.web/"
+  const marker = "src/openai/examples/"
   const markerIndex = pathname.lastIndexOf(marker)
   if (markerIndex >= 0) return pathname.slice(markerIndex)
-  return pathname.endsWith(".demo.html") ? `src/openai/examples.web/${pathname.split("/").at(-1)}` : "src/openai/examples.web/index.html"
+  return pathname.endsWith(".demo.html") ? `src/openai/examples/${pathname.split("/").at(-1)}` : "src/openai/examples/index.html"
 }
 
 function ensureRunnerWarningStyles() {
