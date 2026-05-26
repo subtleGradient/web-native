@@ -268,6 +268,12 @@ describe("codemirror-editor", () => {
     expect(textarea.value).to.equal("fallback")
     expect(editor.shadowRoot?.querySelector(".cm-editor")).to.equal(null)
     expect(errorDetail?.phase).to.equal("load")
+
+    const shell = /** @type {HTMLElement} */ (editor.shadowRoot?.querySelector("[part='shell']"))
+    const shellRect = shell.getBoundingClientRect()
+    const textareaRect = textarea.getBoundingClientRect()
+    expect(textareaRect.height).to.be.greaterThan(shellRect.height - 3)
+    expect(getComputedStyle(textarea).resize).to.equal("none")
   })
 
   it("sets alias languages without custom JavaScript", async () => {

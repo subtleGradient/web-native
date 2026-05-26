@@ -57,16 +57,22 @@ const editorStyles = String.raw`
     background: Canvas;
     border: 1px solid var(--codemirror-editor-border);
     border-radius: var(--codemirror-editor-radius);
+    block-size: var(--codemirror-editor-block-size, var(--codemirror-editor-min-block-size, 12rem));
     box-sizing: border-box;
     display: grid;
+    inline-size: 100%;
     min-block-size: var(--codemirror-editor-min-block-size, 12rem);
+    min-inline-size: 0;
     overflow: clip;
   }
 
   .mount {
+    block-size: 100%;
     display: none;
-    min-block-size: inherit;
+    inline-size: 100%;
+    min-block-size: 0;
     min-inline-size: 0;
+    overflow: hidden;
   }
 
   :host([data-enhanced]) .mount {
@@ -78,21 +84,29 @@ const editorStyles = String.raw`
   }
 
   .fallback {
-    min-block-size: inherit;
+    block-size: 100%;
+    inline-size: 100%;
+    min-block-size: 0;
     min-inline-size: 0;
+    overflow: hidden;
   }
 
   ::slotted(textarea) {
     background: Canvas;
+    block-size: 100%;
     border: 0;
     box-sizing: border-box;
     color: CanvasText;
+    display: block;
     font: 0.875rem/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     inline-size: 100%;
-    min-block-size: inherit;
+    min-block-size: 100%;
+    min-inline-size: 0;
     outline: 0;
+    overflow: auto;
     padding: 0.75rem;
-    resize: vertical;
+    resize: none;
+    tab-size: var(--codemirror-editor-tab-size, 2);
   }
 
   ::slotted(textarea:focus-visible) {
@@ -102,18 +116,24 @@ const editorStyles = String.raw`
 
   .cm-editor {
     background: Canvas;
+    block-size: 100%;
     color: CanvasText;
-    min-block-size: inherit;
+    min-block-size: 0;
+    min-inline-size: 0;
   }
 
   .cm-scroller {
+    block-size: 100%;
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    min-block-size: inherit;
+    min-block-size: 0;
+    min-inline-size: 0;
+    overflow: auto;
   }
 
   .cm-content {
     caret-color: CanvasText;
-    min-block-size: inherit;
+    min-block-size: 100%;
+    min-inline-size: 0;
   }
 
   .cm-focused {
