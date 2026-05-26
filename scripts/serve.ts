@@ -15,7 +15,7 @@ const server = serveStatic({
 
 console.log(`Serving ${root}`)
 console.log(`Default: http://${server.hostname}:${server.port}/`)
-console.log(`Examples: http://${server.hostname}:${server.port}/examples/composite/settings-console.html`)
+console.log(`Examples: http://${server.hostname}:${server.port}/examples/composite-settings-console/`)
 console.log(`Demos: http://${server.hostname}:${server.port}/src/shadcn.web/shadcn.demo.html`)
 console.log(`Tests: http://${server.hostname}:${server.port}/test/`)
 console.log("HTML: repo CDN URLs are localized in memory; files on disk stay CDN-backed.")

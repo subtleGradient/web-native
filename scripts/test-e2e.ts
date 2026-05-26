@@ -150,7 +150,7 @@ const pages: E2EPage[] = [
   },
   {
     name: "OpenAI stories",
-    path: "/src/openai.webapp/openai.stories.html",
+    path: "/src/openai/examples.web/openai.stories.html",
     readyFlag: "__webNativeOpenAIStoriesReady",
     minimumStories: 2,
     expectedElements: ["openai-client", "openai-key-field", "openai-result"],

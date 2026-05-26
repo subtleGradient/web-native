@@ -73,4 +73,4 @@ Interactive components expose shadcn-namespaced cancelable events:
 
 `shadcn-input` and `shadcn-textarea` create native text controls internally and participate in `FormData` through form-associated custom elements. `shadcn-native-select` decorates a slotted native `<select>` so browser select behavior and form semantics stay native.
 
-The standalone GitHub import-map fixture is `examples/standalone/shadcn-github.html`. The composite settings console is `examples/composite/settings-console.html`.
+The standalone GitHub import-map fixture is `examples/shadcn-github/`. The composite settings console is `examples/composite-settings-console/`.

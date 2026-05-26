@@ -1,7 +1,14 @@
 import path from "node:path"
 import { fileURLToPath } from "node:url"
-import { discoverStandaloneHtmlFiles } from "./standalone-discovery.ts"
-import { getGitHubRepo, isRepoCdnUrl, rewriteStandaloneHtml, type GitHubRepo, type ResourceKind } from "./standalone-rewriter.ts"
+import { discoverOpenAIRunnerHtmlFiles, discoverStandaloneHtmlFiles, hasOpenAIRunnerInstructions } from "./standalone-discovery.ts"
+import {
+  getGitHubRepo,
+  isRepoCdnUrl,
+  rewriteOpenAIRunnerInstructions,
+  rewriteStandaloneHtml,
+  type GitHubRepo,
+  type ResourceKind,
+} from "./standalone-rewriter.ts"
 
 type Args = {
   mode?: "cdn" | "local"
@@ -30,7 +37,11 @@ async function main() {
   if (!args.all && args.files.length === 0) fail("Pass --all or at least one HTML file.")
 
   const repo = await getGitHubRepo(root)
-  const files = args.all ? await discoverStandaloneHtmlFiles(root, repo) : args.files.map((file) => path.resolve(root, file))
+  const branch = await getCurrentBranch(root)
+  const rewriteFiles = args.all ? await discoverStandaloneHtmlFiles(root, repo) : args.files.map((file) => path.resolve(root, file))
+  const instructionFiles = args.all ? await discoverOpenAIRunnerHtmlFiles(root) : rewriteFiles
+  const rewriteFileSet = new Set(rewriteFiles)
+  const files = Array.from(new Set([...rewriteFiles, ...instructionFiles]))
   const resolver = new CommitResolver(root, repo)
   const changed: string[] = []
 
@@ -39,14 +50,22 @@ async function main() {
     if (!(await file.exists())) continue
 
     const input = await file.text()
-    const output = await rewriteStandaloneHtml(input, {
-      root,
-      htmlPath: filePath,
-      repo,
-      mode: args.mode,
-      localUrlStyle: "relative",
-      resolveCdnUrl: async (repoPath, kind) => resolver.cdnUrlFor(repoPath, kind),
-    })
+    let output = input
+
+    if (rewriteFileSet.has(filePath)) {
+      output = await rewriteStandaloneHtml(output, {
+        root,
+        htmlPath: filePath,
+        repo,
+        mode: args.mode,
+        localUrlStyle: "relative",
+        resolveCdnUrl: async (repoPath, kind) => resolver.cdnUrlFor(repoPath, kind),
+      })
+    }
+
+    if (hasOpenAIRunnerInstructions(output)) {
+      output = rewriteOpenAIRunnerInstructions(output, { repo, branch, repoPath: path.relative(root, filePath).replaceAll(path.sep, "/") })
+    }
 
     if (input === output) continue
 
@@ -63,7 +82,7 @@ async function main() {
     process.exitCode = 1
   } else {
     const modeLabel = args.mode === "cdn" ? "CDN" : "local"
-    console.log(changed.length === 0 ? `Standalone pages already in ${modeLabel} mode` : `Rewrote ${changed.length} standalone page(s) to ${modeLabel} mode`)
+    console.log(changed.length === 0 ? `Standalone HTML already in ${modeLabel} mode` : `Rewrote ${changed.length} HTML file(s) to ${modeLabel} mode`)
   }
 }
 
@@ -105,6 +124,7 @@ Options:
   --cdn                 Rewrite managed local repo URLs to jsDelivr GitHub CDN URLs.
   --local, --remove-cdn Rewrite this repo's jsDelivr GitHub CDN URLs to local relative URLs.
   --all                 Discover and process standalone HTML pages.
+                        Also normalizes discovered OpenAI runner comments.
   --check               Report whether rewriting would change files without writing.
   --allow-pending-push  Skip GitHub reachability checks for commits being pushed by the pre-push hook.
 `)
@@ -266,6 +286,11 @@ async function verifyCommitsOnGitHub(repo: GitHubRepo, commits: Set<string>) {
       throw new Error(`Commit ${commit} is not reachable from GitHub for ${repo.owner}/${repo.repo}. Push it before generating CDN URLs.`)
     }
   }
+}
+
+async function getCurrentBranch(root: string) {
+  const branch = (await Bun.$`git -C ${root} branch --show-current`.quiet().text()).trim()
+  return branch || "main"
 }
 
 function fail(message: string): never {

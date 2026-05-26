@@ -77,7 +77,7 @@ Development should follow RGRTDD / demo-first flow:
 - `src/base.web/progress/` ports Base UI Progress as `base-progress`, `base-progress-track`, `base-progress-indicator`, `base-progress-label`, and `base-progress-value`.
 - `src/base.web/radio-group/` ports Base UI Radio Group as `base-radio-group` and `base-radio`.
 - `src/chat.web/` adds `topic-transcript`, `chat-summary`, and `chat-message` elements for lightweight archived chat transcript pages.
-- `src/openai.webapp/` adds BYOK OpenAI client helpers plus `openai-client`, `openai-key-field`, and `openai-result` elements.
+- `src/openai/` adds BYOK OpenAI client helpers plus `openai-client`, `openai-key-field`, and `openai-result` elements.
 - `src/json-editor/` adds `json-editor` for schema-aware textarea enhancement.
 - `src/deck-gl.web/` adds deck.gl-inspired `deck-gl`, `deck-layer-list`, and `deck-details-panel` elements for static HTML map examples.
 - `src/json-canvas.web/` adds `json-canvas`, `json-canvas-node`, `json-canvas-edge`, and `noodle-wire` elements for mapping JSON Canvas documents to HTML.
@@ -85,7 +85,7 @@ Development should follow RGRTDD / demo-first flow:
 
 Each folder includes a `*.demo.html`, `*.test.js`, and `README.md` next to the implementation.
 
-The standalone GitHub import-map demo lives at `examples/standalone/shadcn-github.html`. The SQLite Wasm CDN example lives at `examples/standalone/sqlite-wasm-cdn.html`. Composite demos live in `examples/composite/`. deck.gl-style examples live in `examples/deck-gl/`. React no-build research demos live in `examples/react/`. Component folders also include CDN-backed standalone pages named without a `.standalone` suffix, such as `src/shadcn.web/button/button.html`. Local `*.demo.html` pages use browser ESM and should be opened through `bun run dev`, not directly as `file://` URLs.
+Standalone examples live in one-example folders under `examples/`, using prefixes to keep related pages together, such as `examples/react-inline-jsx/`, `examples/react-service-worker-jsx/`, `examples/deck-gl-cdn-scatterplot-inline/`, and `examples/deck-gl-sqlite-opfs-bulk/`. Each example folder owns the files it needs. Component folders also include CDN-backed standalone pages named without a `.standalone` suffix, such as `src/shadcn.web/button/button.html`. Local `*.demo.html` pages use browser ESM and should be opened through `bun run dev`, not directly as `file://` URLs.
 
 ## Standalone CDN Pages
 

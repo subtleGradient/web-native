@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Generic universal web-native ESM modules and custom elements.",
   "bin": {
-    "web-native-openai": "./src/openai/scripts/openai-runner.ts"
+    "web-native-openai": "./src/openai/Example OpenAI Codex Broker.webapp/openai-runner.ts"
   },
   "scripts": {
     "check": "tsgo --noEmit",

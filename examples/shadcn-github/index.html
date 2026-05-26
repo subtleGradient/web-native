@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>GitHub import-map shadcn web demo</title>
+    <script>
+      (() => {
+        const root = document.documentElement
+        const media = matchMedia("(prefers-color-scheme: dark)")
+
+        const syncTheme = () => {
+          root.dataset.theme = media.matches ? "dark" : "light"
+        }
+
+        syncTheme()
+        media.addEventListener("change", syncTheme)
+      })()
+    </script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/subtleGradient/web-native@0d0c6e45fd58d0a91b3709b642ad9bf814fc2517/src/shadcn.web/themes/neutral.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/subtleGradient/web-native@0d0c6e45fd58d0a91b3709b642ad9bf814fc2517/src/shadcn.web/styles/base-nova.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "web-native/": "https://cdn.jsdelivr.net/gh/subtleGradient/web-native@573869309e841a2e9f0c56313ebcf659fc5aeb6b/src/"
+        }
+      }
+    </script>
+    <script type="module">
+      import "https://cdn.jsdelivr.net/gh/subtleGradient/web-native@7c698abd8a6d92ccc883722914876f42b20b267f/src/shadcn.web/define.js"
+
+      await Promise.all([
+        customElements.whenDefined("shadcn-button"),
+        customElements.whenDefined("shadcn-toggle"),
+        customElements.whenDefined("shadcn-tabs"),
+        customElements.whenDefined("shadcn-card"),
+      ])
+
+      Reflect.set(globalThis, "__webNativeGithubDemoReady", true)
+    </script>
+    <style>
+      body {
+        margin: 2rem;
+        max-width: 56rem;
+      }
+
+      main {
+        display: grid;
+        gap: 1.5rem;
+      }
+
+      .row {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section>
+        <h1>GitHub import-map shadcn demo</h1>
+        <p>This standalone page loads CSS and ESM directly from the GitHub branch through jsDelivr.</p>
+      </section>
+
+      <section class="row">
+        <shadcn-button id="save-button">Save changes</shadcn-button>
+        <shadcn-button variant="outline">Cancel</shadcn-button>
+        <shadcn-badge variant="secondary">GitHub CDN</shadcn-badge>
+      </section>
+
+      <section class="row">
+        <shadcn-toggle id="bold-toggle" variant="outline" size="sm">Bold</shadcn-toggle>
+        <span id="toggle-log">Pressed: false</span>
+      </section>
+
+      <shadcn-card>
+        <shadcn-card-header>
+          <shadcn-card-title>Account settings</shadcn-card-title>
+          <shadcn-card-description>Tabs below are Base UI behavior under shadcn tags.</shadcn-card-description>
+        </shadcn-card-header>
+        <shadcn-card-content>
+          <shadcn-tabs id="settings-tabs" value="account">
+            <shadcn-tabs-list variant="line" aria-label="Settings sections">
+              <shadcn-tabs-trigger value="account">Account</shadcn-tabs-trigger>
+              <shadcn-tabs-trigger value="security">Security</shadcn-tabs-trigger>
+            </shadcn-tabs-list>
+            <shadcn-tabs-content value="account">Account settings</shadcn-tabs-content>
+            <shadcn-tabs-content value="security">Security settings</shadcn-tabs-content>
+          </shadcn-tabs>
+        </shadcn-card-content>
+      </shadcn-card>
+    </main>
+
+    <script type="module">
+      const toggle = document.querySelector("#bold-toggle")
+      const toggleLog = document.querySelector("#toggle-log")
+
+      toggle.addEventListener("shadcn:pressed-change", (event) => {
+        toggleLog.textContent = `Pressed: ${event.detail.pressed}`
+      })
+    </script>
+  </body>
+</html>

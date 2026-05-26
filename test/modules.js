@@ -12,7 +12,7 @@ export const testModules = [
   "/src/base.web/radio-group/radio-group.test.js",
   "/src/chat.web/chat.test.js",
   "/src/json-editor/json-editor.test.js",
-  "/src/openai.webapp/openai.test.js",
+  "/src/openai/openai.test.js",
   "/src/deck-gl.web/deck-gl.test.js",
   "/src/json-canvas.web/json-canvas.test.js",
   "/src/shadcn.web/shadcn.test.js",

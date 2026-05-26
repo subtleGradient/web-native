@@ -11,7 +11,7 @@ const repo = await getGitHubRepo(root)
 const server = serveStatic({
   root,
   port,
-  defaultPath: "/examples/composite/settings-console.html",
+  defaultPath: "/examples/composite-settings-console/index.html",
   transformHtml: (html, htmlPath) => localizeRepoCdnHtml(html, { root, htmlPath, repo, localUrlStyle: "root" }),
 })
 
@@ -25,7 +25,7 @@ try {
   })
 
   const page = await browser.newPage()
-  await page.goto(`http://${server.hostname}:${server.port}/examples/composite/settings-console.html`, {
+  await page.goto(`http://${server.hostname}:${server.port}/examples/composite-settings-console/index.html`, {
     timeout: 10000,
     waitUntil: "load",
   })

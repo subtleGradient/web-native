@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>React deck.gl SQLite OPFS no-bundle demo</title>
+    <link rel="icon" href="data:," />
+    <script>
+      (() => {
+        const media = matchMedia("(prefers-color-scheme: dark)")
+        const syncTheme = () => {
+          document.documentElement.dataset.theme = media.matches ? "dark" : "light"
+        }
+
+        syncTheme()
+        media.addEventListener("change", syncTheme)
+      })()
+    </script>
+    <link rel="stylesheet" href="./react-no-build.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "@deck.gl/layers": "https://esm.sh/@deck.gl/layers@9.3.2",
+          "@deck.gl/react": "https://esm.sh/@deck.gl/react@9.3.2?deps=react@19.2.0&external=react",
+          "react": "https://esm.sh/react@19.2.0?dev",
+          "react/jsx-dev-runtime": "https://esm.sh/react@19.2.0/jsx-dev-runtime?dev",
+          "react/jsx-runtime": "https://esm.sh/react@19.2.0/jsx-runtime?dev",
+          "react-dom/client": "https://esm.sh/react-dom@19.2.0/client?dev"
+        }
+      }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.28.5/babel.min.js" crossorigin="anonymous"></script>
+    <script>
+      Babel.registerPreset("react-automatic", {
+        presets: [[Babel.availablePresets.react, { runtime: "automatic", development: true }]],
+      })
+    </script>
+    <style>
+      .deck-page .shell {
+        max-width: none;
+      }
+
+      .deck-layout {
+        align-items: start;
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: minmax(0, 1fr) minmax(19rem, 25rem);
+      }
+
+      .map-stack,
+      .side-stack,
+      .panel-stack {
+        display: grid;
+        gap: 1rem;
+      }
+
+      .map-stack {
+        grid-template-rows: auto minmax(33rem, calc(100vh - 13rem));
+        min-height: 0;
+      }
+
+      .deck-map-card {
+        background:
+          radial-gradient(circle at 28% 22%, color-mix(in oklch, var(--accent) 24%, transparent), transparent 22rem),
+          linear-gradient(135deg, oklch(0.11 0.04 255), oklch(0.2 0.06 275) 48%, oklch(0.16 0.05 215));
+        border: 1px solid var(--border);
+        border-radius: 1.35rem;
+        box-shadow: 0 1rem 3rem color-mix(in oklch, var(--foreground) 12%, transparent);
+        min-height: 33rem;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .deck-map {
+        inset: 0;
+        position: absolute;
+      }
+
+      .map-chrome {
+        display: grid;
+        gap: 0.75rem;
+        inset-block-start: 1rem;
+        inset-inline: 1rem;
+        pointer-events: none;
+        position: absolute;
+        z-index: 2;
+      }
+
+      .map-chrome > * {
+        pointer-events: auto;
+      }
+
+      .map-status,
+      .selection-card,
+      .deck-panel {
+        backdrop-filter: blur(18px);
+        background: color-mix(in oklch, var(--card) 86%, transparent);
+        border: 1px solid var(--border);
+        border-radius: 1rem;
+      }
+
+      .map-status,
+      .selection-card {
+        box-shadow: 0 1rem 3rem color-mix(in oklch, black 24%, transparent);
+        max-width: min(31rem, calc(100vw - 3rem));
+        padding: 0.875rem;
+      }
+
+      .selection-card {
+        display: grid;
+        gap: 0.75rem;
+      }
+
+      .selection-title {
+        align-items: start;
+        display: flex;
+        gap: 0.75rem;
+        justify-content: space-between;
+      }
+
+      .deck-panel {
+        display: grid;
+        gap: 0.875rem;
+        padding: 1rem;
+      }
+
+      .metric-grid {
+        display: grid;
+        gap: 0.75rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .metric-card {
+        background: var(--muted);
+        border: 1px solid var(--border);
+        border-radius: 1rem;
+        display: grid;
+        gap: 0.25rem;
+        padding: 0.875rem;
+      }
+
+      .metric-card strong {
+        color: var(--foreground);
+        font-size: 1.9rem;
+        letter-spacing: -0.055em;
+        line-height: 1;
+      }
+
+      .layer-toggle,
+      .inventory-button {
+        align-items: center;
+        background: var(--muted);
+        border: 1px solid var(--border);
+        border-radius: 0.875rem;
+        color: var(--foreground);
+        cursor: pointer;
+        display: flex;
+        gap: 0.625rem;
+        justify-content: space-between;
+        padding: 0.75rem;
+        text-align: start;
+        width: 100%;
+      }
+
+      .layer-toggle[aria-pressed="false"],
+      .inventory-button:not([aria-pressed="true"]) {
+        opacity: 0.68;
+      }
+
+      .inventory-list,
+      .layer-list {
+        display: grid;
+        gap: 0.5rem;
+      }
+
+      .inventory-list {
+        max-height: 18rem;
+        overflow: auto;
+      }
+
+      .swatch {
+        border-radius: 999px;
+        flex: 0 0 auto;
+        height: 0.75rem;
+        width: 0.75rem;
+      }
+
+      .detail-grid {
+        display: grid;
+        gap: 0.35rem 0.75rem;
+        grid-template-columns: max-content minmax(0, 1fr);
+      }
+
+      .detail-grid dt {
+        color: var(--muted-foreground);
+      }
+
+      .detail-grid dd {
+        margin: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .code-line {
+        overflow-wrap: anywhere;
+      }
+
+      @media (max-width: 1060px) {
+        .deck-layout {
+          grid-template-columns: 1fr;
+        }
+
+        .map-stack {
+          grid-template-rows: auto minmax(31rem, 60vh);
+        }
+      }
+    </style>
+  </head>
+  <body class="deck-page">
+    <main class="shell">
+      <section class="hero" aria-labelledby="title">
+        <span class="eyebrow">React + deck.gl + SQLite OPFS</span>
+        <h1 id="title">No-bundle operations map.</h1>
+        <p class="lead">
+          This standalone page imports React 19, <code>@deck.gl/react</code>, and <code>@deck.gl/layers</code> through an import map. React owns the UI, deck.gl renders WebGL layers, and the existing SQLite Wasm worker persists rows in OPFS.
+        </p>
+      </section>
+
+      <div id="root" class="react-mount">Loading no-bundle React deck.gl demo...</div>
+    </main>
+
+    <script type="text/babel" data-type="module" data-presets="react-automatic">
+      import { ArcLayer, ScatterplotLayer, TextLayer } from "@deck.gl/layers"
+      import { DeckGL } from "@deck.gl/react"
+      import { Fragment, useEffect, useRef, useState } from "react"
+      import { createRoot } from "react-dom/client"
+
+      const initialViewState = { bearing: 0, latitude: 39, longitude: -98, pitch: 36, zoom: 3.15 }
+      const emptySnapshot = { movements: [], sites: [] }
+      const layerDefinitions = [
+        { id: "capacity", label: "Capacity halos", swatch: "#a78bfa" },
+        { id: "movements", label: "Cargo arcs", swatch: "#fb923c" },
+        { id: "sites", label: "Sites", swatch: "#22c55e" },
+        { id: "labels", label: "Site labels", swatch: "#e2e8f0" },
+      ]
+
+      function App() {
+        const workerRef = useRef(null)
+        const [data, setData] = useState(emptySnapshot)
+        const [database, setDatabase] = useState(null)
+        const [selected, setSelected] = useState(null)
+        const [status, setStatus] = useState("Opening SQLite OPFS worker...")
+        const [visibleLayers, setVisibleLayers] = useState({ capacity: true, labels: true, movements: true, sites: true })
+
+        useEffect(() => {
+          const worker = new Worker(new URL("./sqlite-opfs-worker.js", import.meta.url), { type: "module" })
+          workerRef.current = worker
+
+          worker.onmessage = (event) => {
+            const message = event.data ?? {}
+            if (message.type === "ready") {
+              setDatabase(message.detail)
+              setStatus("SQLite OPFS database ready. Data survives reloads on this origin.")
+            }
+            if (message.type === "snapshot") {
+              setData(message.detail)
+              globalThis.__webNativeReactDeckSqliteDemoReady = true
+            }
+            if (message.type === "saved") {
+              setSelected({ id: message.detail.id, kind: message.detail.kind })
+              setStatus(`Saved ${message.detail.kind} ${message.detail.id} through SQLite OPFS.`)
+            }
+            if (message.type === "deleted") {
+              setSelected(null)
+              setStatus(`Deleted ${message.detail.kind} ${message.detail.id} from SQLite OPFS.`)
+            }
+            if (message.type === "imported") {
+              setSelected(null)
+              setStatus(`Reset to seed data: ${message.detail.importedSites} sites and ${message.detail.importedMovements} movements.`)
+            }
+            if (message.type === "error") setStatus(message.message)
+          }
+
+          worker.onerror = (event) => setStatus(event.message)
+          worker.postMessage({ type: "init" })
+
+          return () => worker.terminate()
+        }, [])
+
+        const sitesById = new Map(data.sites.map((site) => [site.id, site]))
+        const selectedItem = selected ? findItem(data, selected) : null
+        const metrics = metricsFor(data)
+        const layers = buildLayers({ data, selected, setSelected, setStatus, sitesById, visibleLayers })
+
+        const resetSeed = () => {
+          setStatus("Resetting SQLite OPFS seed data...")
+          workerRef.current?.postMessage({ type: "reset" })
+        }
+
+        const addSite = () => {
+          const site = nextSite(data.sites.length)
+          setStatus(`Saving generated site ${site.id}...`)
+          workerRef.current?.postMessage({ site, type: "save-site" })
+        }
+
+        const addMovement = () => {
+          const movement = nextMovement(data)
+          if (!movement) {
+            setStatus("Add at least two sites before generating a movement.")
+            return
+          }
+
+          setStatus(`Saving generated movement ${movement.id}...`)
+          workerRef.current?.postMessage({ movement, type: "save-movement" })
+        }
+
+        const deleteSelected = () => {
+          if (!selected) return
+          setStatus(`Deleting ${selected.kind} ${selected.id}...`)
+          workerRef.current?.postMessage({ id: selected.id, type: selected.kind === "site" ? "delete-site" : "delete-movement" })
+        }
+
+        return (
+          <section className="deck-layout" aria-label="React deck.gl SQLite OPFS demo">
+            <section className="map-stack">
+              <div className="app-header">
+                <div>
+                  <span className="status" data-state={database ? "ready" : "working"}>{database ? "OPFS online" : "Starting OPFS"}</span>
+                  <h2>DeckGL React component</h2>
+                </div>
+                <div className="toolbar">
+                  <button className="button" type="button" onClick={addSite}>Add site</button>
+                  <button className="button secondary" type="button" onClick={addMovement}>Add movement</button>
+                  <button className="button secondary" type="button" onClick={resetSeed}>Reset seed</button>
+                </div>
+              </div>
+
+              <section className="deck-map-card" aria-label="deck.gl operations map">
+                <DeckGL
+                  controller={true}
+                  getTooltip={tooltipFor}
+                  initialViewState={initialViewState}
+                  layers={layers}
+                  style={{ height: "100%", width: "100%" }}
+                />
+                <div className="map-chrome">
+                  <p className="map-status" aria-live="polite">{status}</p>
+                  {selectedItem ? (
+                    <SelectionCard item={selectedItem} kind={selected.kind} onClear={() => setSelected(null)} onDelete={deleteSelected} />
+                  ) : null}
+                </div>
+              </section>
+            </section>
+
+            <aside className="side-stack">
+              <section className="deck-panel" aria-labelledby="metrics-title">
+                <h2 id="metrics-title">OPFS metrics</h2>
+                <div className="metric-grid">
+                  <Metric label="Sites" value={metrics.sites} />
+                  <Metric label="Movements" value={metrics.movements} />
+                  <Metric label="Cargo tons" value={metrics.tons} />
+                  <Metric label="Priority max" value={metrics.priority} />
+                </div>
+              </section>
+
+              <section className="deck-panel" aria-labelledby="database-title">
+                <h2 id="database-title">SQLite Wasm worker</h2>
+                <p className="code-line"><code>{database?.databaseName ?? "opening database..."}</code></p>
+                <p>SQLite <strong>{database?.sqliteVersion ?? "pending"}</strong> via <code>{database?.vfsName ?? "pending"}</code>.</p>
+                <p>Pool files: {database ? `${database.fileCount} of ${database.capacity}` : "pending"}</p>
+              </section>
+
+              <section className="deck-panel" aria-labelledby="layers-title">
+                <h2 id="layers-title">React layer state</h2>
+                <div className="layer-list">
+                  {layerDefinitions.map((layer) => (
+                    <button
+                      className="layer-toggle"
+                      key={layer.id}
+                      type="button"
+                      aria-pressed={String(visibleLayers[layer.id])}
+                      onClick={() => setVisibleLayers((current) => ({ ...current, [layer.id]: !current[layer.id] }))}
+                    >
+                      <span className="row"><span className="swatch" style={{ background: layer.swatch }} /> {layer.label}</span>
+                      <strong>{visibleLayers[layer.id] ? "on" : "off"}</strong>
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              <section className="deck-panel" aria-labelledby="inventory-title">
+                <h2 id="inventory-title">Persisted rows</h2>
+                <div className="inventory-list" role="listbox" aria-label="Persisted sites and movements">
+                  {inventoryItems(data).map((item) => (
+                    <button
+                      className="inventory-button"
+                      key={`${item.kind}:${item.id}`}
+                      type="button"
+                      role="option"
+                      aria-selected={String(selected?.kind === item.kind && selected.id === item.id)}
+                      aria-pressed={String(selected?.kind === item.kind && selected.id === item.id)}
+                      onClick={() => setSelected({ id: item.id, kind: item.kind })}
+                    >
+                      <span>
+                        <strong>{item.title}</strong><br />
+                        <span>{item.description}</span>
+                      </span>
+                      <span className="pill">{item.kind}</span>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            </aside>
+          </section>
+        )
+      }
+
+      function buildLayers({ data, selected, setSelected, setStatus, sitesById, visibleLayers }) {
+        const selectSite = (info) => {
+          if (!info.object) return
+          setSelected({ id: info.object.id, kind: "site" })
+          setStatus(`Selected site ${info.object.id}`)
+        }
+        const selectMovement = (info) => {
+          if (!info.object) return
+          setSelected({ id: info.object.id, kind: "movement" })
+          setStatus(`Selected movement ${info.object.id}`)
+        }
+
+        return [
+          visibleLayers.capacity &&
+            new ScatterplotLayer({
+              id: "capacity",
+              data: data.sites,
+              getFillColor: (site) => (site.status === "strained" ? [250, 204, 21, 34] : [167, 139, 250, 30]),
+              getLineColor: (site) => (isSelected(selected, "site", site.id) ? [255, 255, 255, 230] : [167, 139, 250, 130]),
+              getLineWidth: (site) => (isSelected(selected, "site", site.id) ? 4 : 1.5),
+              getPosition: sitePosition,
+              getRadius: (site) => 18000 + Number(site.capacity) * 850,
+              lineWidthUnits: "pixels",
+              onClick: selectSite,
+              pickable: true,
+              radiusUnits: "meters",
+              stroked: true,
+            }),
+          visibleLayers.movements &&
+            new ArcLayer({
+              id: "movements",
+              data: data.movements.filter((movement) => sitesById.has(movement.fromSite) && sitesById.has(movement.toSite)),
+              getHeight: 0.28,
+              getSourceColor: (movement) => movement.status === "critical" ? [239, 68, 68] : [251, 146, 60],
+              getSourcePosition: (movement) => sitePosition(sitesById.get(movement.fromSite)),
+              getTargetColor: [56, 189, 248],
+              getTargetPosition: (movement) => sitePosition(sitesById.get(movement.toSite)),
+              getWidth: (movement) => (isSelected(selected, "movement", movement.id) ? 3 : 1) + Number(movement.priority) * 0.8,
+              onClick: selectMovement,
+              pickable: true,
+            }),
+          visibleLayers.sites &&
+            new ScatterplotLayer({
+              id: "sites",
+              autoHighlight: true,
+              data: data.sites,
+              getFillColor: (site) => site.status === "strained" ? [250, 204, 21] : site.kind === "clinic" ? [56, 189, 248] : [34, 197, 94],
+              getLineColor: (site) => (isSelected(selected, "site", site.id) ? [255, 255, 255] : [15, 23, 42]),
+              getLineWidth: (site) => (isSelected(selected, "site", site.id) ? 5 : 2),
+              getPosition: sitePosition,
+              getRadius: (site) => (isSelected(selected, "site", site.id) ? 10 : 7) + Math.sqrt(Number(site.capacity)),
+              lineWidthUnits: "pixels",
+              onClick: selectSite,
+              pickable: true,
+              radiusUnits: "pixels",
+              stroked: true,
+            }),
+          visibleLayers.labels &&
+            new TextLayer({
+              id: "labels",
+              data: data.sites,
+              getAlignmentBaseline: "center",
+              getColor: [248, 250, 252],
+              getPixelOffset: [18, 0],
+              getPosition: sitePosition,
+              getSize: 13,
+              getText: (site) => site.id,
+              getTextAnchor: "start",
+              pickable: false,
+            }),
+        ].filter(Boolean)
+      }
+
+      function SelectionCard({ item, kind, onClear, onDelete }) {
+        const title = kind === "site" ? item.name : `${item.fromSite} to ${item.toSite}`
+        return (
+          <article className="selection-card" aria-live="polite">
+            <div className="selection-title">
+              <div>
+                <span className="pill">{kind}</span>
+                <h2>{title}</h2>
+              </div>
+              <button className="button secondary" type="button" onClick={onClear}>Close</button>
+            </div>
+            <dl className="detail-grid">
+              {detailsFor(kind, item).map(([label, value]) => (
+                <Fragment key={label}>
+                  <dt>{label}</dt>
+                  <dd>{String(value ?? "")}</dd>
+                </Fragment>
+              ))}
+            </dl>
+            <button className="button secondary" type="button" onClick={onDelete}>Delete selected row</button>
+          </article>
+        )
+      }
+
+      function Metric({ label, value }) {
+        return (
+          <section className="metric-card">
+            <span>{label}</span>
+            <strong>{value}</strong>
+          </section>
+        )
+      }
+
+      function metricsFor(data) {
+        return {
+          movements: data.movements.length,
+          priority: Math.max(0, ...data.movements.map((movement) => Number(movement.priority ?? 0))),
+          sites: data.sites.length,
+          tons: data.movements.reduce((total, movement) => total + Number(movement.tons ?? 0), 0),
+        }
+      }
+
+      function inventoryItems(data) {
+        return [
+          ...data.sites.map((site) => ({ description: `${site.kind} / ${site.status} / capacity ${site.capacity}`, id: site.id, kind: "site", title: site.name })),
+          ...data.movements.map((movement) => ({ description: `${movement.cargo}, ${movement.tons} tons, P${movement.priority}, ${movement.status}`, id: movement.id, kind: "movement", title: `${movement.fromSite} to ${movement.toSite}` })),
+        ]
+      }
+
+      function detailsFor(kind, item) {
+        if (kind === "site") {
+          return [
+            ["ID", item.id],
+            ["Kind", item.kind],
+            ["Status", item.status],
+            ["Capacity", item.capacity],
+            ["Longitude", item.longitude],
+            ["Latitude", item.latitude],
+            ["Updated", item.updatedAt],
+          ]
+        }
+
+        return [
+          ["ID", item.id],
+          ["Cargo", item.cargo],
+          ["Route", `${item.fromSite} to ${item.toSite}`],
+          ["Priority", item.priority],
+          ["Tons", item.tons],
+          ["Status", item.status],
+          ["Updated", item.updatedAt],
+        ]
+      }
+
+      function findItem(data, selected) {
+        return selected.kind === "site"
+          ? data.sites.find((site) => site.id === selected.id)
+          : data.movements.find((movement) => movement.id === selected.id)
+      }
+
+      function isSelected(selected, kind, id) {
+        return selected?.kind === kind && selected.id === id
+      }
+
+      function sitePosition(site) {
+        return [Number(site.longitude), Number(site.latitude)]
+      }
+
+      function tooltipFor({ object, layer }) {
+        if (!object) return null
+        if (layer?.id === "movements") return `${object.id}\n${object.cargo}: ${object.fromSite} to ${object.toSite}\n${object.tons} tons, priority ${object.priority}`
+        return `${object.id}\n${object.name}\n${object.kind}, ${object.status}`
+      }
+
+      function nextSite(count) {
+        const names = ["Phoenix Relief", "Kansas Field", "Cleveland Intake", "Reno Cache", "Nashville Clinic"]
+        const index = count % names.length
+        const id = `R${String(Date.now()).slice(-4)}`
+        return {
+          capacity: 42 + ((count * 13) % 58),
+          id,
+          kind: index % 2 === 0 ? "depot" : "clinic",
+          latitude: 29 + ((count * 5) % 18),
+          longitude: -121 + ((count * 9) % 44),
+          name: names[index],
+          status: index % 3 === 0 ? "strained" : "stable",
+        }
+      }
+
+      function nextMovement(data) {
+        if (data.sites.length < 2) return null
+        const source = data.sites[data.movements.length % data.sites.length]
+        const target = data.sites[(data.movements.length + 2) % data.sites.length]
+        return {
+          cargo: ["water", "generators", "medical kits", "field beds"][data.movements.length % 4],
+          fromSite: source.id,
+          id: `${source.id}-${target.id}-${String(Date.now()).slice(-4)}`,
+          priority: 1 + (data.movements.length % 5),
+          status: data.movements.length % 4 === 0 ? "critical" : "scheduled",
+          toSite: target.id,
+          tons: 6 + ((data.movements.length * 7) % 25),
+        }
+      }
+
+      createRoot(document.getElementById("root")).render(<App />)
+    </script>
+  </body>
+</html>

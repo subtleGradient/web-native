@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs"
 import path from "node:path"
 import type { GitHubRepo } from "./standalone-rewriter.ts"
 
@@ -32,11 +33,28 @@ export async function discoverVerifiableStandaloneHtmlFiles(root: string, repo: 
   return verifiable
 }
 
+export async function discoverOpenAIRunnerHtmlFiles(root: string) {
+  const candidates = await discoverHtmlFiles(root)
+  const files: string[] = []
+
+  for (const repoPath of candidates) {
+    const html = await Bun.file(path.join(root, repoPath)).text()
+    if (hasOpenAIRunnerInstructions(html)) files.push(path.join(root, repoPath))
+  }
+
+  return files
+}
+
+export function hasOpenAIRunnerInstructions(html: string) {
+  return html.includes("openai-runner.ts") || html.includes("web-native-openai") || html.includes("local Codex broker")
+}
+
 async function discoverHtmlFiles(root: string) {
   const tracked = await gitLines(root, ["ls-files", "--", "*.html"])
   const untracked = await gitLines(root, ["ls-files", "--others", "--exclude-standard", "--", "*.html"])
   return Array.from(new Set([...tracked, ...untracked]))
     .filter((repoPath) => !isIgnoredHtmlPath(repoPath))
+    .filter((repoPath) => existsSync(path.join(root, repoPath)))
     .sort()
 }
 
@@ -54,7 +72,7 @@ function isStandaloneHtmlPath(repoPath: string) {
   if (!repoPath.endsWith(".html") || repoPath.endsWith(".demo.html") || repoPath.endsWith(".stories.html")) return false
 
   const parts = repoPath.split("/")
-  if (parts[0] === "examples" && (parts[1] === "standalone" || parts[1] === "composite")) return true
+  if (parts[0] === "examples" && parts.length === 3 && parts[2] === "index.html") return true
   if (parts[0] !== "src") return false
 
   const fileStem = path.basename(repoPath, ".html")

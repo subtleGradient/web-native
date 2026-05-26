@@ -87,6 +87,37 @@ export function isRepoCdnUrl(value: string, repo: GitHubRepo) {
   return Boolean(parseRepoCdnUrl(value, repo))
 }
 
+export function rewriteOpenAIRunnerInstructions(html: string, options: { repo: GitHubRepo; branch: string; repoPath: string }) {
+  const match = html.match(/^(<!doctype html>\s*)<!--\n([\s\S]*?)\n-->/i)
+  if (!match || !isOpenAIRunnerComment(match[2]!)) return html
+
+  const preserved = extractOpenAIRunnerWarning(match[2]!)
+  const comment = [
+    "<!--",
+    "Run this demo with the Codex broker",
+    "These demos are hard-coded to the local Codex broker exposed by openai-runner.",
+    "GitHub:",
+    `bunx --bun -p https://github.com/${options.repo.owner}/${options.repo.repo}/archive/refs/heads/${options.branch}.tar.gz web-native-openai ${options.repoPath}`,
+    "Local checkout:",
+    `bun "./src/openai/Example OpenAI Codex Broker.webapp/openai-runner.ts" ${options.repoPath}`,
+    ...(preserved ? ["", preserved] : []),
+    "-->",
+  ].join("\n")
+
+  return `${match[1]}${comment}${html.slice(match[0].length)}`
+}
+
+function isOpenAIRunnerComment(comment: string) {
+  return comment.includes("openai-runner.ts") || comment.includes("web-native-openai") || comment.includes("local Codex broker")
+}
+
+function extractOpenAIRunnerWarning(comment: string) {
+  const lines = comment.split("\n")
+  const start = lines.findIndex((line) => line.startsWith("Security:") || line.startsWith("Or open "))
+  if (start === -1) return ""
+  return lines.slice(start).join("\n").trim()
+}
+
 function rewriteText(text: string, mappings: RewriteMappings) {
   let rewritten = text
   for (const [from, to] of mappings.urls) rewritten = rewritten.split(from).join(to)
@@ -217,7 +248,7 @@ function readImportMaps(html: string): ImportMap[] {
 
 function readInlineModuleScripts(html: string) {
   const scripts: string[] = []
-  const pattern = /<script\b(?=[^>]*type=(?:"module"|'module'|module))(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi
+  const pattern = /<script\b(?=[^>]*\stype=(?:"module"|'module'|module))(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi
   for (const match of html.matchAll(pattern)) scripts.push(match[1]!)
   return scripts
 }

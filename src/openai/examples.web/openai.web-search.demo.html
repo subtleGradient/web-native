@@ -1,0 +1,45 @@
+<!doctype html>
+<!--
+Run this demo with the Codex broker
+These demos are hard-coded to the local Codex broker exposed by openai-runner.
+GitHub:
+bunx --bun -p https://github.com/subtleGradient/web-native/archive/refs/heads/openai.tar.gz web-native-openai src/openai/examples.web/openai.web-search.demo.html
+Local checkout:
+bun ./src/openai/examples.web/scripts/openai-runner.ts src/openai/examples.web/openai.web-search.demo.html
+
+Security: only run demos you trust. This page sends requests through the runner's local Codex broker.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="./openai.demo.css" />
+    <title>OpenAI web search demo</title>
+    <script type="module" src="../define.js"></script>
+    <script type="module" src="./openai.demo.js"></script>
+  </head>
+  <body>
+    <main>
+      <a class="back" data-preserve-search href="./index.html">← All OpenAI demos</a>
+      <header>
+        <h1>Web search</h1>
+        <p>Use the current Responses <code>web_search</code> hosted tool with citations.</p>
+      </header>
+
+      <openai-client id="ai" model="gpt-5.5" transport="codex-broker"></openai-client>
+
+      <form class="panel" onsubmit="ai.respondWithTools(event)">
+        <h2>Request</h2>
+        <p class="note">Uses the current Responses <code>web_search</code> hosted tool, not the legacy preview tool.</p>
+        <label>Prompt<textarea name="prompt">What was a positive news story from today? Include citations.</textarea></label>
+        <label>Tools JSON<textarea name="tools">[{"type":"web_search","search_context_size":"low"}]</textarea></label>
+        <label>Include JSON<textarea name="include">["web_search_call.action.sources"]</textarea></label>
+        <button>Search web</button>
+      </form>
+
+      <openai-result for="ai"></openai-result>
+    </main>
+  </body>
+</html>

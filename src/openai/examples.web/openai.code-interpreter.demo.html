@@ -1,0 +1,45 @@
+<!doctype html>
+<!--
+Run this demo with the Codex broker
+These demos are hard-coded to the local Codex broker exposed by openai-runner.
+GitHub:
+bunx --bun -p https://github.com/subtleGradient/web-native/archive/refs/heads/openai.tar.gz web-native-openai src/openai/examples.web/openai.code-interpreter.demo.html
+Local checkout:
+bun ./src/openai/examples.web/scripts/openai-runner.ts src/openai/examples.web/openai.code-interpreter.demo.html
+
+Security: only run demos you trust. This page sends requests through the runner's local Codex broker.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="./openai.demo.css" />
+    <title>OpenAI code interpreter demo</title>
+    <script type="module" src="../define.js"></script>
+    <script type="module" src="./openai.demo.js"></script>
+  </head>
+  <body>
+    <main>
+      <a class="back" data-preserve-search href="./index.html">← All OpenAI demos</a>
+      <header>
+        <h1>Code interpreter</h1>
+        <p>Run hosted Python in an ephemeral container.</p>
+      </header>
+
+      <openai-client id="ai" model="gpt-5.5" transport="codex-broker"></openai-client>
+
+      <form class="panel" onsubmit="ai.respondWithTools(event)">
+        <h2>Request</h2>
+        <p class="note">Creates or reuses an ephemeral hosted Python container with auto mode.</p>
+        <label>Instructions<textarea name="instructions">Use the python tool to calculate, verify, and then explain the result briefly.</textarea></label>
+        <label>Prompt<textarea name="prompt">Solve 3x + 11 = 14, then verify the answer in Python.</textarea></label>
+        <label>Tools JSON<textarea name="tools">[{"type":"code_interpreter","container":{"type":"auto","memory_limit":"1g"}}]</textarea></label>
+        <button>Run Python</button>
+      </form>
+
+      <openai-result for="ai"></openai-result>
+    </main>
+  </body>
+</html>
