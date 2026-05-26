@@ -525,15 +525,20 @@
     </main>
 
     <script type="module">
-      import { Deck } from "https://esm.sh/@deck.gl/core@9.3.2"
-      import { ArcLayer, ScatterplotLayer, TextLayer } from "https://esm.sh/@deck.gl/layers@9.3.2?deps=@deck.gl/core@9.3.2"
+      let Deck
+      let ArcLayer
+      let ScatterplotLayer
+      let TextLayer
+      let worker
+      let sqliteReady = false
+      let sqliteOpeningWarning
+      let sqliteOpeningTimeout
 
       const activeLayers = new Map([
         ["capacity", true],
         ["movements", true],
         ["sites", true],
       ])
-      const worker = new Worker(new URL("./sqlite-opfs-worker.js", import.meta.url), { type: "module" })
 
       globalThis.OpsBulkDemo = {
         currentData: { movements: [], sites: [] },
@@ -544,12 +549,20 @@
         selected: null,
         initDeck() {
           globalThis.OpsBulkDemo.deckElement = this
+          if (!Deck || !ArcLayer || !ScatterplotLayer || !TextLayer) {
+            this.layers = []
+            globalThis.OpsBulkDemo.setStatus("Map renderer is loading deck.gl dependencies...")
+            return
+          }
+
           this.deckConstructor = Deck
           this.parameters = { clearColor: [0, 0, 0, 0] }
           this.getTooltip = ({ object }) => object && (object.name ?? object.id)
           this.layers = globalThis.OpsBulkDemo.layers()
         },
         layers() {
+          if (!ArcLayer || !ScatterplotLayer || !TextLayer) return []
+
           const data = this.currentData
           const selected = this.selected
           return [
@@ -810,7 +823,7 @@
               status: formValue(form, "siteStatus"),
             }
             this.pendingSelection = { id: site.id, kind: "site" }
-            worker.postMessage({ site, type: "save-site" })
+            postWorker({ site, type: "save-site" })
           } else {
             const movement = {
               cargo: formValue(form, "cargo"),
@@ -822,7 +835,7 @@
               tons: formValue(form, "tons"),
             }
             this.pendingSelection = { id: movement.id, kind: "movement" }
-            worker.postMessage({ movement, type: "save-movement" })
+            postWorker({ movement, type: "save-movement" })
           }
           this.setStatus("Saving item to SQLite OPFS...")
         },
@@ -838,7 +851,7 @@
           this.selected = null
           this.pendingSelection = null
           if (this.editorKind === kind && this.editingId === id) this.editingId = null
-          worker.postMessage({ id, type: kind === "site" ? "delete-site" : "delete-movement" })
+          postWorker({ id, type: kind === "site" ? "delete-site" : "delete-movement" })
           this.setStatus(`Deleting ${kind} ${id} from SQLite OPFS...`)
         },
         setLayerVisible(event) {
@@ -851,18 +864,18 @@
           const file = input.files?.[0]
           if (!file) return
           const text = await file.text()
-          worker.postMessage({ fileName: file.name, replace: document.querySelector("#replace-data").checked, text, type: "import" })
+          postWorker({ fileName: file.name, replace: document.querySelector("#replace-data").checked, text, type: "import" })
           input.value = ""
           this.setStatus(`Uploading ${file.name} into SQLite...`)
         },
         downloadJson() {
-          worker.postMessage({ format: "json", type: "export" })
+          postWorker({ format: "json", type: "export" })
         },
         downloadCsv(table) {
-          worker.postMessage({ format: "csv", table, type: "export" })
+          postWorker({ format: "csv", table, type: "export" })
         },
         resetSeed() {
-          worker.postMessage({ type: "reset" })
+          postWorker({ type: "reset" })
           this.setStatus("Resetting OPFS database to seed data...")
         },
         preview(event) {
@@ -883,9 +896,15 @@
         },
       }
 
-      worker.onmessage = (event) => {
+      function handleWorkerMessage(event) {
         const message = event.data ?? {}
+        if (message.type === "started") {
+          OpsBulkDemo.setStatus(message.detail?.hasOpfs ? "SQLite worker loaded. Opening OPFS database..." : "SQLite worker loaded, but OPFS is not available in this browser context.")
+        }
         if (message.type === "ready") {
+          sqliteReady = true
+          clearTimeout(sqliteOpeningWarning)
+          clearTimeout(sqliteOpeningTimeout)
           text("#database-name", message.detail.databaseName)
           text("#sqlite-version", message.detail.sqliteVersion)
           text("#vfs-name", message.detail.vfsName)
@@ -901,11 +920,83 @@
         }
         if (message.type === "deleted") OpsBulkDemo.setStatus(`Deleted ${message.detail.kind} ${message.detail.id}`)
         if (message.type === "exported") downloadText(message.detail)
-        if (message.type === "error") OpsBulkDemo.setStatus(message.message)
+        if (message.type === "error") showDatabaseError(message.message)
       }
 
-      worker.onerror = (event) => {
-        OpsBulkDemo.setStatus(event.message)
+      function startSqliteWorker() {
+        try {
+          worker = new Worker(new URL("./sqlite-opfs-worker.js", import.meta.url), { type: "module" })
+        } catch (error) {
+          showDatabaseError(`SQLite worker failed to start: ${errorToString(error)}`)
+          return
+        }
+
+        worker.onmessage = handleWorkerMessage
+        worker.onerror = (event) => {
+          showDatabaseError(event.message || "SQLite worker failed before it could report an error.")
+        }
+        worker.onmessageerror = () => {
+          showDatabaseError("SQLite worker sent a message this page could not read.")
+        }
+
+        sqliteOpeningWarning = setTimeout(() => {
+          if (!sqliteReady) {
+            text("#database-name", "still opening...")
+            OpsBulkDemo.setStatus("SQLite worker is still opening. Waiting on the OPFS database and SQLite Wasm CDN.")
+          }
+        }, 8000)
+
+        sqliteOpeningTimeout = setTimeout(() => {
+          if (!sqliteReady) {
+            showDatabaseError("SQLite worker did not finish opening. If this page is loaded from file://, open it through `bun run dev` or another localhost server so OPFS and module workers are available.")
+          }
+        }, 30000)
+
+        postWorker({ type: "init" })
+      }
+
+      function postWorker(message) {
+        if (!worker) {
+          OpsBulkDemo.setStatus("SQLite worker is not available.")
+          return
+        }
+
+        worker.postMessage(message)
+      }
+
+      function showDatabaseError(message) {
+        clearTimeout(sqliteOpeningWarning)
+        clearTimeout(sqliteOpeningTimeout)
+        text("#database-name", "unavailable")
+        text("#sqlite-version", "failed")
+        text("#vfs-name", "unavailable")
+        text("#pool-files", "unavailable")
+        OpsBulkDemo.setStatus(message)
+        console.error(message)
+      }
+
+      async function startMapRenderer() {
+        try {
+          const [core, layers] = await Promise.all([
+            import("https://esm.sh/@deck.gl/core@9.3.2"),
+            import("https://esm.sh/@deck.gl/layers@9.3.2?deps=@deck.gl/core@9.3.2&exports=ArcLayer,ScatterplotLayer,TextLayer"),
+          ])
+
+          Deck = core.Deck
+          ArcLayer = layers.ArcLayer
+          ScatterplotLayer = layers.ScatterplotLayer
+          TextLayer = layers.TextLayer
+
+          await import("https://cdn.jsdelivr.net/gh/subtleGradient/web-native@7ed806104e4b9dcce8b91044149cb721f2b1e9cf/src/deck-gl.web/define.js")
+
+          if (OpsBulkDemo.deckElement) {
+            OpsBulkDemo.deckElement.deckConstructor = Deck
+            OpsBulkDemo.deckElement.layers = OpsBulkDemo.layers()
+          }
+        } catch (error) {
+          OpsBulkDemo.setStatus(`Map renderer failed to load: ${errorToString(error)}`)
+          console.error(error)
+        }
       }
 
       function defaultSite() {
@@ -1024,8 +1115,12 @@
         OpsBulkDemo.setStatus(`Downloaded ${detail.filename}`)
       }
 
-      worker.postMessage({ type: "init" })
-      await import("https://cdn.jsdelivr.net/gh/subtleGradient/web-native@7ed806104e4b9dcce8b91044149cb721f2b1e9cf/src/deck-gl.web/define.js")
+      function errorToString(error) {
+        return error instanceof Error ? error.message : String(error)
+      }
+
+      startSqliteWorker()
+      startMapRenderer()
     </script>
   </body>
 </html>

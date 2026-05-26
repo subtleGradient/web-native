@@ -5,6 +5,22 @@ let sqlite3
 let poolUtil
 let db
 
+self.addEventListener("error", (event) => {
+  postMessage({ type: "error", message: errorToString(event.error ?? event.message) })
+})
+
+self.addEventListener("unhandledrejection", (event) => {
+  postMessage({ type: "error", message: errorToString(event.reason) })
+})
+
+postMessage({
+  type: "started",
+  detail: {
+    hasOpfs: typeof navigator.storage?.getDirectory === "function",
+    secureContext: globalThis.isSecureContext === true,
+  },
+})
+
 self.onmessage = async (event) => {
   const message = event.data ?? {}
 
@@ -24,6 +40,8 @@ self.onmessage = async (event) => {
 }
 
 async function initDatabase() {
+  assertOpfsAvailable()
+
   if (!sqlite3) {
     const sqlite3InitModule = (await import(`${cdnRoot}index.mjs`)).default
     sqlite3 = await sqlite3InitModule({ locateFile: (file) => `${cdnRoot}${file}` })
@@ -56,6 +74,16 @@ async function initDatabase() {
     },
   })
   postSnapshot()
+}
+
+function assertOpfsAvailable() {
+  if (globalThis.isSecureContext !== true) {
+    throw new Error("SQLite OPFS requires a secure browser context. Open this demo from http://localhost, 127.0.0.1, or HTTPS.")
+  }
+
+  if (typeof navigator.storage?.getDirectory !== "function") {
+    throw new Error("OPFS is not available in this worker context. Try Chromium/Safari/Firefox over http://localhost or HTTPS.")
+  }
 }
 
 function createSchema() {

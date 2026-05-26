@@ -71,8 +71,25 @@
           throw new Error("This browser does not support native import maps.")
         }
 
+        if (location.protocol === "file:") {
+          status.textContent = "Transforming .jsx modules"
+          await loadInPageTransformFallback()
+          return
+        }
+
+        try {
+          await loadWithServiceWorker()
+        } catch (error) {
+          console.warn("Service worker JSX loader failed; falling back to in-page transform.", error)
+          status.dataset.state = "working"
+          status.textContent = "Falling back to in-page JSX transform"
+          await loadInPageTransformFallback()
+        }
+      }
+
+      async function loadWithServiceWorker() {
         if (!("serviceWorker" in navigator)) {
-          throw new Error("This browser does not support service workers, so it cannot run the multi-file JSX demo.")
+          throw new Error("This browser does not support service workers.")
         }
 
         const registration = await navigator.serviceWorker.register("./jsx-transform-sw.js", { scope: "./" })
@@ -105,7 +122,91 @@
         sessionStorage.removeItem("react-no-build-sw-reloaded")
         status.dataset.state = "ready"
         status.textContent = "Transforming .jsx modules"
-        await import("https://cdn.jsdelivr.net/gh/subtleGradient/web-native@7ed806104e4b9dcce8b91044149cb721f2b1e9cf/examples/react-service-worker-jsx/sw-app.jsx")
+        const appModuleUrl = new URL("./sw-app.jsx", location.href).href
+        await import(appModuleUrl)
+        status.textContent = "Transformed .jsx modules"
+      }
+
+      async function loadInPageTransformFallback() {
+        await loadScript("https://cdn.jsdelivr.net/npm/@babel/standalone@7.28.5/babel.min.js")
+
+        const sourceBase =
+          location.protocol === "file:"
+            ? new URL("./", document.querySelector('link[rel="stylesheet"]')?.href ?? location.href).href
+            : new URL("./", location.href).href
+        const [appSource, componentsSource] = await Promise.all([
+          fetchText(new URL("sw-app.jsx", sourceBase).href),
+          fetchText(new URL("sw-components.jsx", sourceBase).href),
+        ])
+
+        const componentsModuleUrl = transformJsxModule(componentsSource, new URL("sw-components.jsx", sourceBase).href)
+        const fallbackAppSource = appSource
+          .replace('"Controlled by service worker"', '"Transformed in page"')
+          .replace("the service worker transformed the JSX", "the page transformed the JSX")
+        const rewrittenAppSource = replaceModuleSpecifier(fallbackAppSource, "./sw-components.jsx", componentsModuleUrl)
+        const appModuleUrl = transformJsxModule(rewrittenAppSource, new URL("sw-app.jsx", sourceBase).href)
+
+        status.dataset.state = "ready"
+        status.textContent = "Transforming .jsx modules"
+        await import(appModuleUrl)
+        status.textContent = "Transformed .jsx modules"
+      }
+
+      async function loadScript(src) {
+        if (globalThis.Babel) return
+
+        await new Promise((resolve, reject) => {
+          const script = document.createElement("script")
+          script.src = src
+          script.crossOrigin = "anonymous"
+          script.onload = resolve
+          script.onerror = () => reject(new Error(`Failed to load ${src}`))
+          document.head.append(script)
+        })
+      }
+
+      async function fetchText(url) {
+        const response = await fetch(url, { cache: "no-store" })
+        if (!response.ok) throw new Error(`Failed to load ${url}: ${response.status}`)
+        return await response.text()
+      }
+
+      function transformJsxModule(source, filename) {
+        const Babel = globalThis.Babel
+        if (!Babel) throw new Error("Babel standalone did not load.")
+
+        const result = Babel.transform(source, {
+          filename,
+          presets: [[Babel.availablePresets.react, { development: true, runtime: "automatic" }]],
+          sourceMaps: "inline",
+          sourceType: "module",
+        })
+
+        const code = rewriteBareImports(String(result.code ?? ""))
+        return URL.createObjectURL(new Blob([`${code}\n`], { type: "text/javascript" }))
+      }
+
+      function rewriteBareImports(source) {
+        let rewritten = source
+        const imports = readImportMap()
+        for (const specifier of ["react", "react-dom/client", "react/jsx-dev-runtime", "react/jsx-runtime"]) {
+          const mapped = imports[specifier]
+          if (typeof mapped === "string") rewritten = replaceModuleSpecifier(rewritten, specifier, mapped)
+        }
+        return rewritten
+      }
+
+      function readImportMap() {
+        try {
+          return JSON.parse(document.querySelector('script[type="importmap"]')?.textContent ?? "{}").imports ?? {}
+        } catch {
+          return {}
+        }
+      }
+
+      function replaceModuleSpecifier(source, from, to) {
+        const escaped = from.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+        return source.replace(new RegExp(`(["'])${escaped}\\1`, "g"), (_, quote) => `${quote}${to}${quote}`)
       }
     </script>
   </body>
