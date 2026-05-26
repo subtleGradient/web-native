@@ -3,10 +3,17 @@ import path from "node:path"
 import { fileURLToPath } from "node:url"
 import puppeteer from "puppeteer-core"
 import { serveStatic } from "./static-server.ts"
+import { getGitHubRepo, localizeRepoCdnHtml } from "./standalone-rewriter.ts"
 
 const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)))
 const port = Number(process.env.PORT ?? "4176")
-const server = serveStatic({ root, port, defaultPath: "/examples/composite/settings-console.html" })
+const repo = await getGitHubRepo(root)
+const server = serveStatic({
+  root,
+  port,
+  defaultPath: "/examples/composite/settings-console.html",
+  transformHtml: (html, htmlPath) => localizeRepoCdnHtml(html, { root, htmlPath, repo, localUrlStyle: "root" }),
+})
 
 let browser: Awaited<ReturnType<typeof puppeteer.launch>> | undefined
 

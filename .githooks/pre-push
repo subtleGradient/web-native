@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+needs_standalone_check=0
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  if [[ "$remote_ref" == "refs/heads/main" ]]; then
+    needs_standalone_check=1
+  fi
+done
+
+if [[ "$needs_standalone_check" != "1" ]]; then
+  exit 0
+fi
+
+if [[ -n "$(git status --porcelain)" ]]; then
+  echo "pre-push: push to main requires a clean worktree before standalone CDN normalization." >&2
+  exit 1
+fi
+
+bun run standalone --cdn --all --allow-pending-push
+
+if [[ -z "$(git status --porcelain -- '*.html')" ]]; then
+  exit 0
+fi
+
+git add -- '*.html'
+
+git commit -m "Normalize standalone CDN urls"
+
+echo "pre-push: created a standalone CDN normalization commit. Run git push again." >&2
+exit 1

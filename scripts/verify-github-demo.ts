@@ -6,7 +6,7 @@ import { serveStatic } from "./static-server.ts"
 const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)))
 const port = Number(process.env.PORT ?? "4174")
 const server = serveStatic({ root, port, defaultPath: "/examples/standalone/shadcn-github.html" })
-const cdnPrefix = "https://cdn.jsdelivr.net/gh/subtleGradient/web-native@web-native-shadcn-components/"
+const cdnPrefix = "https://cdn.jsdelivr.net/gh/subtleGradient/web-native@"
 const requestedUrls = new Set<string>()
 
 let browser: Awaited<ReturnType<typeof puppeteer.launch>> | undefined
@@ -43,8 +43,8 @@ try {
     activeSecurity: document.querySelector('shadcn-tabs-trigger[value="security"]')?.hasAttribute("data-active") ?? false,
   }))
 
-  const loadedFromGithub = Array.from(requestedUrls).some((url) => url.startsWith(cdnPrefix) && url.endsWith("src/shadcn.web/define.js"))
-  const loadedCssFromGithub = Array.from(requestedUrls).some((url) => url.startsWith(cdnPrefix) && url.endsWith("src/shadcn.web/styles/base-nova.css"))
+  const loadedFromGithub = Array.from(requestedUrls).some((url) => url.startsWith(cdnPrefix) && url.includes("/src/shadcn.web/define.js"))
+  const loadedCssFromGithub = Array.from(requestedUrls).some((url) => url.startsWith(cdnPrefix) && url.includes("/src/shadcn.web/styles/base-nova.css"))
 
   if (!loadedFromGithub || !loadedCssFromGithub || !result.buttonClass || result.toggleLog !== "Pressed: true" || result.tabsValue !== "security" || !result.activeSecurity) {
     console.error({ loadedFromGithub, loadedCssFromGithub, result })

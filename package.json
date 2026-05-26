@@ -10,6 +10,8 @@
   "scripts": {
     "check": "tsgo --noEmit",
     "dev": "bun run scripts/serve.ts",
+    "hooks:install": "git config core.hooksPath .githooks",
+    "standalone": "bun run scripts/standalone.ts",
     "test": "bun run scripts/test.ts",
     "test:e2e": "bun run scripts/test.ts && bun run scripts/test-e2e.ts",
     "verify:dark": "bun run scripts/verify-dark-mode.ts",
