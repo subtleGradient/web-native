@@ -17,7 +17,7 @@
         media.addEventListener("change", syncTheme)
       })()
     </script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/subtleGradient/web-native@561265129bd238e6e6b4dd4650a6ff6402ea16d4/examples/react-service-worker-jsx/react-no-build.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/subtleGradient/web-native@7ed806104e4b9dcce8b91044149cb721f2b1e9cf/examples/react-service-worker-jsx/react-no-build.css" />
     <script type="importmap">
       {
         "imports": {
@@ -105,7 +105,7 @@
         sessionStorage.removeItem("react-no-build-sw-reloaded")
         status.dataset.state = "ready"
         status.textContent = "Transforming .jsx modules"
-        await import("https://cdn.jsdelivr.net/gh/subtleGradient/web-native@561265129bd238e6e6b4dd4650a6ff6402ea16d4/examples/react-service-worker-jsx/sw-app.jsx")
+        await import("https://cdn.jsdelivr.net/gh/subtleGradient/web-native@7ed806104e4b9dcce8b91044149cb721f2b1e9cf/examples/react-service-worker-jsx/sw-app.jsx")
       }
     </script>
   </body>
