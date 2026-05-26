@@ -9,28 +9,37 @@ export class ShadcnButton extends HTMLElement {
   static observedAttributes = ["disabled", "size", "variant"]
 
   #spaceKeyDown = false
+  /** @param {Event} event */
+  #handleClickEvent = (event) => this.#handleClick(/** @type {MouseEvent} */ (event))
+  /** @param {Event} event */
+  #handleKeyDownEvent = (event) => this.#handleKeyDown(/** @type {KeyboardEvent} */ (event))
+  /** @param {Event} event */
+  #handleKeyUpEvent = (event) => this.#handleKeyUp(/** @type {KeyboardEvent} */ (event))
+  /** @param {Event} event */
+  #handlePointerDownEvent = (event) => this.#handlePointerDown(/** @type {PointerEvent} */ (event))
+  #clearActiveEvent = () => this.#clearActive()
 
   connectedCallback() {
-    this.onclick = this.#handleClick.bind(this)
-    this.onkeydown = this.#handleKeyDown.bind(this)
-    this.onkeyup = this.#handleKeyUp.bind(this)
-    this.onpointerdown = this.#handlePointerDown.bind(this)
-    this.onpointerup = this.#clearActive.bind(this)
-    this.onpointercancel = this.#clearActive.bind(this)
-    this.onpointerleave = this.#clearActive.bind(this)
-    this.onblur = this.#clearActive.bind(this)
+    this.addEventListener("click", this.#handleClickEvent, { capture: true })
+    this.addEventListener("keydown", this.#handleKeyDownEvent)
+    this.addEventListener("keyup", this.#handleKeyUpEvent)
+    this.addEventListener("pointerdown", this.#handlePointerDownEvent)
+    this.addEventListener("pointerup", this.#clearActiveEvent)
+    this.addEventListener("pointercancel", this.#clearActiveEvent)
+    this.addEventListener("pointerleave", this.#clearActiveEvent)
+    this.addEventListener("blur", this.#clearActiveEvent)
     this.#sync()
   }
 
   disconnectedCallback() {
-    this.onclick = null
-    this.onkeydown = null
-    this.onkeyup = null
-    this.onpointerdown = null
-    this.onpointerup = null
-    this.onpointercancel = null
-    this.onpointerleave = null
-    this.onblur = null
+    this.removeEventListener("click", this.#handleClickEvent, { capture: true })
+    this.removeEventListener("keydown", this.#handleKeyDownEvent)
+    this.removeEventListener("keyup", this.#handleKeyUpEvent)
+    this.removeEventListener("pointerdown", this.#handlePointerDownEvent)
+    this.removeEventListener("pointerup", this.#clearActiveEvent)
+    this.removeEventListener("pointercancel", this.#clearActiveEvent)
+    this.removeEventListener("pointerleave", this.#clearActiveEvent)
+    this.removeEventListener("blur", this.#clearActiveEvent)
   }
 
   attributeChangedCallback() {

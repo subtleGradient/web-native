@@ -66,6 +66,37 @@ describe("shadcn web components", () => {
     expect(button.getAttribute("tabindex")).to.equal("-1")
   })
 
+  it("preserves shadcn button onclick handlers while still blocking disabled clicks", () => {
+    Reflect.set(globalThis, "__shadcnButtonInlineClicks", 0)
+    const root = mount(html`
+      <shadcn-button onclick="globalThis.__shadcnButtonInlineClicks += 1">Inline</shadcn-button>
+      <shadcn-button disabled onclick="globalThis.__shadcnButtonInlineClicks += 10">Disabled</shadcn-button>
+    `)
+    const inlineButton = /** @type {HTMLElement} */ (root.querySelector("shadcn-button:not([disabled])"))
+    const disabledButton = /** @type {HTMLElement} */ (root.querySelector("shadcn-button[disabled]"))
+    let propertyClicks = 0
+
+    inlineButton.click()
+    disabledButton.click()
+    expect(Reflect.get(globalThis, "__shadcnButtonInlineClicks")).to.equal(1)
+
+    inlineButton.onclick = () => {
+      propertyClicks += 1
+    }
+    inlineButton.click()
+    disabledButton.click()
+
+    expect(propertyClicks).to.equal(1)
+    expect(Reflect.get(globalThis, "__shadcnButtonInlineClicks")).to.equal(1)
+
+    inlineButton.setAttribute("onclick", "globalThis.__shadcnButtonInlineClicks += 1")
+    inlineButton.click()
+    disabledButton.click()
+
+    expect(propertyClicks).to.equal(1)
+    expect(Reflect.get(globalThis, "__shadcnButtonInlineClicks")).to.equal(2)
+  })
+
   it("exposes shadcn toggle events and hides the Base UI event by default", () => {
     const root = mount(html`<shadcn-toggle>Bold</shadcn-toggle>`)
     const toggle = /** @type {import("./toggle/index.js").ShadcnToggle} */ (root.firstElementChild)
