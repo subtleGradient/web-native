@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>standalone CodeMirror web components demo</title>
+    <script type="importmap">
+      {
+        "imports": {
+          "web-native/": "https://cdn.jsdelivr.net/gh/subtleGradient/web-native@main/src/"
+        }
+      }
+    </script>
+    <script type="module">
+      import "web-native/codemirror.web/define.js"
+      await customElements.whenDefined("codemirror-editor")
+      Reflect.set(globalThis, "__webNativeStandaloneDemoReady", true)
+    </script>
+    <style>
+      :root {
+        --border: color-mix(in oklch, CanvasText 13%, transparent);
+        --muted: color-mix(in oklch, CanvasText 62%, transparent);
+        color-scheme: light dark;
+      }
+
+      body {
+        background: Canvas;
+        color: CanvasText;
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        line-height: 1.5;
+        margin: 0;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      main {
+        display: grid;
+        gap: 1rem;
+        margin-inline: auto;
+        max-inline-size: 56rem;
+        padding: 2rem;
+      }
+
+      h1 {
+        font-size: clamp(1.75rem, 4vw, 3rem);
+        letter-spacing: 0;
+        line-height: 1.05;
+        margin: 0;
+      }
+
+      p {
+        color: var(--muted);
+        margin: 0;
+      }
+
+      codemirror-editor {
+        --codemirror-editor-min-block-size: 18rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>standalone CodeMirror editor</h1>
+      <p>Open this file directly. The web component loads from jsDelivr, and CodeMirror loads from esm.sh.</p>
+      <codemirror-editor language="javascript" line-wrapping>
+        <textarea name="code" aria-label="Code">function greet(name) {
+  return `Hello, ${name}.`
+}</textarea>
+      </codemirror-editor>
+    </main>
+  </body>
+</html>
