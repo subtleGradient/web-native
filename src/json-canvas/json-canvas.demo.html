@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="./json-canvas.demo.css" />
+    <title>JSON Canvas web components demo</title>
+    <script type="module" src="./define.js"></script>
+    <script defer src="./json-canvas.demo.js"></script>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>JSON Canvas, as HTML.</h1>
+          <p>
+            Each JSON Canvas node becomes a `json-canvas-node`; every edge
+            becomes a curved `json-canvas-edge` wire. The lower-level
+            `noodle-wire` can connect any DOM nodes by id or selector.
+          </p>
+        </div>
+        <button type="button" onclick="CanvasDemo.randomize()">
+          Random nodes
+        </button>
+      </header>
+
+      <json-canvas id="canvas" padding="56"></json-canvas>
+
+      <section class="generic-wire-demo" aria-label="Generic noodle-wire demo">
+        <p>
+          This wire is not JSON Canvas-specific — it connects ordinary HTML
+          elements.
+        </p>
+        <div class="box" id="generic-a">Arbitrary node A</div>
+        <div class="box" id="generic-b">Arbitrary node B</div>
+        <noodle-wire
+          from="generic-a"
+          to="generic-b"
+          from-side="right"
+          to-side="left"
+          color="5"
+          label="noodle-wire"
+        ></noodle-wire>
+      </section>
+    </main>
+  </body>
+</html>

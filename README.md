@@ -77,11 +77,12 @@ Development should follow RGRTDD / demo-first flow:
 - `src/openai/` adds BYOK OpenAI client helpers plus `openai-client`, `openai-key-field`, and `openai-result` elements.
 - `src/json-editor/` adds `json-editor` for schema-aware textarea enhancement.
 - `src/deck-gl/` adds deck.gl-inspired `deck-gl`, `deck-layer-list`, and `deck-details-panel` elements for static HTML map examples.
+- `src/json-canvas/` adds `json-canvas`, `json-canvas-node`, `json-canvas-edge`, and `noodle-wire` elements for mapping JSON Canvas documents to HTML.
 - `src/shadcn/` adds styled shadcn-inspired custom elements over those Base UI web components.
 
 Each folder includes a `*.demo.html`, `*.test.js`, and `README.md` next to the implementation.
 
-The standalone GitHub import-map demo lives at `examples/standalone/shadcn-github.html`. The SQLite Wasm CDN example lives at `examples/standalone/sqlite-wasm-cdn.html`. Composite local demos live in `examples/composite/`. deck.gl-style examples live in `examples/deck-gl/`. React no-build research demos live in `examples/react/`. Each component/demo folder also has a `*.standalone.html` page that can be opened directly without running a server.
+The standalone GitHub import-map demo lives at `examples/standalone/shadcn-github.html`. The SQLite Wasm CDN example lives at `examples/standalone/sqlite-wasm-cdn.html`. Composite local demos live in `examples/composite/`. deck.gl-style examples live in `examples/deck-gl/`. React no-build research demos live in `examples/react/`. Each component/demo folder also has a `*.standalone.html` page that can be opened directly without running a server. Local `*.demo.html` pages use browser ESM and should be opened through `bun run dev`, not directly as `file://` URLs.
 
 ## Browser Imports
 
@@ -91,11 +92,11 @@ External browser usage can point at GitHub through jsDelivr:
 
 ```html
 <script type="importmap">
-{
-  "imports": {
-    "web-native/": "https://cdn.jsdelivr.net/gh/subtleGradient/web-native@main/src/"
+  {
+    "imports": {
+      "web-native/": "https://cdn.jsdelivr.net/gh/subtleGradient/web-native@main/src/"
+    }
   }
-}
 </script>
 ```
 

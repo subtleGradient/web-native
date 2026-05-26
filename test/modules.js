@@ -14,5 +14,6 @@ export const testModules = [
   "/src/json-editor/json-editor.test.js",
   "/src/openai/openai.test.js",
   "/src/deck-gl/deck-gl.test.js",
+  "/src/json-canvas/json-canvas.test.js",
   "/src/shadcn/shadcn.test.js",
 ]
