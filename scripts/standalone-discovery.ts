@@ -2,12 +2,18 @@ import { existsSync } from "node:fs"
 import path from "node:path"
 import type { GitHubRepo } from "./standalone-rewriter.ts"
 
-export async function discoverStandaloneHtmlFiles(root: string, repo: GitHubRepo) {
+export async function discoverStandaloneHtmlFiles(
+  root: string,
+  repo: GitHubRepo,
+) {
   const candidates = await discoverHtmlFiles(root)
   const standalone: string[] = []
 
   for (const repoPath of candidates) {
-    if (isStandaloneHtmlPath(repoPath) || (await containsRepoCdnUrl(root, repoPath, repo))) {
+    if (
+      isStandaloneHtmlPath(repoPath) ||
+      (await containsRepoCdnUrl(root, repoPath, repo))
+    ) {
       standalone.push(path.join(root, repoPath))
     }
   }
@@ -15,7 +21,10 @@ export async function discoverStandaloneHtmlFiles(root: string, repo: GitHubRepo
   return standalone
 }
 
-export async function discoverVerifiableStandaloneHtmlFiles(root: string, repo: GitHubRepo) {
+export async function discoverVerifiableStandaloneHtmlFiles(
+  root: string,
+  repo: GitHubRepo,
+) {
   const files = await discoverStandaloneHtmlFiles(root, repo)
   const verifiable: string[] = []
 
@@ -46,12 +55,22 @@ export async function discoverOpenAIRunnerHtmlFiles(root: string) {
 }
 
 export function hasOpenAIRunnerInstructions(html: string) {
-  return html.includes("openai-runner.ts") || html.includes("web-native-openai") || html.includes("local Codex broker")
+  return (
+    html.includes("openai-runner.ts") ||
+    html.includes("web-native-openai") ||
+    html.includes("local Codex broker")
+  )
 }
 
 async function discoverHtmlFiles(root: string) {
   const tracked = await gitLines(root, ["ls-files", "--", "*.html"])
-  const untracked = await gitLines(root, ["ls-files", "--others", "--exclude-standard", "--", "*.html"])
+  const untracked = await gitLines(root, [
+    "ls-files",
+    "--others",
+    "--exclude-standard",
+    "--",
+    "*.html",
+  ])
   return Array.from(new Set([...tracked, ...untracked]))
     .filter((repoPath) => !isIgnoredHtmlPath(repoPath))
     .filter((repoPath) => existsSync(path.join(root, repoPath)))
@@ -69,27 +88,44 @@ async function gitLines(root: string, args: string[]) {
 }
 
 function isStandaloneHtmlPath(repoPath: string) {
-  if (!repoPath.endsWith(".html") || repoPath.endsWith(".demo.html") || repoPath.endsWith(".stories.html")) return false
+  if (!repoPath.endsWith(".html")) return false
 
   const parts = repoPath.split("/")
-  if (parts[0] === "examples" && parts.length === 3 && parts[2] === "index.html") return true
+  if (
+    parts[0] === "examples" &&
+    parts.length === 3 &&
+    parts[2] === "index.html"
+  )
+    return true
   if (parts[0] !== "src") return false
 
   const fileStem = path.basename(repoPath, ".html")
+  const standaloneStem = fileStem.replace(/\.(?:demo|stories)$/, "")
   const parent = parts.at(-2)
   if (!parent) return false
 
-  if (fileStem === parent) return true
+  if (standaloneStem === parent) return true
 
   const packageStem = parent.split(".")[0]
-  return fileStem === packageStem
+  return standaloneStem === packageStem
 }
 
 function isIgnoredHtmlPath(repoPath: string) {
-  return repoPath.includes("/.local/") || repoPath.includes("/node_modules/") || repoPath.startsWith("node_modules/")
+  return (
+    repoPath.includes("/.local/") ||
+    repoPath.includes("/node_modules/") ||
+    repoPath.startsWith("node_modules/")
+  )
 }
 
-async function containsRepoCdnUrl(root: string, repoPath: string, repo: GitHubRepo) {
+async function containsRepoCdnUrl(
+  root: string,
+  repoPath: string,
+  repo: GitHubRepo,
+) {
   const html = await Bun.file(path.join(root, repoPath)).text()
-  return html.includes(`cdn.jsdelivr.net/gh/${repo.owner}/${repo.repo}@`) || html.includes(`gcore.jsdelivr.net/gh/${repo.owner}/${repo.repo}@`)
+  return (
+    html.includes(`cdn.jsdelivr.net/gh/${repo.owner}/${repo.repo}@`) ||
+    html.includes(`gcore.jsdelivr.net/gh/${repo.owner}/${repo.repo}@`)
+  )
 }
