@@ -148,12 +148,19 @@ export class OpenAIClientElement extends HTMLElement {
     const data = target === null ? undefined : new FormData(target)
     const prompt = promptFromEvent(event)
     return this.#run(async () => {
-      const text = await this.client.text(prompt, {
-        instructions: stringFromFormData(data, "instructions") ?? undefined,
-        model: this.model,
-      })
+      const text = await this.client.text(prompt, textRequestOptionsFromForm(data, this.model))
       return { kind: "text", text, raw: text }
     })
+  }
+
+  /** @param {SubmitEvent | Event} event */
+  respondStreaming(event) {
+    event.preventDefault()
+    const target = /** @type {HTMLFormElement | null} */ (event.target instanceof HTMLFormElement ? event.target : null)
+    const data = target === null ? undefined : new FormData(target)
+    const prompt = promptFromEvent(event)
+    const options = textRequestOptionsFromForm(data, this.model)
+    return this.#runStreamingText(prompt, options)
   }
 
   /** @param {SubmitEvent | Event} event */
@@ -207,6 +214,47 @@ export class OpenAIClientElement extends HTMLElement {
         this.lastResult = result
         this.dispatchEvent(new CustomEvent(resultEventName, { bubbles: true, composed: true, detail: result }))
       }
+      return result
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      const result = /** @type {import("./client.js").OpenAIResult} */ ({ kind: "error", error: message, raw: error })
+      if (runId === this.#runSequence) {
+        this.lastError = message
+        this.lastResult = result
+        this.dispatchEvent(new CustomEvent(errorEventName, { bubbles: true, composed: true, detail: result }))
+      }
+      return result
+    } finally {
+      this.#pendingRuns = Math.max(0, this.#pendingRuns - 1)
+      if (this.#pendingRuns === 0) {
+        this.busy = false
+        this.dispatchEvent(new CustomEvent(statusEventName, { bubbles: true, composed: true, detail: { busy: false, pending: 0 } }))
+      }
+    }
+  }
+
+  /**
+   * @param {string} prompt
+   * @param {import("./client.js").TextRequestOptions} options
+   */
+  async #runStreamingText(prompt, options) {
+    const runId = ++this.#runSequence
+    this.#pendingRuns += 1
+    this.busy = true
+    this.lastError = undefined
+    this.dispatchEvent(new CustomEvent(statusEventName, { bubbles: true, composed: true, detail: { busy: true, pending: this.#pendingRuns } }))
+    let text = ""
+    try {
+      for await (const chunk of this.client.streamText(prompt, options)) {
+        text += chunk
+        if (runId === this.#runSequence) {
+          const result = /** @type {import("./client.js").OpenAIResult} */ ({ kind: "text", text, raw: text })
+          this.lastResult = result
+          this.dispatchEvent(new CustomEvent(resultEventName, { bubbles: true, composed: true, detail: result }))
+        }
+      }
+      const result = /** @type {import("./client.js").OpenAIResult} */ ({ kind: "text", text, raw: text })
+      if (runId === this.#runSequence) this.lastResult = result
       return result
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
@@ -431,7 +479,7 @@ function responseToolRequestFromForm(data, prompt, model) {
   if (instructions !== undefined) request.instructions = instructions
   const include = jsonFromFormData(data, "include")
   if (include !== undefined) request.include = include
-  const reasoning = jsonFromFormData(data, "reasoning")
+  const reasoning = reasoningFromFormData(data)
   if (reasoning !== undefined) request.reasoning = reasoning
   const toolChoice = jsonFromFormData(data, "tool_choice") ?? jsonFromFormData(data, "toolChoice")
   if (toolChoice !== undefined) request.tool_choice = toolChoice
@@ -440,6 +488,32 @@ function responseToolRequestFromForm(data, prompt, model) {
   const background = booleanFromFormData(data, "background")
   if (background !== undefined) request.background = background
   return request
+}
+
+/**
+ * @param {FormData | undefined} data
+ * @param {string | undefined} model
+ */
+function textRequestOptionsFromForm(data, model) {
+  /** @type {import("./client.js").TextRequestOptions} */
+  const options = {
+    model: stringFromFormData(data, "model") ?? model,
+  }
+  const instructions = stringFromFormData(data, "instructions")
+  if (instructions !== undefined) options.instructions = instructions
+  const reasoning = reasoningFromFormData(data)
+  if (reasoning !== undefined) options.reasoning = reasoning
+  const stream = booleanFromFormData(data, "stream")
+  if (stream !== undefined) options.stream = stream
+  return options
+}
+
+/** @param {FormData | undefined} data */
+function reasoningFromFormData(data) {
+  const reasoning = jsonFromFormData(data, "reasoning")
+  if (reasoning !== undefined) return reasoning
+  const effort = stringFromFormData(data, "reasoning_effort")
+  return effort === undefined ? undefined : { effort }
 }
 
 /**

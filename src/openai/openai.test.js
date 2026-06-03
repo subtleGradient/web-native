@@ -31,13 +31,14 @@ describe("openai browser client", () => {
       },
     })
 
-    const text = await client.text("say hello", { model: "gpt-test", instructions: "Be brief" })
+    const text = await client.text("say hello", { model: "gpt-test", instructions: "Be brief", reasoning: { effort: "low" } })
 
     expect(text).to.equal("hello")
     expect(calls).to.have.length(1)
     expect(calls[0]?.url).to.equal("https://api.openai.com/v1/responses")
     expect(calls[0]?.headers.authorization).to.equal("Bearer sk-test")
-    expect(calls[0]?.body).to.deep.equal(buildTextRequest("say hello", { model: "gpt-test", instructions: "Be brief" }))
+    expect(calls[0]?.body).to.deep.equal(buildTextRequest("say hello", { model: "gpt-test", instructions: "Be brief", reasoning: { effort: "low" } }))
+    expect(calls[0]?.body).to.have.deep.property("reasoning", { effort: "low" })
   })
 
   it("streams response events and text as async generators", async () => {
@@ -258,6 +259,9 @@ describe("openai browser client", () => {
     const root = mount(html`
       <openai-client id="ai" model="gpt-test"></openai-client>
       <form onsubmit="ai.respond(event)">
+        <input name="model" value="gpt-form" />
+        <input name="reasoning_effort" value="low" />
+        <input name="stream" value="false" />
         <textarea name="instructions">Be brief</textarea>
         <textarea name="prompt">Hello</textarea>
       </form>
@@ -275,8 +279,55 @@ describe("openai browser client", () => {
     await result
 
     expect(controller.lastResult?.text).to.equal("Hi")
-    expect(bodies[0]).to.deep.equal(buildTextRequest("Hello", { model: "gpt-test", instructions: "Be brief" }))
+    expect(bodies[0]).to.deep.equal(buildTextRequest("Hello", { model: "gpt-form", instructions: "Be brief", reasoning: { effort: "low" }, stream: false }))
     expect(root.querySelector("openai-result")?.shadowRoot?.textContent).to.contain("Hi")
+  })
+
+  it("streams form text results into openai-result before the body closes", async () => {
+    /** @type {ReadableStreamDefaultController<Uint8Array> | undefined} */
+    let streamController
+    /** @type {unknown[]} */
+    const bodies = []
+    const encoder = new TextEncoder()
+    const root = mount(html`
+      <openai-client id="ai" model="gpt-test"></openai-client>
+      <form onsubmit="ai.respondStreaming(event)">
+        <input name="model" value="gpt-form" />
+        <input name="reasoning_effort" value="medium" />
+        <textarea name="instructions">Be brief</textarea>
+        <textarea name="prompt">Hello</textarea>
+      </form>
+      <openai-result for="ai"></openai-result>
+    `)
+    const controller = /** @type {import("./openai.js").OpenAIClientElement} */ (root.querySelector("openai-client"))
+    controller.apiKey = "sk-test"
+    controller.client.fetchFn = async (_input, init) => {
+      bodies.push(JSON.parse(String(init?.body)))
+      return new Response(new ReadableStream({
+        start(controller) {
+          streamController = controller
+        },
+      }), { status: 200 })
+    }
+
+    const firstResult = once(controller, "openai:result")
+    root.querySelector("form")?.requestSubmit()
+    await flushMicrotasks()
+    streamController?.enqueue(encoder.encode('data: {"type":"response.output_text.delta","delta":"Hel"}\n'))
+    await firstResult
+
+    expect(bodies[0]).to.deep.equal(buildTextRequest("Hello", { model: "gpt-form", instructions: "Be brief", reasoning: { effort: "medium" }, stream: true }))
+    expect(controller.lastResult?.text).to.equal("Hel")
+    expect(root.querySelector("openai-result")?.shadowRoot?.textContent).to.contain("Hel")
+
+    const secondResult = once(controller, "openai:result")
+    streamController?.enqueue(encoder.encode('data: {"type":"response.output_text.delta","delta":"lo"}\n'))
+    await secondResult
+    streamController?.close()
+    await once(controller, "openai:status")
+
+    expect(controller.lastResult?.text).to.equal("Hello")
+    expect(root.querySelector("openai-result")?.shadowRoot?.textContent).to.contain("Hello")
   })
 
   it("drives raw Responses built-in tool demos from form markup", async () => {

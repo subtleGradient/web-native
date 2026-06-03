@@ -13,7 +13,7 @@ export const DEFAULT_EMBEDDING_MODEL = "text-embedding-3-small"
 /** @typedef {new (url: string | URL, protocols?: string | string[]) => WebSocketLike} WebSocketConstructor */
 /** @typedef {{ type?: "api-key", apiKey?: string, organization?: string, project?: string }} OpenAIKeyAuth */
 /** @typedef {{ apiKey?: string, auth?: OpenAIKeyAuth, baseUrl?: string, brokerUrl?: string, fetchFn?: FetchLike, organization?: string, project?: string, transport?: OpenAITransportName }} OpenAIClientOptions */
-/** @typedef {{ model?: string, instructions?: string, schema?: Record<string, unknown>, schemaName?: string, schemaStrict?: boolean, stream?: boolean, tools?: unknown[], toolChoice?: unknown }} TextRequestOptions */
+/** @typedef {{ model?: string, instructions?: string, reasoning?: unknown, schema?: Record<string, unknown>, schemaName?: string, schemaStrict?: boolean, stream?: boolean, tools?: unknown[], toolChoice?: unknown }} TextRequestOptions */
 /** @typedef {{ textModel?: string, imageModel?: string, size?: string, quality?: string, outputFormat?: string, background?: string, partialImages?: number, outputCompression?: number }} ImageRequestOptions */
 /** @typedef {{ model?: string, dimensions?: number, encodingFormat?: "float" | "base64" }} EmbeddingRequestOptions */
 /** @typedef {{ base64: string, dataUrl: string, mediaType: string, raw: string }} ImageResult */
@@ -308,6 +308,7 @@ export function buildTextRequest(prompt, options = {}) {
     stream: options.stream ?? true,
   })
   if (options.instructions !== undefined) request.instructions = options.instructions
+  if (options.reasoning !== undefined) request.reasoning = options.reasoning
   if (options.schema !== undefined) {
     request.text = {
       format: {

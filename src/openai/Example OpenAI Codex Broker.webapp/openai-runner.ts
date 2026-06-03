@@ -359,15 +359,36 @@ async function proxyJson(
   headers: HeadersInit,
 ) {
   const body = await request.text()
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers,
-    body,
-  })
-  return new Response(response.body, {
+  let response: Response
+  try {
+    response = await fetch(endpoint, {
+      method: "POST",
+      headers,
+      body,
+    })
+  } catch (error) {
+    return upstreamErrorResponse(error)
+  }
+
+  let responseBody: string
+  try {
+    responseBody = await response.text()
+  } catch (error) {
+    return upstreamErrorResponse(error)
+  }
+
+  return new Response(responseBody, {
     status: response.status,
     statusText: response.statusText,
     headers: responseHeaders(response),
+  })
+}
+
+function upstreamErrorResponse(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error)
+  return new Response(`Broker upstream failed: ${message}`, {
+    status: 502,
+    headers: { "content-type": "text/plain; charset=utf-8" },
   })
 }
 
