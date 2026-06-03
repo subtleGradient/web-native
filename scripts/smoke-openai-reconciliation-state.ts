@@ -73,12 +73,44 @@ try {
     productText: document.querySelector<HTMLTextAreaElement>("#product-state")?.value ?? "",
     saveStatus: document.querySelector("#save-status")?.textContent ?? "",
   }))
+  const unavailableSnapshot = await page.evaluate(async () => {
+    const originalFetch = globalThis.fetch
+    let stateCalls = 0
+    try {
+      Reflect.set(globalThis, "fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (String(input).includes("/__web-native-openai/state")) {
+          stateCalls += 1
+          return new Response("Method not allowed", { status: 405 })
+        }
+        return originalFetch(input, init)
+      })
+      const reconciler = Reflect.get(globalThis, "reconciler") as {
+        persistNow: () => Promise<void>
+        stateAvailable: boolean
+        updateField: (field: string, value: string) => void
+      }
+      reconciler.stateAvailable = true
+      await reconciler.persistNow()
+      reconciler.updateField("productState", "retry suppression check")
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      return {
+        saveStatus: document.querySelector("#save-status")?.textContent ?? "",
+        stateAvailable: reconciler.stateAvailable,
+        stateCalls,
+      }
+    } finally {
+      Reflect.set(globalThis, "fetch", originalFetch)
+    }
+  })
 
   const failures = [
     ...(saved.productState !== editedProduct ? ["state file did not persist productState"] : []),
     ...(snapshot.productText !== editedProduct ? ["page did not reload persisted productState"] : []),
     ...(snapshot.okText.includes("Notes Workbench .ok") ? [] : ["default .ok spec did not render"]),
     ...(snapshot.saveStatus.length === 0 ? ["save status is empty"] : []),
+    ...(unavailableSnapshot.stateAvailable === false ? [] : ["405 state response did not disable persistence"]),
+    ...(unavailableSnapshot.stateCalls === 1 ? [] : [`disabled persistence still retried state endpoint ${unavailableSnapshot.stateCalls} times`]),
+    ...(unavailableSnapshot.saveStatus.includes("state endpoint unavailable") ? [] : ["405 state response did not update save status"]),
     ...(pageErrors.length > 0 ? [`page errors: ${pageErrors.join("\n")}`] : []),
   ]
 
@@ -92,6 +124,9 @@ try {
       "",
       "Saved:",
       JSON.stringify(saved, null, 2),
+      "",
+      "Unavailable:",
+      JSON.stringify(unavailableSnapshot, null, 2),
     ].join("\n"))
   }
 

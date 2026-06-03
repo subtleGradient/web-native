@@ -275,7 +275,7 @@ as openai.responses-websocket-reconciliation.demo.json5.
           <span id="status" class="status" data-state="idle">loading state</span>
           <small id="save-status">not saved yet</small>
         </div>
-        <p class="note">State is saved through the local runner as <code>openai.responses-websocket-reconciliation.demo.json5</code> next to this HTML file. Raw WebSocket events are logged to DevTools Console.</p>
+        <p class="note">State is saved through the local runner as <code>openai.responses-websocket-reconciliation.demo.json5</code> next to this HTML file. If the page says the state endpoint is unavailable, restart the runner so it picks up the latest dynamic routes.</p>
       </form>
 
       <section class="loop-grid" aria-label="Reconciliation fields">
@@ -348,6 +348,7 @@ The product state is a Markdown spec for a tiny browser-local notes app.
       const reconciler = {
         runId: 0,
         saveTimer: undefined,
+        stateAvailable: true,
         state: defaultState(),
 
         async init() {
@@ -496,7 +497,13 @@ The product state is a Markdown spec for a tiny browser-local notes app.
         async loadState() {
           try {
             const response = await fetch(stateUrl(), { headers: { "cache-control": "no-store" } })
-            if (!response.ok) throw new Error(await response.text())
+            if (!response.ok) {
+              if (response.status === 404 || response.status === 405) {
+                await this.disablePersistence(response)
+                return
+              }
+              throw new Error(await response.text())
+            }
             const saved = await response.json()
             if (isRecord(saved) && Object.keys(saved).length > 0) this.state = normalizeState(saved)
             this.saveStatus("loaded persisted state")
@@ -507,12 +514,14 @@ The product state is a Markdown spec for a tiny browser-local notes app.
         },
 
         persistSoon() {
+          if (!this.stateAvailable) return
           clearTimeout(this.saveTimer)
           this.saveStatus("saving soon")
           this.saveTimer = setTimeout(() => void this.persistNow(), 350)
         },
 
         async persistNow() {
+          if (!this.stateAvailable) return
           clearTimeout(this.saveTimer)
           this.state.model = currentModel()
           this.state.effort = currentEffort()
@@ -527,7 +536,13 @@ The product state is a Markdown spec for a tiny browser-local notes app.
               headers: { "content-type": "application/json" },
               body: JSON.stringify(this.state),
             })
-            if (!response.ok) throw new Error(await response.text())
+            if (!response.ok) {
+              if (response.status === 404 || response.status === 405) {
+                await this.disablePersistence(response)
+                return
+              }
+              throw new Error(await response.text())
+            }
             this.saveStatus("saved " + new Date().toLocaleTimeString())
           } catch (error) {
             this.saveStatus("state save failed: " + errorMessage(error))
@@ -551,6 +566,14 @@ The product state is a Markdown spec for a tiny browser-local notes app.
 
         saveStatus(message) {
           els.saveStatus.textContent = message
+        },
+
+        async disablePersistence(response) {
+          this.stateAvailable = false
+          clearTimeout(this.saveTimer)
+          const body = await response.text()
+          const suffix = body.trim() ? ": " + body.trim() : ""
+          this.saveStatus("state endpoint unavailable; restart runner" + suffix)
         },
 
         fail(message) {
