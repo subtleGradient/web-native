@@ -412,7 +412,7 @@ function stateFilePath(request: Request, url: URL) {
 function stateSourcePath(request: Request, url: URL) {
   const fileParam = url.searchParams.get("file")
   if (fileParam !== null && fileParam.trim().length > 0) {
-    const resolved = resolvePublicPath(fileParam.startsWith("/") ? fileParam : `/${fileParam}`)
+    const resolved = resolveStateSourcePath(fileParam)
     if (resolved) return resolved
     throw new Error(`State file must be inside ${packageRoot}: ${fileParam}`)
   }
@@ -429,6 +429,21 @@ function stateSourcePath(request: Request, url: URL) {
   }
 
   return launchPath
+}
+
+function resolveStateSourcePath(input: string) {
+  const rawPath = input.startsWith("/") ? input : `/${input}`
+  const candidates = [rawPath]
+  const packagePrefix = `/${path.basename(packageRoot)}/`
+  if (rawPath.startsWith(packagePrefix))
+    candidates.push(`/${rawPath.slice(packagePrefix.length)}`)
+
+  for (const candidate of candidates) {
+    const resolved = resolvePublicPath(candidate)
+    if (resolved && existsSync(resolved)) return resolved
+  }
+
+  return undefined
 }
 
 async function proxyJson(

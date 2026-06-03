@@ -302,9 +302,9 @@ runner's local Codex broker; only run demos you trust and review tool calls.
         <form class="panel run-card" onsubmit="functionLab.run(event)">
           <h2>Conversation</h2>
           <div class="split">
-            <label>Model<input name="model" value="gpt-5.5" autocomplete="off" /></label>
+            <label>Model<input name="model" value="gpt-5.5" autocomplete="off" oninput="functionLab.persistSoon()" /></label>
             <label>Thinking level
-              <select name="effort">
+              <select name="effort" onchange="functionLab.persistSoon()">
                 <option>none</option>
                 <option>minimal</option>
                 <option>low</option>
@@ -314,16 +314,17 @@ runner's local Codex broker; only run demos you trust and review tool calls.
               </select>
             </label>
           </div>
-          <label>Instructions<textarea name="instructions">You are a concise assistant with access to editable browser-local function tools. Use the functions when they improve confidence. Explain results clearly, and do not claim access to hidden reasoning.</textarea></label>
-          <label>Prompt<textarea name="prompt">Use the available functions to calculate 17 * 23, make a short number series starting at 4, and analyze this sentence: "Tools make streaming demos easier to trust." Then summarize what you did.</textarea></label>
+          <label>Instructions<textarea name="instructions" oninput="functionLab.persistSoon()">You are a concise assistant with access to editable browser-local function tools. Use the functions when they improve confidence. Explain results clearly, and do not claim access to hidden reasoning.</textarea></label>
+          <label>Prompt<textarea name="prompt" oninput="functionLab.persistSoon()">Use the available functions to calculate 17 * 23, make a short number series starting at 4, and analyze this sentence: "Tools make streaming demos easier to trust." Then summarize what you did.</textarea></label>
           <div class="toolbar">
             <button data-run-button>Stream response</button>
             <button class="secondary" type="button" onclick="functionLab.disconnect()">Disconnect</button>
           </div>
           <div class="status-row">
             <span id="status" class="status" data-state="idle">idle</span>
+            <small id="save-status">not saved yet</small>
           </div>
-          <p class="note">Function calls, raw events, and sandbox console output are logged to DevTools Console instead of being rendered here.</p>
+          <p class="note">Function calls, raw events, and sandbox console output are logged to DevTools Console instead of being rendered here. State saves beside this HTML file when the runner URL includes <code>state=1</code>.</p>
         </form>
 
         <section class="panel output-card">
@@ -352,8 +353,13 @@ runner's local Codex broker; only run demos you trust and review tool calls.
 
       const els = {
         answer: document.querySelector("#answer"),
+        effort: document.querySelector('select[name="effort"]'),
         functions: document.querySelector("#functions"),
+        instructions: document.querySelector('textarea[name="instructions"]'),
+        model: document.querySelector('input[name="model"]'),
+        prompt: document.querySelector('textarea[name="prompt"]'),
         runButton: document.querySelector("[data-run-button]"),
+        saveStatus: document.querySelector("#save-status"),
         sandbox: document.querySelector("#sandbox"),
         status: document.querySelector("#status"),
       }
@@ -425,7 +431,16 @@ runner's local Codex broker; only run demos you trust and review tool calls.
         pendingSandbox: new Map(),
         runId: 0,
         sandboxWindow: undefined,
+        saveTimer: undefined,
         socket: undefined,
+        stateAvailable: runnerStateEnabled(),
+
+        async init() {
+          this.applyState(defaultWorkbenchState())
+          await this.loadState()
+          this.renderFunctions()
+          this.resetSandbox()
+        },
 
         async run(event) {
           event.preventDefault()
@@ -450,6 +465,7 @@ runner's local Codex broker; only run demos you trust and review tool calls.
           const effort = textField(data, "effort") || "medium"
 
           this.setBusy(true)
+          await this.persistNow()
           this.status("connecting relay", "working")
           console.info("Function workbench connecting", { functionCount: tools.length, model })
 
@@ -495,25 +511,103 @@ runner's local Codex broker; only run demos you trust and review tool calls.
 }`,
           })
           this.renderFunctions()
+          this.persistSoon()
         },
 
         resetFunctions() {
           this.functions = defaultFunctions()
           this.renderFunctions()
+          this.persistSoon()
         },
 
         removeFunction(id) {
           this.functions = this.functions.filter((definition) => definition.id !== id)
           this.renderFunctions()
+          this.persistSoon()
         },
 
         updateFunction(id, field, value) {
           const definition = this.functions.find((item) => item.id === id)
           if (definition !== undefined) definition[field] = value
+          this.persistSoon()
         },
 
         renderFunctions() {
           els.functions.innerHTML = this.functions.map(functionCardHtml).join("")
+        },
+
+        async loadState() {
+          if (!this.stateAvailable) {
+            this.saveStatus("state persistence unavailable; restart runner")
+            return
+          }
+          try {
+            const response = await fetch(stateUrl(), { headers: { "cache-control": "no-store" } })
+            if (!response.ok) {
+              if (response.status === 404 || response.status === 405) {
+                await this.disablePersistence(response)
+                return
+              }
+              throw new Error(await response.text())
+            }
+            const saved = await response.json()
+            if (isRecord(saved) && Object.keys(saved).length > 0) this.applyState(normalizeWorkbenchState(saved))
+            this.saveStatus("loaded persisted state")
+          } catch (error) {
+            this.saveStatus("state load failed: " + errorMessage(error))
+            console.warn("Function workbench state load failed", error)
+          }
+        },
+
+        persistSoon() {
+          if (!this.stateAvailable) return
+          clearTimeout(this.saveTimer)
+          this.saveStatus("saving soon")
+          this.saveTimer = setTimeout(() => void this.persistNow(), 350)
+        },
+
+        async persistNow() {
+          if (!this.stateAvailable) return
+          clearTimeout(this.saveTimer)
+          try {
+            const response = await fetch(stateUrl(), {
+              method: "PUT",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify(currentWorkbenchState(this.functions)),
+            })
+            if (!response.ok) {
+              if (response.status === 404 || response.status === 405) {
+                await this.disablePersistence(response)
+                return
+              }
+              throw new Error(await response.text())
+            }
+            this.saveStatus("saved " + new Date().toLocaleTimeString())
+          } catch (error) {
+            this.saveStatus("state save failed: " + errorMessage(error))
+            console.warn("Function workbench state save failed", error)
+          }
+        },
+
+        applyState(state) {
+          els.model.value = state.model
+          els.effort.value = state.effort
+          els.instructions.value = state.instructions
+          els.prompt.value = state.prompt
+          els.answer.textContent = state.answer
+          this.functions = state.functions
+        },
+
+        saveStatus(message) {
+          els.saveStatus.textContent = message
+        },
+
+        async disablePersistence(response) {
+          this.stateAvailable = false
+          clearTimeout(this.saveTimer)
+          const body = await response.text()
+          const suffix = body.trim() ? ": " + body.trim() : ""
+          this.saveStatus("state persistence unavailable; restart runner" + suffix)
         },
 
         resetSandbox() {
@@ -553,6 +647,7 @@ runner's local Codex broker; only run demos you trust and review tool calls.
           if (event.type === "response.output_text.delta" && typeof event.delta === "string") {
             els.answer.textContent += event.delta
             els.answer.scrollTop = els.answer.scrollHeight
+            this.persistSoon()
             return
           }
           if (event.type === "response.function_call_arguments.delta" || event.type === "response.function_call_arguments.done") {
@@ -582,6 +677,7 @@ runner's local Codex broker; only run demos you trust and review tool calls.
           if (calls.length === 0) {
             this.status("complete", "ok")
             this.setBusy(false)
+            await this.persistNow()
             console.info("Function workbench complete")
             return
           }
@@ -701,8 +797,7 @@ runner's local Codex broker; only run demos you trust and review tool calls.
 
       globalThis.functionLab = functionLab
       window.addEventListener("message", (event) => functionLab.handleSandboxMessage(event))
-      functionLab.resetFunctions()
-      functionLab.resetSandbox()
+      await functionLab.init()
 
       function buildResponseCreate({ effort, instructions, input, model, previousResponseId, tools }) {
         return {
@@ -742,6 +837,74 @@ runner's local Codex broker; only run demos you trust and review tool calls.
             strict: true,
           }
         })
+      }
+
+      function defaultWorkbenchState() {
+        return {
+          version: 1,
+          model: "gpt-5.5",
+          effort: "medium",
+          thinkingLevel: "medium",
+          instructions: els.instructions.defaultValue,
+          prompt: els.prompt.defaultValue,
+          answer: "",
+          llmResult: { text: "" },
+          functions: defaultFunctions(),
+        }
+      }
+
+      function currentWorkbenchState(functions) {
+        const model = currentModel()
+        const thinkingLevel = currentEffort()
+        const instructions = currentInstructions()
+        const prompt = currentPrompt()
+        const answer = els.answer.textContent
+        return {
+          version: 1,
+          model,
+          effort: thinkingLevel,
+          thinkingLevel,
+          instructions,
+          prompt,
+          request: { model, thinkingLevel, instructions, prompt },
+          answer,
+          llmResult: { text: answer },
+          functions: functions.map((definition) => ({
+            id: definition.id,
+            name: definition.name,
+            description: definition.description,
+            parameters: definition.parameters,
+            source: definition.source,
+          })),
+          updatedAt: new Date().toISOString(),
+        }
+      }
+
+      function normalizeWorkbenchState(saved) {
+        const base = defaultWorkbenchState()
+        const thinkingLevel = typeof saved.thinkingLevel === "string" ? saved.thinkingLevel : typeof saved.effort === "string" ? saved.effort : base.thinkingLevel
+        const answer = typeof saved.answer === "string" ? saved.answer : isRecord(saved.llmResult) && typeof saved.llmResult.text === "string" ? saved.llmResult.text : base.answer
+        return {
+          ...base,
+          model: typeof saved.model === "string" ? saved.model : base.model,
+          effort: thinkingLevel,
+          thinkingLevel,
+          instructions: typeof saved.instructions === "string" ? saved.instructions : base.instructions,
+          prompt: typeof saved.prompt === "string" ? saved.prompt : base.prompt,
+          answer,
+          llmResult: { text: answer },
+          functions: Array.isArray(saved.functions) ? normalizeFunctionDefinitions(saved.functions) : base.functions,
+        }
+      }
+
+      function normalizeFunctionDefinitions(functions) {
+        return functions.filter(isRecord).map((definition, index) => ({
+          id: typeof definition.id === "string" ? definition.id : crypto.randomUUID(),
+          name: typeof definition.name === "string" ? definition.name : "custom_" + (index + 1),
+          description: typeof definition.description === "string" ? definition.description : "Describe when the assistant should call this browser-local function.",
+          parameters: typeof definition.parameters === "string" ? definition.parameters : prettyJson({ type: "object", properties: {}, additionalProperties: false }),
+          source: typeof definition.source === "string" ? definition.source : "function custom() { return null }",
+        }))
       }
 
       function defaultFunctions() {
@@ -871,7 +1034,23 @@ runner's local Codex broker; only run demos you trust and review tool calls.
       }
 
       function currentInstructions() {
-        return document.querySelector('textarea[name="instructions"]').value.trim()
+        return els.instructions.value.trim()
+      }
+
+      function currentPrompt() {
+        return els.prompt.value.trim()
+      }
+
+      function stateUrl() {
+        const url = new URL("/__web-native-openai/state", location.href)
+        const token = new URLSearchParams(location.search).get("t")
+        if (token) url.searchParams.set("t", token)
+        url.searchParams.set("file", location.pathname)
+        return url.href
+      }
+
+      function runnerStateEnabled() {
+        return new URLSearchParams(location.search).get("state") === "1"
       }
 
       function textField(data, name) {
