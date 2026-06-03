@@ -21,7 +21,7 @@ runner's local Codex broker; only run demos you trust and review tool calls.
     <script type="module" src="./openai.demo.js"></script>
     <style>
       :root {
-        color-scheme: light;
+        color-scheme: light dark;
         --paper: oklch(97% 0.018 84);
         --ink: oklch(20% 0.035 248);
         --muted: oklch(48% 0.04 248);
@@ -32,16 +32,50 @@ runner's local Codex broker; only run demos you trust and review tool calls.
         --accent-2: oklch(57% 0.14 246);
         --ok: oklch(50% 0.14 156);
         --bad: oklch(52% 0.18 25);
+        --grid-line: oklch(25% 0.02 248 / 6%);
+        --glow-warm: oklch(82% 0.12 34 / 48%);
+        --glow-cool: oklch(84% 0.1 246 / 38%);
+        --surface-glint: white;
+        --field-bg: oklch(100% 0 0 / 76%);
+        --answer-top: oklch(100% 0 0 / 72%);
+        --answer-bottom: oklch(94% 0.018 84 / 72%);
+        --badge-base: white;
+        --shadow: oklch(30% 0.06 60 / 12%);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          color-scheme: dark;
+          --paper: oklch(15% 0.03 252);
+          --ink: oklch(94% 0.018 252);
+          --muted: oklch(72% 0.036 252);
+          --surface: oklch(21% 0.035 252);
+          --surface-2: oklch(17% 0.03 252);
+          --line: oklch(47% 0.055 252);
+          --accent: oklch(76% 0.18 28);
+          --accent-2: oklch(72% 0.16 246);
+          --ok: oklch(72% 0.14 156);
+          --bad: oklch(72% 0.18 25);
+          --grid-line: oklch(92% 0.02 252 / 7%);
+          --glow-warm: oklch(43% 0.16 28 / 34%);
+          --glow-cool: oklch(40% 0.14 246 / 36%);
+          --surface-glint: oklch(27% 0.04 252);
+          --field-bg: oklch(12% 0.026 252 / 82%);
+          --answer-top: oklch(19% 0.032 252 / 84%);
+          --answer-bottom: oklch(14% 0.028 252 / 84%);
+          --badge-base: var(--surface-2);
+          --shadow: oklch(4% 0.025 252 / 42%);
+        }
       }
 
       * { box-sizing: border-box; }
 
       body {
         background:
-          linear-gradient(90deg, oklch(25% 0.02 248 / 6%) 1px, transparent 1px),
-          linear-gradient(0deg, oklch(25% 0.02 248 / 6%) 1px, transparent 1px),
-          radial-gradient(circle at 12% 8%, oklch(82% 0.12 34 / 48%), transparent 25rem),
-          radial-gradient(circle at 90% 14%, oklch(84% 0.1 246 / 38%), transparent 28rem),
+          linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
+          linear-gradient(0deg, var(--grid-line) 1px, transparent 1px),
+          radial-gradient(circle at 12% 8%, var(--glow-warm), transparent 25rem),
+          radial-gradient(circle at 90% 14%, var(--glow-cool), transparent 28rem),
           var(--paper);
         background-size: 1.4rem 1.4rem, 1.4rem 1.4rem, auto, auto, auto;
         color: var(--ink);
@@ -89,10 +123,10 @@ runner's local Codex broker; only run demos you trust and review tool calls.
       }
 
       .panel {
-        background: color-mix(in oklch, var(--surface) 90%, white 10%);
+        background: color-mix(in oklch, var(--surface) 90%, var(--surface-glint) 10%);
         border: 1px solid var(--line);
         border-radius: 1.2rem;
-        box-shadow: 0 1rem 3rem oklch(30% 0.06 60 / 12%);
+        box-shadow: 0 1rem 3rem var(--shadow);
         display: grid;
         gap: 0.9rem;
         padding: 1rem;
@@ -109,7 +143,7 @@ runner's local Codex broker; only run demos you trust and review tool calls.
 
       .answer {
         background:
-          linear-gradient(180deg, oklch(100% 0 0 / 72%), oklch(94% 0.018 84 / 72%)),
+          linear-gradient(180deg, var(--answer-top), var(--answer-bottom)),
           var(--surface);
         border: 1px solid color-mix(in oklch, var(--line) 82%, var(--ink) 18%);
         border-radius: 0.9rem;
@@ -175,7 +209,7 @@ runner's local Codex broker; only run demos you trust and review tool calls.
       input,
       select,
       textarea {
-        background: oklch(100% 0 0 / 76%);
+        background: var(--field-bg);
         padding: 0.65rem 0.75rem;
       }
 
@@ -228,10 +262,10 @@ runner's local Codex broker; only run demos you trust and review tool calls.
         width: fit-content;
       }
 
-      .status[data-state="idle"] { background: color-mix(in oklch, var(--surface-2) 80%, white); }
-      .status[data-state="working"] { background: color-mix(in oklch, var(--accent-2) 22%, white); }
-      .status[data-state="ok"] { background: color-mix(in oklch, var(--ok) 24%, white); }
-      .status[data-state="error"] { background: color-mix(in oklch, var(--bad) 24%, white); }
+      .status[data-state="idle"] { background: color-mix(in oklch, var(--surface-2) 80%, var(--badge-base)); }
+      .status[data-state="working"] { background: color-mix(in oklch, var(--accent-2) 22%, var(--badge-base)); }
+      .status[data-state="ok"] { background: color-mix(in oklch, var(--ok) 24%, var(--badge-base)); }
+      .status[data-state="error"] { background: color-mix(in oklch, var(--bad) 24%, var(--badge-base)); }
 
       .note {
         border-left: 0.22rem solid var(--accent);

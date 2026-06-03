@@ -15,7 +15,7 @@
     "test": "bun run scripts/test.ts",
     "test:e2e": "bun run scripts/test.ts && bun run scripts/test-e2e.ts",
     "verify:dark": "bun run scripts/verify-dark-mode.ts",
-    "verify:demos": "bun run scripts/verify-composite-demos.ts",
+    "verify:demos": "bun run scripts/verify-composite-demos.ts && bun run scripts/smoke-openai-function-workbench.ts",
     "verify:github-demo": "bun run scripts/verify-github-demo.ts",
     "verify:standalone": "bun run scripts/verify-standalone-demos.ts"
   },
