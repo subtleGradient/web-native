@@ -1,0 +1,758 @@
+<!doctype html>
+<!--
+Run this demo with the Codex broker
+These demos are hard-coded to the local Codex broker exposed by openai-runner.
+GitHub:
+bunx --bun -p https://github.com/subtleGradient/web-native/archive/refs/heads/main.tar.gz web-native-openai src/openai/examples/openai.responses-websocket-reconciliation.demo.html
+Local checkout:
+bun "./src/openai/Example OpenAI Codex Broker.webapp/openai-runner.ts" src/openai/examples/openai.responses-websocket-reconciliation.demo.html
+
+Security: this demo sends the visible .ok, product, and gap text through the
+runner's local Codex broker. The runner persists the text beside this HTML file
+as openai.responses-websocket-reconciliation.demo.json5.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>Responses WebSocket reconciliation loop</title>
+    <script type="module" src="./openai.demo.js"></script>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --paper: oklch(97% 0.018 88);
+        --ink: oklch(20% 0.035 248);
+        --muted: oklch(49% 0.04 248);
+        --surface: oklch(99% 0.012 88);
+        --surface-2: oklch(92% 0.026 88);
+        --line: oklch(78% 0.045 88);
+        --accent: oklch(55% 0.18 24);
+        --accent-2: oklch(56% 0.15 252);
+        --ok: oklch(50% 0.14 155);
+        --bad: oklch(52% 0.18 25);
+        --grid-line: oklch(25% 0.02 248 / 6%);
+        --glow-warm: oklch(82% 0.12 34 / 46%);
+        --glow-cool: oklch(82% 0.1 246 / 36%);
+        --surface-glint: white;
+        --field-bg: oklch(100% 0 0 / 78%);
+        --shadow: oklch(30% 0.06 60 / 12%);
+        --badge-base: white;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          color-scheme: dark;
+          --paper: oklch(15% 0.03 252);
+          --ink: oklch(94% 0.018 252);
+          --muted: oklch(72% 0.036 252);
+          --surface: oklch(21% 0.035 252);
+          --surface-2: oklch(17% 0.03 252);
+          --line: oklch(47% 0.055 252);
+          --accent: oklch(76% 0.18 28);
+          --accent-2: oklch(72% 0.16 246);
+          --ok: oklch(72% 0.14 156);
+          --bad: oklch(72% 0.18 25);
+          --grid-line: oklch(92% 0.02 252 / 7%);
+          --glow-warm: oklch(43% 0.16 28 / 32%);
+          --glow-cool: oklch(40% 0.14 246 / 34%);
+          --surface-glint: oklch(27% 0.04 252);
+          --field-bg: oklch(12% 0.026 252 / 82%);
+          --shadow: oklch(4% 0.025 252 / 42%);
+          --badge-base: var(--surface-2);
+        }
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        background:
+          linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
+          linear-gradient(0deg, var(--grid-line) 1px, transparent 1px),
+          radial-gradient(circle at 12% 8%, var(--glow-warm), transparent 25rem),
+          radial-gradient(circle at 90% 14%, var(--glow-cool), transparent 28rem),
+          var(--paper);
+        background-size: 1.4rem 1.4rem, 1.4rem 1.4rem, auto, auto, auto;
+        color: var(--ink);
+        font-family: ui-serif, Georgia, Cambria, "Times New Roman", serif;
+        line-height: 1.45;
+        margin: 0;
+      }
+
+      main {
+        display: grid;
+        gap: 1.25rem;
+        margin-inline: auto;
+        max-inline-size: 104rem;
+        padding: clamp(1rem, 3vw, 2rem);
+      }
+
+      .back {
+        color: var(--ink);
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        font-weight: 800;
+        text-decoration-color: var(--accent);
+        text-decoration-thickness: 0.12em;
+        text-underline-offset: 0.16em;
+        width: fit-content;
+      }
+
+      header {
+        display: grid;
+        gap: 0.55rem;
+        max-inline-size: 74rem;
+      }
+
+      h1, h2, p { margin: 0; }
+      h1 { font-size: clamp(2.3rem, 7vw, 6.2rem); letter-spacing: -0.075em; line-height: 0.88; }
+      h2 { font: 850 0.84rem/1.2 ui-sans-serif, system-ui, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; }
+      p, small { color: var(--muted); }
+      code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+      .panel {
+        background: color-mix(in oklch, var(--surface) 90%, var(--surface-glint) 10%);
+        border: 1px solid var(--line);
+        border-radius: 1.2rem;
+        box-shadow: 0 1rem 3rem var(--shadow);
+        display: grid;
+        gap: 0.9rem;
+        padding: 1rem;
+      }
+
+      .control-grid {
+        align-items: end;
+        display: grid;
+        gap: 0.75rem;
+        grid-template-columns: minmax(12rem, 1fr) repeat(2, minmax(8rem, 0.4fr));
+      }
+
+      .loop-grid {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(3, minmax(18rem, 1fr));
+      }
+
+      .editor-card {
+        display: grid;
+        gap: 0.75rem;
+        min-block-size: 36rem;
+      }
+
+      .card-title {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.65rem;
+        justify-content: space-between;
+      }
+
+      label {
+        color: var(--muted);
+        display: grid;
+        font: 760 0.86rem/1.25 ui-sans-serif, system-ui, sans-serif;
+        gap: 0.35rem;
+      }
+
+      input,
+      select,
+      textarea,
+      button {
+        border: 1px solid color-mix(in oklch, var(--line) 72%, var(--ink) 28%);
+        border-radius: 0.65rem;
+        color: var(--ink);
+        font: inherit;
+        min-inline-size: 0;
+      }
+
+      input,
+      select,
+      textarea {
+        background: var(--field-bg);
+        padding: 0.65rem 0.75rem;
+      }
+
+      textarea {
+        block-size: 100%;
+        font: 0.88rem/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        min-block-size: 27rem;
+        resize: vertical;
+        tab-size: 2;
+      }
+
+      button {
+        background: var(--ink);
+        color: var(--paper);
+        cursor: pointer;
+        font: 850 0.9rem/1 ui-sans-serif, system-ui, sans-serif;
+        padding: 0.72rem 0.9rem;
+      }
+
+      button.secondary {
+        background: transparent;
+        color: var(--ink);
+      }
+
+      button:disabled {
+        cursor: wait;
+        opacity: 0.62;
+      }
+
+      .toolbar,
+      .status-row {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.65rem;
+      }
+
+      .status {
+        border-radius: 999px;
+        color: var(--ink);
+        font: 800 0.82rem/1 ui-sans-serif, system-ui, sans-serif;
+        padding: 0.5rem 0.7rem;
+        width: fit-content;
+      }
+
+      .status[data-state="idle"] { background: color-mix(in oklch, var(--surface-2) 80%, var(--badge-base)); }
+      .status[data-state="working"] { background: color-mix(in oklch, var(--accent-2) 22%, var(--badge-base)); }
+      .status[data-state="ok"] { background: color-mix(in oklch, var(--ok) 24%, var(--badge-base)); }
+      .status[data-state="error"] { background: color-mix(in oklch, var(--bad) 24%, var(--badge-base)); }
+
+      .note {
+        border-left: 0.22rem solid var(--accent);
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        padding-inline-start: 0.7rem;
+      }
+
+      .streaming textarea[data-active="true"] {
+        outline: 0.16rem solid color-mix(in oklch, var(--accent-2) 72%, transparent);
+        outline-offset: 0.14rem;
+      }
+
+      @media (max-width: 1050px) {
+        .loop-grid { grid-template-columns: 1fr; }
+        .editor-card { min-block-size: 24rem; }
+        textarea { min-block-size: 18rem; }
+      }
+
+      @media (max-width: 760px) {
+        .control-grid { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a class="back" data-preserve-search href="./index.html">&larr; All OpenAI demos</a>
+      <header>
+        <h1>Reconciliation loop</h1>
+        <p>Run a DotOK-inspired generator/critic loop: compare reality to an evergreen <code>.ok</code> spec, rewrite the product state, then recheck until no gaps remain.</p>
+      </header>
+
+      <form class="panel" onsubmit="reconciler.reconcile(event)">
+        <h2>Loop Controls</h2>
+        <div class="control-grid">
+          <label>Model<input name="model" value="gpt-5.5" autocomplete="off" oninput="reconciler.updateSetting('model', this.value)" /></label>
+          <label>Thinking level
+            <select name="effort" onchange="reconciler.updateSetting('effort', this.value)">
+              <option>none</option>
+              <option>minimal</option>
+              <option selected>low</option>
+              <option>medium</option>
+              <option>high</option>
+              <option>xhigh</option>
+            </select>
+          </label>
+          <label>Max cycles<input name="maxCycles" type="number" min="1" max="12" value="6" oninput="reconciler.updateSetting('maxCycles', this.value)" /></label>
+        </div>
+        <div class="toolbar">
+          <button data-run-button>Regenerate until reconciled</button>
+          <button class="secondary" type="button" onclick="reconciler.refreshGaps()">Recalculate gaps</button>
+          <button class="secondary" type="button" onclick="reconciler.stop()">Stop</button>
+          <button class="secondary" type="button" onclick="reconciler.resetExample()">Reset example</button>
+        </div>
+        <div class="status-row">
+          <span id="status" class="status" data-state="idle">loading state</span>
+          <small id="save-status">not saved yet</small>
+        </div>
+        <p class="note">State is saved through the local runner as <code>openai.responses-websocket-reconciliation.demo.json5</code> next to this HTML file. Raw WebSocket events are logged to DevTools Console.</p>
+      </form>
+
+      <section class="loop-grid" aria-label="Reconciliation fields">
+        <section class="panel editor-card">
+          <div class="card-title">
+            <h2>.ok Spec</h2>
+            <small>Evergreen ideal state</small>
+          </div>
+          <textarea id="ok-spec" spellcheck="false" oninput="reconciler.updateField('okSpec', this.value)"></textarea>
+        </section>
+
+        <section class="panel editor-card">
+          <div class="card-title">
+            <h2>Product State</h2>
+            <small>Reality, starting blank</small>
+          </div>
+          <textarea id="product-state" spellcheck="false" oninput="reconciler.updateField('productState', this.value)"></textarea>
+        </section>
+
+        <section class="panel editor-card">
+          <div class="card-title">
+            <h2>Gap Snapshot</h2>
+            <small>Critic output</small>
+          </div>
+          <textarea id="gap-snapshot" spellcheck="false" oninput="reconciler.updateField('gapSnapshot', this.value)"></textarea>
+        </section>
+      </section>
+    </main>
+
+    <script type="module">
+      import { OpenAIClient } from "../client.js"
+
+      const els = {
+        effort: document.querySelector('select[name="effort"]'),
+        gapSnapshot: document.querySelector("#gap-snapshot"),
+        maxCycles: document.querySelector('input[name="maxCycles"]'),
+        model: document.querySelector('input[name="model"]'),
+        okSpec: document.querySelector("#ok-spec"),
+        productState: document.querySelector("#product-state"),
+        runButton: document.querySelector("[data-run-button]"),
+        saveStatus: document.querySelector("#save-status"),
+        status: document.querySelector("#status"),
+      }
+
+      const defaultOkSpec = String.raw`# Notes Workbench .ok
+
+The product state is a Markdown spec for a tiny browser-local notes app.
+
+## Razors
+
+- TRUE: A user can create a note with non-empty body text.
+- TRUE: A user can see saved notes in newest-first order.
+- TRUE: A user can mark any note done without deleting it.
+- TRUE: Empty notes are rejected with a visible message.
+- TRUE: Product state names the local persistence strategy.
+- TRUE: Product state names one smoke test for insertion and one smoke test for completion.`
+
+      const defaultState = () => ({
+        version: 1,
+        model: "gpt-5.5",
+        effort: "low",
+        maxCycles: 6,
+        okSpec: defaultOkSpec,
+        productState: "",
+        gapSnapshot: "",
+        cycle: 0,
+        updatedAt: new Date().toISOString(),
+      })
+
+      const reconciler = {
+        runId: 0,
+        saveTimer: undefined,
+        state: defaultState(),
+
+        async init() {
+          await this.loadState()
+          this.render()
+          this.status("idle", "idle")
+        },
+
+        async reconcile(event) {
+          event.preventDefault()
+          const runId = ++this.runId
+          const maxCycles = readMaxCycles()
+          this.setBusy(true)
+          await this.persistNow()
+
+          try {
+            if (els.gapSnapshot.value.trim().length === 0) {
+              await this.calculateGaps(runId, "initial critic pass")
+              if (this.isStopped(runId) || noGaps(els.gapSnapshot.value)) return this.completeIfNoGaps()
+            }
+
+            for (let cycle = 1; cycle <= maxCycles; cycle += 1) {
+              if (this.isStopped(runId)) return
+              this.state.cycle = cycle
+              await this.generateProduct(runId, cycle)
+              if (this.isStopped(runId)) return
+              await this.calculateGaps(runId, "critic pass " + cycle)
+              if (this.isStopped(runId)) return
+              if (noGaps(els.gapSnapshot.value)) return this.completeIfNoGaps()
+            }
+
+            this.status("stopped at safety cap with gaps", "error")
+          } catch (error) {
+            if (!this.isStopped(runId)) this.fail(errorMessage(error))
+          } finally {
+            if (!this.isStopped(runId)) this.setBusy(false)
+            await this.persistNow()
+          }
+        },
+
+        async refreshGaps() {
+          const runId = ++this.runId
+          this.setBusy(true)
+          try {
+            await this.calculateGaps(runId, "manual critic pass")
+            this.completeIfNoGaps()
+          } catch (error) {
+            if (!this.isStopped(runId)) this.fail(errorMessage(error))
+          } finally {
+            if (!this.isStopped(runId)) this.setBusy(false)
+            await this.persistNow()
+          }
+        },
+
+        stop() {
+          this.runId += 1
+          this.setBusy(false)
+          this.status("stopped", "idle")
+        },
+
+        resetExample() {
+          this.runId += 1
+          this.state = defaultState()
+          this.render()
+          this.status("example reset", "idle")
+          this.persistSoon()
+        },
+
+        updateField(field, value) {
+          this.state[field] = value
+          this.state.updatedAt = new Date().toISOString()
+          this.persistSoon()
+          if (field === "productState" && !this.isBusy()) this.queueGapRefresh()
+        },
+
+        updateSetting(field, value) {
+          this.state[field] = field === "maxCycles" ? readMaxCycles() : value
+          this.state.updatedAt = new Date().toISOString()
+          this.persistSoon()
+        },
+
+        queueGapRefresh() {
+          clearTimeout(this.gapTimer)
+          this.gapTimer = setTimeout(() => {
+            if (!this.isBusy()) void this.refreshGaps()
+          }, 900)
+        },
+
+        async generateProduct(runId, cycle) {
+          this.status("generator cycle " + cycle, "working")
+          const text = await streamText({
+            active: els.productState,
+            effort: currentEffort(),
+            instructions: generatorInstructions(),
+            model: currentModel(),
+            onText: (text) => {
+              els.productState.value = text
+              this.state.productState = text
+              this.state.updatedAt = new Date().toISOString()
+            },
+            prompt: generatorPrompt({
+              gapSnapshot: els.gapSnapshot.value,
+              okSpec: els.okSpec.value,
+              productState: els.productState.value,
+            }),
+            runIsCurrent: () => !this.isStopped(runId),
+          })
+          if (this.isStopped(runId)) return
+          this.state.productState = text
+          await this.persistNow()
+        },
+
+        async calculateGaps(runId, label) {
+          this.status(label, "working")
+          const text = await streamText({
+            active: els.gapSnapshot,
+            effort: currentEffort(),
+            instructions: criticInstructions(),
+            model: currentModel(),
+            onText: (text) => {
+              els.gapSnapshot.value = text
+              this.state.gapSnapshot = text
+              this.state.updatedAt = new Date().toISOString()
+            },
+            prompt: criticPrompt({
+              okSpec: els.okSpec.value,
+              productState: els.productState.value,
+            }),
+            runIsCurrent: () => !this.isStopped(runId),
+          })
+          if (this.isStopped(runId)) return
+          this.state.gapSnapshot = text
+          await this.persistNow()
+        },
+
+        completeIfNoGaps() {
+          if (noGaps(els.gapSnapshot.value)) {
+            this.status("reconciled: no gaps", "ok")
+            this.setBusy(false)
+            return true
+          }
+          this.status("gaps remain", "idle")
+          return false
+        },
+
+        async loadState() {
+          try {
+            const response = await fetch(stateUrl(), { headers: { "cache-control": "no-store" } })
+            if (!response.ok) throw new Error(await response.text())
+            const saved = await response.json()
+            if (isRecord(saved) && Object.keys(saved).length > 0) this.state = normalizeState(saved)
+            this.saveStatus("loaded persisted state")
+          } catch (error) {
+            this.saveStatus("state load failed: " + errorMessage(error))
+            console.warn("Reconciliation state load failed", error)
+          }
+        },
+
+        persistSoon() {
+          clearTimeout(this.saveTimer)
+          this.saveStatus("saving soon")
+          this.saveTimer = setTimeout(() => void this.persistNow(), 350)
+        },
+
+        async persistNow() {
+          clearTimeout(this.saveTimer)
+          this.state.model = currentModel()
+          this.state.effort = currentEffort()
+          this.state.maxCycles = readMaxCycles()
+          this.state.okSpec = els.okSpec.value
+          this.state.productState = els.productState.value
+          this.state.gapSnapshot = els.gapSnapshot.value
+          this.state.updatedAt = new Date().toISOString()
+          try {
+            const response = await fetch(stateUrl(), {
+              method: "PUT",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify(this.state),
+            })
+            if (!response.ok) throw new Error(await response.text())
+            this.saveStatus("saved " + new Date().toLocaleTimeString())
+          } catch (error) {
+            this.saveStatus("state save failed: " + errorMessage(error))
+            console.warn("Reconciliation state save failed", error)
+          }
+        },
+
+        render() {
+          els.model.value = this.state.model
+          els.effort.value = this.state.effort
+          els.maxCycles.value = String(this.state.maxCycles)
+          els.okSpec.value = this.state.okSpec
+          els.productState.value = this.state.productState
+          els.gapSnapshot.value = this.state.gapSnapshot
+        },
+
+        status(message, state = "idle") {
+          els.status.dataset.state = state
+          els.status.textContent = message
+        },
+
+        saveStatus(message) {
+          els.saveStatus.textContent = message
+        },
+
+        fail(message) {
+          console.error("Reconciliation loop error", message)
+          this.status(message, "error")
+          this.setBusy(false)
+        },
+
+        setBusy(value) {
+          document.body.classList.toggle("streaming", value)
+          els.runButton.toggleAttribute("disabled", value)
+        },
+
+        isBusy() {
+          return els.runButton.hasAttribute("disabled")
+        },
+
+        isStopped(runId) {
+          return runId !== this.runId
+        },
+      }
+
+      globalThis.reconciler = reconciler
+      await reconciler.init()
+
+      async function streamText({ active, effort, instructions, model, onText, prompt, runIsCurrent }) {
+        const client = new OpenAIClient({ brokerUrl: "/__web-native-openai", transport: "codex-broker" })
+        const relay = client.responsesSocket()
+        let text = ""
+        active.dataset.active = "true"
+        active.value = ""
+
+        try {
+          await waitForOpen(relay.socket)
+          if (!runIsCurrent()) return ""
+          relay.send({ type: "web_native.openai.relay.connect" })
+          relay.send({
+            type: "response.create",
+            model,
+            store: false,
+            instructions,
+            reasoning: { effort, summary: "auto" },
+            input: [userMessage(prompt)],
+          })
+
+          for await (const event of relay.events()) {
+            console.debug("Reconciliation WebSocket event", event)
+            if (!runIsCurrent()) return text
+            if (!isRecord(event)) continue
+            if (event.type === "error" || event.type === "response.failed") throw new Error(eventErrorMessage(event))
+            if (event.type === "response.output_text.delta" && typeof event.delta === "string") {
+              text += event.delta
+              onText(text)
+              active.scrollTop = active.scrollHeight
+            }
+            if (event.type === "response.completed") {
+              if (text.length === 0 && isRecord(event.response)) {
+                text = outputText(event.response)
+                onText(text)
+              }
+              return text.trim()
+            }
+          }
+          return text.trim()
+        } finally {
+          active.dataset.active = "false"
+          relay.close()
+        }
+      }
+
+      function generatorInstructions() {
+        return [
+          "You are the generator in a DotOK-inspired reconciliation loop.",
+          "Rewrite the current product state so it satisfies the .ok spec and resolves the gap snapshot.",
+          "Return only the complete new product state as Markdown. Do not include analysis, apologies, or a gap list.",
+          "Prefer concrete, testable product behavior over process language.",
+        ].join("\n")
+      }
+
+      function criticInstructions() {
+        return [
+          "You are the critic in a DotOK-inspired reconciliation loop.",
+          "Compare the evergreen .ok spec against the current product state.",
+          "If every razor is satisfied, return exactly: NO GAPS",
+          "If gaps remain, return Markdown starting with GAPS, then concise bullets. Each bullet should name the unmet razor and the smallest missing product-state change.",
+          "Do not invent requirements outside the .ok spec.",
+        ].join("\n")
+      }
+
+      function generatorPrompt({ gapSnapshot, okSpec, productState }) {
+        return String.raw`## .ok spec
+${okSpec.trim()}
+
+## Current product state
+${productState.trim() || "(blank)"}
+
+## Gap snapshot
+${gapSnapshot.trim() || "(not calculated yet)"}
+
+Regenerate the product state now.`
+      }
+
+      function criticPrompt({ okSpec, productState }) {
+        return String.raw`## .ok spec
+${okSpec.trim()}
+
+## Current product state
+${productState.trim() || "(blank)"}
+
+Return the gap snapshot.`
+      }
+
+      function userMessage(text) {
+        return {
+          type: "message",
+          role: "user",
+          content: [{ type: "input_text", text }],
+        }
+      }
+
+      function waitForOpen(socket) {
+        return new Promise((resolve, reject) => {
+          if (socket.readyState === WebSocket.OPEN) {
+            resolve()
+            return
+          }
+          socket.addEventListener("open", () => resolve(), { once: true })
+          socket.addEventListener("error", () => reject(new Error("WebSocket connection failed")), { once: true })
+        })
+      }
+
+      function noGaps(text) {
+        return text.trim().split(/\r?\n/, 1)[0]?.trim().toUpperCase() === "NO GAPS"
+      }
+
+      function outputText(response) {
+        if (typeof response.output_text === "string") return response.output_text
+        if (!Array.isArray(response.output)) return ""
+        const chunks = []
+        for (const item of response.output) {
+          if (!isRecord(item) || !Array.isArray(item.content)) continue
+          for (const part of item.content) {
+            if (isRecord(part) && typeof part.text === "string") chunks.push(part.text)
+          }
+        }
+        return chunks.join("")
+      }
+
+      function normalizeState(saved) {
+        const base = defaultState()
+        return {
+          ...base,
+          ...saved,
+          effort: typeof saved.effort === "string" ? saved.effort : base.effort,
+          gapSnapshot: typeof saved.gapSnapshot === "string" ? saved.gapSnapshot : base.gapSnapshot,
+          maxCycles: readBoundedInteger(saved.maxCycles, base.maxCycles),
+          model: typeof saved.model === "string" ? saved.model : base.model,
+          okSpec: typeof saved.okSpec === "string" ? saved.okSpec : base.okSpec,
+          productState: typeof saved.productState === "string" ? saved.productState : base.productState,
+        }
+      }
+
+      function readMaxCycles() {
+        return readBoundedInteger(els.maxCycles.value, 6)
+      }
+
+      function readBoundedInteger(value, fallback) {
+        const number = Number(value)
+        if (!Number.isInteger(number)) return fallback
+        return Math.max(1, Math.min(12, number))
+      }
+
+      function currentModel() {
+        return els.model.value.trim() || "gpt-5.5"
+      }
+
+      function currentEffort() {
+        return els.effort.value || "low"
+      }
+
+      function stateUrl() {
+        const url = new URL("/__web-native-openai/state", location.href)
+        const token = new URLSearchParams(location.search).get("t")
+        if (token) url.searchParams.set("t", token)
+        url.searchParams.set("file", location.pathname)
+        return url.href
+      }
+
+      function eventErrorMessage(event) {
+        if (isRecord(event.error) && typeof event.error.message === "string") return event.error.message
+        if (isRecord(event.response) && isRecord(event.response.error) && typeof event.response.error.message === "string") return event.response.error.message
+        if (typeof event.message === "string") return event.message
+        return JSON.stringify(event)
+      }
+
+      function errorMessage(error) {
+        return error instanceof Error ? error.message : String(error)
+      }
+
+      function isRecord(value) {
+        return typeof value === "object" && value !== null && !Array.isArray(value)
+      }
+    </script>
+  </body>
+</html>

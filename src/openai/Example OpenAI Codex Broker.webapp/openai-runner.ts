@@ -2,7 +2,7 @@
 
 import type { ServerWebSocket } from "bun"
 import { existsSync } from "node:fs"
-import { readFile } from "node:fs/promises"
+import { mkdir, readFile, writeFile } from "node:fs/promises"
 import { homedir } from "node:os"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
@@ -110,6 +110,8 @@ async function handleFetch(request: Request) {
       return handleResponsesWebSocket(request, "api-key-broker")
     if (url.pathname === "/__web-native-openai/codex/responses/ws")
       return handleResponsesWebSocket(request, "codex-broker")
+    if (url.pathname === "/__web-native-openai/state")
+      return handleStateFetch(request, url)
     return handleBrokerFetch(request, url)
   }
 
@@ -353,6 +355,82 @@ async function handleBrokerFetch(request: Request, url: URL) {
   return new Response("Not found", { status: 404 })
 }
 
+async function handleStateFetch(request: Request, url: URL) {
+  let statePath: string
+  try {
+    statePath = stateFilePath(request, url)
+  } catch (error) {
+    return new Response(error instanceof Error ? error.message : String(error), {
+      status: 400,
+    })
+  }
+
+  if (request.method === "GET") {
+    const file = Bun.file(statePath)
+    if (!(await file.exists())) {
+      return new Response("{}\n", {
+        headers: { "content-type": "application/json5; charset=utf-8" },
+      })
+    }
+    return new Response(file, {
+      headers: {
+        "cache-control": "no-store",
+        "content-type": "application/json5; charset=utf-8",
+      },
+    })
+  }
+
+  if (request.method === "PUT") {
+    const body = await request.text()
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(body)
+    } catch (error) {
+      return new Response(
+        `State body must be JSON-compatible JSON5: ${error instanceof Error ? error.message : String(error)}`,
+        { status: 400 },
+      )
+    }
+    await mkdir(path.dirname(statePath), { recursive: true })
+    await writeFile(statePath, `${JSON.stringify(parsed, null, 2)}\n`, "utf8")
+    return new Response(
+      JSON.stringify({ ok: true, path: path.relative(packageRoot, statePath) }),
+      { headers: { "content-type": "application/json; charset=utf-8" } },
+    )
+  }
+
+  return new Response("Method not allowed", { status: 405 })
+}
+
+function stateFilePath(request: Request, url: URL) {
+  const sourcePath = stateSourcePath(request, url)
+  if (!/\.html?$/i.test(sourcePath))
+    throw new Error(`State source must be an HTML file: ${path.relative(packageRoot, sourcePath)}`)
+  return sourcePath.replace(/\.html?$/i, ".json5")
+}
+
+function stateSourcePath(request: Request, url: URL) {
+  const fileParam = url.searchParams.get("file")
+  if (fileParam !== null && fileParam.trim().length > 0) {
+    const resolved = resolvePublicPath(fileParam.startsWith("/") ? fileParam : `/${fileParam}`)
+    if (resolved) return resolved
+    throw new Error(`State file must be inside ${packageRoot}: ${fileParam}`)
+  }
+
+  const referrer = request.headers.get("referer")
+  if (referrer) {
+    try {
+      const referrerUrl = new URL(referrer)
+      const resolved = resolvePublicPath(referrerUrl.pathname)
+      if (resolved) return resolved
+    } catch {
+      // Fall back to the launch path below.
+    }
+  }
+
+  return launchPath
+}
+
 async function proxyJson(
   request: Request,
   endpoint: string,
@@ -545,6 +623,7 @@ function contentType(filePath: string) {
   if (extension === ".js" || extension === ".mjs" || extension === ".ts")
     return "text/javascript; charset=utf-8"
   if (extension === ".json") return "application/json; charset=utf-8"
+  if (extension === ".json5") return "application/json5; charset=utf-8"
   if (extension === ".svg") return "image/svg+xml"
   return "application/octet-stream"
 }
