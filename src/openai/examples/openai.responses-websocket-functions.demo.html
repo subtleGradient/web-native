@@ -611,7 +611,7 @@ runner's local Codex broker; only run demos you trust and review tool calls.
               resolve({ ok: false, error: "Timed out after " + timeoutMs + "ms", logs: [] })
             }, timeoutMs)
             this.pendingSandbox.set(id, { resolve, timeout })
-            this.sandboxWindow?.postMessage({ args, id, name: definition.name.trim(), source: definition.source }, "*")
+            this.sandboxWindow?.postMessage({ type: "web_native.function.call", args, id, name: definition.name.trim(), source: definition.source }, "*")
           })
         },
 
