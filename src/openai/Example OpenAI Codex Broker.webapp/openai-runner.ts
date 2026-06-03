@@ -48,7 +48,7 @@ const requestedPort = readPort()
 
 const server = serveOpenAIRunner(requestedPort, explicitPort)
 
-const launchUrl = `http://${HOST}:${server.port}/${path.relative(packageRoot, launchPath).split(path.sep).join("/")}?t=${encodeURIComponent(token)}`
+const launchUrl = `http://${HOST}:${server.port}/${path.relative(packageRoot, launchPath).split(path.sep).join("/")}?t=${encodeURIComponent(token)}&state=1`
 if (!explicitPort && server.port !== requestedPort)
   console.warn(`Port ${requestedPort} is in use; using ${server.port}.`)
 console.log(`${launchLabel()}: ${launchUrl}`)

@@ -102,6 +102,35 @@ try {
       Reflect.set(globalThis, "fetch", originalFetch)
     }
   })
+  const staleRunnerSnapshot = await page.evaluate(async () => {
+    const originalFetch = globalThis.fetch
+    let stateCalls = 0
+    try {
+      Reflect.set(globalThis, "fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (String(input).includes("/__web-native-openai/state")) stateCalls += 1
+        return originalFetch(input, init)
+      })
+      history.replaceState(null, "", location.pathname + "?t=stale-runner-token")
+      const reconciler = Reflect.get(globalThis, "reconciler") as {
+        init: () => Promise<void>
+        persistNow: () => Promise<void>
+        stateAvailable: boolean
+        updateField: (field: string, value: string) => void
+      }
+      reconciler.stateAvailable = new URLSearchParams(location.search).get("state") === "1"
+      await reconciler.init()
+      await reconciler.persistNow()
+      reconciler.updateField("productState", "stale runner no probe check")
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      return {
+        saveStatus: document.querySelector("#save-status")?.textContent ?? "",
+        stateAvailable: reconciler.stateAvailable,
+        stateCalls,
+      }
+    } finally {
+      Reflect.set(globalThis, "fetch", originalFetch)
+    }
+  })
 
   const failures = [
     ...(saved.productState !== editedProduct ? ["state file did not persist productState"] : []),
@@ -110,7 +139,10 @@ try {
     ...(snapshot.saveStatus.length === 0 ? ["save status is empty"] : []),
     ...(unavailableSnapshot.stateAvailable === false ? [] : ["405 state response did not disable persistence"]),
     ...(unavailableSnapshot.stateCalls === 1 ? [] : [`disabled persistence still retried state endpoint ${unavailableSnapshot.stateCalls} times`]),
-    ...(unavailableSnapshot.saveStatus.includes("state endpoint unavailable") ? [] : ["405 state response did not update save status"]),
+    ...(unavailableSnapshot.saveStatus.includes("state persistence unavailable") ? [] : ["405 state response did not update save status"]),
+    ...(staleRunnerSnapshot.stateAvailable === false ? [] : ["missing state capability flag did not disable persistence"]),
+    ...(staleRunnerSnapshot.stateCalls === 0 ? [] : [`missing state capability flag still called state endpoint ${staleRunnerSnapshot.stateCalls} times`]),
+    ...(staleRunnerSnapshot.saveStatus.includes("state persistence unavailable") ? [] : ["missing state capability flag did not update save status"]),
     ...(pageErrors.length > 0 ? [`page errors: ${pageErrors.join("\n")}`] : []),
   ]
 
@@ -127,6 +159,9 @@ try {
       "",
       "Unavailable:",
       JSON.stringify(unavailableSnapshot, null, 2),
+      "",
+      "Stale runner:",
+      JSON.stringify(staleRunnerSnapshot, null, 2),
     ].join("\n"))
   }
 

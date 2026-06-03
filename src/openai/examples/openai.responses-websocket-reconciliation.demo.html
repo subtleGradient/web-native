@@ -275,7 +275,7 @@ as openai.responses-websocket-reconciliation.demo.json5.
           <span id="status" class="status" data-state="idle">loading state</span>
           <small id="save-status">not saved yet</small>
         </div>
-        <p class="note">State is saved through the local runner as <code>openai.responses-websocket-reconciliation.demo.json5</code> next to this HTML file. If the page says the state endpoint is unavailable, restart the runner so it picks up the latest dynamic routes.</p>
+        <p class="note">State is saved through the local runner as <code>openai.responses-websocket-reconciliation.demo.json5</code> next to this HTML file. If the page says state persistence is unavailable, restart the runner and use the new launch URL.</p>
       </form>
 
       <section class="loop-grid" aria-label="Reconciliation fields">
@@ -348,7 +348,7 @@ The product state is a Markdown spec for a tiny browser-local notes app.
       const reconciler = {
         runId: 0,
         saveTimer: undefined,
-        stateAvailable: true,
+        stateAvailable: runnerStateEnabled(),
         state: defaultState(),
 
         async init() {
@@ -495,6 +495,10 @@ The product state is a Markdown spec for a tiny browser-local notes app.
         },
 
         async loadState() {
+          if (!this.stateAvailable) {
+            this.saveStatus("state persistence unavailable; restart runner")
+            return
+          }
           try {
             const response = await fetch(stateUrl(), { headers: { "cache-control": "no-store" } })
             if (!response.ok) {
@@ -573,7 +577,7 @@ The product state is a Markdown spec for a tiny browser-local notes app.
           clearTimeout(this.saveTimer)
           const body = await response.text()
           const suffix = body.trim() ? ": " + body.trim() : ""
-          this.saveStatus("state endpoint unavailable; restart runner" + suffix)
+          this.saveStatus("state persistence unavailable; restart runner" + suffix)
         },
 
         fail(message) {
@@ -760,6 +764,10 @@ Return the gap snapshot.`
         if (token) url.searchParams.set("t", token)
         url.searchParams.set("file", location.pathname)
         return url.href
+      }
+
+      function runnerStateEnabled() {
+        return new URLSearchParams(location.search).get("state") === "1"
       }
 
       function eventErrorMessage(event) {
