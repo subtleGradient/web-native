@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "model": "gpt-5.5",
+  "effort": "medium",
+  "thinkingLevel": "medium",
+  "instructions": "You are a concise assistant with access to editable browser-local function tools. Use the functions when they improve confidence. Explain results clearly, and do not claim access to hidden reasoning.",
+  "prompt": "Use the available functions to calculate 17 * 23, make a short number series starting at 4, and analyze this sentence: \"Tools make streaming demos easier to trust.\" Then summarize what you did.",
+  "request": {
+    "model": "gpt-5.5",
+    "thinkingLevel": "medium",
+    "instructions": "You are a concise assistant with access to editable browser-local function tools. Use the functions when they improve confidence. Explain results clearly, and do not claim access to hidden reasoning.",
+    "prompt": "Use the available functions to calculate 17 * 23, make a short number series starting at 4, and analyze this sentence: \"Tools make streaming demos easier to trust.\" Then summarize what you did."
+  },
+  "answer": "Summary of results:\n\n- Calculated `17 * 23` = **391**\n- Made a short number series starting at 4: **4, 5, 6, 7, 8**\n- Analyzed the sentence: “Tools make streaming demos easier to trust.”\n  - Characters: **43**\n  - Words: **7**\n  - Unique words: **7**\n  - Average word length: **5.14**\n\nI used the available functions to perform the arithmetic, generate the number series, and analyze the sentence.",
+  "llmResult": {
+    "text": "Summary of results:\n\n- Calculated `17 * 23` = **391**\n- Made a short number series starting at 4: **4, 5, 6, 7, 8**\n- Analyzed the sentence: “Tools make streaming demos easier to trust.”\n  - Characters: **43**\n  - Words: **7**\n  - Unique words: **7**\n  - Average word length: **5.14**\n\nI used the available functions to perform the arithmetic, generate the number series, and analyze the sentence."
+  },
+  "functions": [
+    {
+      "id": "17dc649d-f6e9-4fd1-83cf-77f2c541beb0",
+      "name": "calculate",
+      "description": "Evaluate a small JavaScript expression for arithmetic, arrays, and Math operations.",
+      "parameters": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"expression\": {\n      \"type\": \"string\",\n      \"description\": \"A JavaScript expression to evaluate.\"\n    }\n  },\n  \"required\": [\n    \"expression\"\n  ],\n  \"additionalProperties\": false\n}",
+      "source": "async function calculate({ expression }) {\n  const value = Function('\"use strict\"; return (' + expression + ')')()\n  return { expression, value }\n}"
+    },
+    {
+      "id": "491b8f3e-9a68-45c5-8e75-da00264bcfd1",
+      "name": "make_series",
+      "description": "Create an arithmetic number series from a start value, count, and step.",
+      "parameters": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"start\": {\n      \"type\": \"number\",\n      \"description\": \"First value.\"\n    },\n    \"count\": {\n      \"type\": \"integer\",\n      \"description\": \"How many values to return.\"\n    },\n    \"step\": {\n      \"type\": \"number\",\n      \"description\": \"Amount added each time.\"\n    }\n  },\n  \"required\": [\n    \"start\",\n    \"count\",\n    \"step\"\n  ],\n  \"additionalProperties\": false\n}",
+      "source": "function make_series({ start, count, step }) {\n  const safeCount = Math.max(0, Math.min(100, Math.trunc(count)))\n  return Array.from({ length: safeCount }, (_value, index) => start + index * step)\n}"
+    },
+    {
+      "id": "67de69d8-43d1-4891-9577-2b363f90300e",
+      "name": "analyze_text",
+      "description": "Count characters, words, unique words, and average word length in text.",
+      "parameters": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"text\": {\n      \"type\": \"string\",\n      \"description\": \"Text to analyze.\"\n    }\n  },\n  \"required\": [\n    \"text\"\n  ],\n  \"additionalProperties\": false\n}",
+      "source": "function analyze_text({ text }) {\n  const words = String(text).trim().split(/\\s+/).filter(Boolean)\n  const normalized = words.map((word) => word.toLowerCase().replace(/[^a-z0-9]/g, \"\")).filter(Boolean)\n  const totalLetters = normalized.reduce((sum, word) => sum + word.length, 0)\n  return {\n    characters: [...String(text)].length,\n    words: words.length,\n    uniqueWords: new Set(normalized).size,\n    averageWordLength: normalized.length === 0 ? 0 : Number((totalLetters / normalized.length).toFixed(2)),\n  }\n}"
+    }
+  ],
+  "updatedAt": "2026-06-05T23:04:31.967Z"
+}
