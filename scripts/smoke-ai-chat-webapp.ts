@@ -7,8 +7,10 @@ const port = Number(process.env.PORT ?? "4182")
 const timeoutMs = Number(process.env.TEST_TIMEOUT ?? "20000")
 const runnerPath = process.env.WEB_NATIVE_AI_CHAT_RUNNER
 const launchPath = process.env.WEB_NATIVE_AI_CHAT_LAUNCH ?? "index.html"
+const verifyWarningLogs = process.env.WEB_NATIVE_AI_CHAT_VERIFY_WARNING_LOGS === "1"
 
 let runner: ReturnType<typeof Bun.spawn> | undefined
+const stderrChunks: string[] = []
 
 try {
   runner = Bun.spawn({
@@ -18,7 +20,7 @@ try {
     stderr: "pipe",
     stdout: "pipe",
   })
-  const stderr = collectStream(readablePipe(runner.stderr, "runner stderr"))
+  const stderr = collectStream(readablePipe(runner.stderr, "runner stderr"), stderrChunks)
   const launchUrl = await waitForLaunchUrl(readablePipe(runner.stdout, "runner stdout"))
   const parsedLaunchUrl = new URL(launchUrl)
   const expectedPathname = `/${path.basename(appPath)}/index.html`
@@ -35,10 +37,11 @@ try {
   if (!token) throw new Error("launch URL did not include runner token")
   const referencePath = firstEnclosurePath(html) ?? "../chat.web/README.md"
   await verifyFileStatus(referencePath, token)
+  if (verifyWarningLogs) await verifyMissingFileWarningLog(launchUrl)
 
   const stderrText = await Promise.race([
     stderr,
-    new Promise<string>((resolve) => setTimeout(() => resolve(""), 50)),
+    new Promise<string>((resolve) => setTimeout(() => resolve(stderrChunks.join("")), 50)),
   ])
   if (stderrText.trim()) console.warn(stderrText.trim())
   console.log(`AI chat webapp smoke verified: ${appPath}`)
@@ -56,6 +59,23 @@ async function verifyFileStatus(referencePath: string, token: string) {
     throw new Error(`file-status failed: HTTP ${statusResponse.status}`)
   const status = await statusResponse.json() as { exists?: unknown; path?: unknown }
   if (status.exists !== true) throw new Error(`referenced file was unavailable for ${referencePath}: ${JSON.stringify(status)}`)
+}
+
+async function verifyMissingFileWarningLog(launchUrl: string) {
+  const missingUrl = new URL("./__missing-chat-runner-smoke__.js", launchUrl)
+  const response = await fetch(missingUrl)
+  if (response.status !== 404)
+    throw new Error(`missing file smoke expected HTTP 404, got HTTP ${response.status}`)
+  await waitForLog("Public file was not found")
+}
+
+async function waitForLog(text: string) {
+  const started = Date.now()
+  while (Date.now() - started < timeoutMs) {
+    if (stderrChunks.join("").includes(text)) return
+    await new Promise((resolve) => setTimeout(resolve, 25))
+  }
+  throw new Error(`runner did not log ${JSON.stringify(text)} within ${timeoutMs}ms. Stderr: ${stderrChunks.join("")}`)
 }
 
 function firstEnclosurePath(html: string) {
@@ -116,15 +136,19 @@ async function waitForLaunchUrl(stream: ReadableStream<Uint8Array>) {
   throw new Error(`runner did not print a launch URL within ${timeoutMs}ms. Output: ${output}`)
 }
 
-async function collectStream(stream: ReadableStream<Uint8Array>) {
+async function collectStream(stream: ReadableStream<Uint8Array>, chunks: string[] = []) {
   const decoder = new TextDecoder()
   const reader = stream.getReader()
   let output = ""
   while (true) {
     const { done, value } = await reader.read()
     if (done) break
-    output += decoder.decode(value, { stream: true })
+    const text = decoder.decode(value, { stream: true })
+    chunks.push(text)
+    output += text
   }
-  output += decoder.decode()
+  const rest = decoder.decode()
+  if (rest) chunks.push(rest)
+  output += rest
   return output
 }
