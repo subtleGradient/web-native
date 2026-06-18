@@ -4,7 +4,8 @@ import { expect } from "chai"
 import "./define.js"
 
 const html = String.raw
-const mockCdnBase = `data:text/javascript;charset=utf-8,${encodeURIComponent(String.raw`
+const js = String.raw
+const mockCdnBase = `data:text/javascript;charset=utf-8,${encodeURIComponent(js`
 class TextDoc {
   constructor(text) {
     this.text = String(text ?? "")

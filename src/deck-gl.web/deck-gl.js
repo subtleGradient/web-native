@@ -8,6 +8,7 @@
 /** @typedef {{ eventType?: string, info?: unknown, object?: unknown }} DeckDetailsValue */
 
 const invalidAttributeValue = Symbol("invalid-attribute-value")
+const css = String.raw
 
 /** @type {DeckEventCallback[]} */
 const deckEventCallbacks = [
@@ -63,7 +64,7 @@ const detailsPanelInlineEventAttributeNames = inlineEventAttributes
 /** @type {WeakMap<Element, Map<string, (event: Event) => unknown>>} */
 const inlineEventHandlerCache = new WeakMap()
 
-const deckGlStyles = String.raw`
+const deckGlStyles = css`
   :host {
     display: block;
     min-height: 240px;
@@ -78,7 +79,7 @@ const deckGlStyles = String.raw`
   }
 `
 
-const layerListStyles = String.raw`
+const layerListStyles = css`
   :host {
     display: block;
   }
@@ -148,7 +149,7 @@ const layerListStyles = String.raw`
   }
 `
 
-const detailsPanelStyles = String.raw`
+const detailsPanelStyles = css`
   :host {
     display: block;
   }

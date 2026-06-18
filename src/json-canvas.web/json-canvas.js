@@ -16,8 +16,9 @@ const edgeTagName = "json-canvas-edge"
 const wireTagName = "noodle-wire"
 const nodeDragDataType = "application/x.web-native-json-canvas-node+json"
 const invalidAttributeValue = Symbol("invalid-attribute-value")
+const css = String.raw
 
-const canvasStyles = String.raw`
+const canvasStyles = css`
   :host {
     --json-canvas-padding: 48px;
     --json-canvas-width: 100%;
@@ -69,7 +70,7 @@ const canvasStyles = String.raw`
   }
 `
 
-const nodeStyles = String.raw`
+const nodeStyles = css`
   :host {
     --json-canvas-node-accent: color-mix(in oklch, Highlight 76%, CanvasText 8%);
     box-sizing: border-box;
@@ -299,7 +300,7 @@ const nodeStyles = String.raw`
   }
 `
 
-const wireStyles = String.raw`
+const wireStyles = css`
   :host {
     --json-canvas-edge-color: color-mix(in oklch, CanvasText 72%, transparent);
     --json-canvas-edge-width: 2.5;
