@@ -374,6 +374,73 @@ describe("openai browser client", () => {
     expect(statuses.at(-1)).to.deep.equal({ busy: false, pending: 0 })
   })
 
+  it("continues a semantic chat through ai-chat-app without page-local controller code", async () => {
+    const originalFetch = globalThis.fetch
+    /** @type {string[]} */
+    const saves = []
+    /** @type {string[]} */
+    const responds = []
+    /**
+     * @param {Parameters<typeof fetch>[0]} input
+     * @param {Parameters<typeof fetch>[1]} init
+     */
+    const mockFetch = async (input, init) => {
+      const url = new URL(String(input), location.href)
+      if (url.pathname === "/__ai-chat/file-status") {
+        return new Response(JSON.stringify({
+          exists: true,
+          bytes: 321,
+          sha256: "abcdef1234567890",
+        }), { headers: { "content-type": "application/json" } })
+      }
+      if (url.pathname === "/__ai-chat/save-source") {
+        saves.push(String(init?.body))
+        return new Response(JSON.stringify({ ok: true }), { headers: { "content-type": "application/json" } })
+      }
+      if (url.pathname === "/__ai-chat/respond") {
+        responds.push(String(init?.body))
+        return new Response("Assistant response")
+      }
+      throw new Error(`Unexpected fetch: ${url.pathname}`)
+    }
+    Reflect.set(globalThis, "fetch", mockFetch)
+
+    try {
+      const root = mount(html`
+        <ai-chat-app transcript="thread" model="gpt-test" transport-label="test-broker">
+          <topic-transcript id="thread" editable>
+            <chat-message id="msg-1" data-role="user"><pre>Hello</pre></chat-message>
+            <chat-file-reference data-for="msg-1" data-path="../../chat.web/README.md">README</chat-file-reference>
+          </topic-transcript>
+          <chat-composer></chat-composer>
+          <chat-message-editor></chat-message-editor>
+        </ai-chat-app>
+      `)
+      const composer = /** @type {import("../chat.web/chat.js").ChatComposer} */ (root.querySelector("chat-composer"))
+
+      await customElements.whenDefined("ai-chat-app")
+      await waitFor(() => root.querySelector("chat-file-reference")?.getAttribute("data-status") === "available")
+
+      const textarea = /** @type {HTMLTextAreaElement} */ (composer.shadowRoot?.querySelector("textarea"))
+      textarea.value = "Next question"
+      textarea.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", metaKey: true, bubbles: true }))
+
+      await waitFor(() => root.querySelectorAll("chat-message").length === 3)
+      await waitFor(() => root.querySelectorAll("chat-message")[2]?.querySelector("pre")?.textContent === "Assistant response")
+
+      expect(responds).to.have.length(1)
+      expect(responds[0]).to.include("<pre>Next question</pre>")
+      expect(responds[0]).to.not.include("Assistant response")
+      expect(saves.at(-1)).to.include("<pre>Assistant response</pre>")
+      expect(saves.at(-1)).to.not.include("data-current-bytes")
+      expect(saves.at(-1)).to.not.include("data-current-sha256")
+      expect(saves.at(-1)).to.not.include("data-status")
+      expect(composer.status).to.equal("Saved")
+    } finally {
+      Reflect.set(globalThis, "fetch", originalFetch)
+    }
+  })
+
   it("extracts output text from common streamed and JSON response shapes", () => {
     expect(extractOutputText([
       'data: {"type":"response.output_text.delta","delta":"a"}',
@@ -429,6 +496,17 @@ function mount(markup) {
 async function flushMicrotasks() {
   await Promise.resolve()
   await Promise.resolve()
+}
+
+/**
+ * @param {() => boolean} condition
+ */
+async function waitFor(condition) {
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    if (condition()) return
+    await new Promise((resolve) => requestAnimationFrame(resolve))
+  }
+  throw new Error("Timed out waiting for condition.")
 }
 
 /**
