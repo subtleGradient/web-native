@@ -43,6 +43,7 @@ const CHAT_SOURCE_END = "<!-- CHAT_SOURCE_END -->"
 const launchPath = resolveLaunchPath(process.argv[2] ?? DEFAULT_DEMO_PATH)
 const appRoot = path.dirname(launchPath)
 const packageRoot = findWorkspaceRoot(appRoot) ?? appRoot
+const referenceRoots = allowedReferenceRoots()
 const sourcePath = launchPath
 const token = crypto.randomUUID()
 const explicitPort =
@@ -464,15 +465,40 @@ function resolveAllowedFile(input: string) {
   const resolved = path.isAbsolute(input)
     ? path.resolve(input)
     : path.resolve(appRoot, input)
-  const relative = path.relative(packageRoot, resolved)
-  if (relative === "" || relative.startsWith("..") || path.isAbsolute(relative))
-    return undefined
-  const segments = relative.split(path.sep)
+  if (!referenceRoots.some((root) => containsPath(root, resolved))) return undefined
+  const segments = resolved.split(path.sep)
   if (segments.includes(".git") || segments.includes("node_modules"))
     return undefined
   if (path.basename(resolved).startsWith(".env"))
     return undefined
   return resolved
+}
+
+function allowedReferenceRoots() {
+  return uniquePaths([
+    packageRoot,
+    path.resolve(appRoot, "../../../.."),
+    ...envReferenceRoots(),
+  ])
+}
+
+function envReferenceRoots() {
+  const raw = process.env.WEB_NATIVE_AI_CHAT_REFERENCE_ROOTS ?? process.env.WEB_NATIVE_OPENAI_CHAT_REFERENCE_ROOTS
+  if (!raw) return []
+  return raw
+    .split(path.delimiter)
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map((part) => path.resolve(part))
+}
+
+function uniquePaths(values: string[]) {
+  return Array.from(new Set(values.map((value) => path.resolve(value))))
+}
+
+function containsPath(root: string, filePath: string) {
+  const relative = path.relative(root, filePath)
+  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative))
 }
 
 function resolveLaunchPath(input: string) {
