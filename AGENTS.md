@@ -1,5 +1,9 @@
 # Agent Notes
 
+## String.raw Aliases
+
+As a general rule, prefer named aliases like `const html = String.raw` over using `String.raw` directly. This lets IDEs apply language-aware features to tagged template literals for free.
+
 ## UI Directionality
 
 UI should point at domain models, not the other way around. Prefer markup that names the domain action directly, such as inline event handlers calling a domain object method, over wiring behavior from the model or controller back into the UI with `addEventListener`.
