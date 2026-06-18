@@ -5,12 +5,14 @@ const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)))
 const appPath = path.resolve(Bun.argv[2] ?? path.join(root, "src/ai-example.chat.webapp"))
 const port = Number(process.env.PORT ?? "4182")
 const timeoutMs = Number(process.env.TEST_TIMEOUT ?? "20000")
+const runnerPath = process.env.WEB_NATIVE_AI_CHAT_RUNNER
+const launchPath = process.env.WEB_NATIVE_AI_CHAT_LAUNCH ?? "index.html"
 
 let runner: ReturnType<typeof Bun.spawn> | undefined
 
 try {
   runner = Bun.spawn({
-    cmd: ["bun", "dev"],
+    cmd: runnerPath ? ["bun", runnerPath, launchPath] : ["bun", "dev"],
     cwd: appPath,
     env: { ...process.env, PORT: String(port) },
     stderr: "pipe",
@@ -27,6 +29,7 @@ try {
   const html = await page.text()
   if (!html.includes("<topic-transcript")) throw new Error("chat transcript was not served")
   if (!html.includes("<ai-chat-app")) throw new Error("ai-chat-app markup was not served")
+  await verifyLocalModuleScripts(html, launchUrl)
 
   const token = parsedLaunchUrl.searchParams.get("t")
   if (!token) throw new Error("launch URL did not include runner token")
@@ -58,6 +61,30 @@ async function verifyFileStatus(referencePath: string, token: string) {
 function firstEnclosurePath(html: string) {
   const match = html.match(/<a\b(?=[^>]*\brel\s*=\s*(?:"[^"]*\benclosure\b[^"]*"|'[^']*\benclosure\b[^']*'|[^\s"'=<>`]*\benclosure\b[^\s"'=<>`]*))[^>]*\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/i)
   return decodeHtml(match?.[1] ?? match?.[2] ?? match?.[3] ?? "") || undefined
+}
+
+async function verifyLocalModuleScripts(html: string, launchUrl: string) {
+  const launch = new URL(launchUrl)
+  for (const src of moduleScriptSources(html)) {
+    const scriptUrl = new URL(src, launch)
+    if (scriptUrl.origin !== launch.origin) continue
+    const response = await fetch(scriptUrl)
+    if (!response.ok)
+      throw new Error(`module script failed: ${scriptUrl.href} HTTP ${response.status}`)
+    const source = await response.text()
+    if (!source.trim()) throw new Error(`module script was empty: ${scriptUrl.href}`)
+  }
+}
+
+function moduleScriptSources(html: string) {
+  const sources: string[] = []
+  const pattern = /<script\b(?=[^>]*\btype\s*=\s*(?:"module"|'module'|module))[^>]*\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/gi
+  let match: RegExpExecArray | null
+  while ((match = pattern.exec(html)) !== null) {
+    const src = decodeHtml(match[1] ?? match[2] ?? match[3] ?? "")
+    if (src) sources.push(src)
+  }
+  return sources
 }
 
 function decodeHtml(value: string) {

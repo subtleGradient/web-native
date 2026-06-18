@@ -28,6 +28,13 @@ type FileReference = {
   path: string
 }
 
+type PublicPathLookup = {
+  attempts: string[]
+  decoded?: string
+  filePath?: string
+  reason?: string
+}
+
 const HOST = "localhost"
 const DEFAULT_PORT = 4175
 const DEFAULT_DEMO_PATH = "index.html"
@@ -85,7 +92,9 @@ function serveOpenAIRunner(requestedPort: number, fixedPort: boolean) {
         fetch: handleFetch,
       })
     } catch (error) {
-      if (!isAddressInUse(error) || fixedPort) throw error
+      if (!isAddressInUse(error)) throw error
+      logWarn("Port is unavailable", { fixedPort, port })
+      if (fixedPort) throw error
     }
   }
   throw new Error(
@@ -95,26 +104,46 @@ function serveOpenAIRunner(requestedPort: number, fixedPort: boolean) {
 
 async function handleFetch(request: Request) {
   const url = new URL(request.url)
+  try {
+    return await handleFetchUnsafe(request, url)
+  } catch (error) {
+    logError("Unhandled request error", {
+      ...requestLogContext(request, url),
+      ...errorLogContext(error),
+    })
+    return new Response("Internal server error", { status: 500 })
+  }
+}
 
+async function handleFetchUnsafe(request: Request, url: URL) {
   if (url.pathname === "/favicon.ico")
     return new Response(null, { status: 204 })
 
   if (url.pathname.startsWith("/__ai-chat/")) {
     if (!authorized(request, url))
-      return new Response("Forbidden", { status: 403 })
+      return forbidden("Unauthorized AI chat request", request, url)
     if (url.pathname === "/__ai-chat/save-source")
       return handleSaveSource(request)
     if (url.pathname === "/__ai-chat/respond")
       return handleRespond(request)
     if (url.pathname === "/__ai-chat/file-status")
       return handleFileStatus(url)
-    return new Response("Not found", { status: 404 })
+    return notFound("Unknown AI chat endpoint", request, url)
   }
 
-  const filePath = resolvePublicPath(url.pathname)
-  if (!filePath) return new Response("Not found", { status: 404 })
+  const lookup = lookupPublicPath(url.pathname)
+  const filePath = lookup.filePath
+  if (!filePath)
+    return notFound("Public file was not found", request, url, {
+      attempts: lookup.attempts,
+      decoded: lookup.decoded,
+      reason: lookup.reason,
+    })
   const file = Bun.file(filePath)
-  if (!(await file.exists())) return new Response("Not found", { status: 404 })
+  if (!(await file.exists()))
+    return notFound("Public file disappeared before it could be served", request, url, {
+      filePath,
+    })
   const type = contentType(filePath)
   if (type.startsWith("text/html")) {
     if (url.searchParams.get("t") !== token)
@@ -138,17 +167,25 @@ async function handleFetch(request: Request) {
 
 async function handleSaveSource(request: Request) {
   if (request.method !== "POST")
-    return new Response("Method not allowed", { status: 405 })
+    return methodNotAllowed("save-source requires POST", request)
 
   const source = (await request.text()).trim()
   if (!source.startsWith("<topic-transcript") || !source.includes("</topic-transcript>"))
-    return new Response("Expected topic-transcript HTML.", { status: 400 })
+    return badRequest("save-source expected topic-transcript HTML", {
+      bytes: source.length,
+    })
 
   const html = await readFile(sourcePath, "utf8")
   const startIndex = html.indexOf(CHAT_SOURCE_START)
   const endIndex = html.indexOf(CHAT_SOURCE_END)
-  if (startIndex === -1 || endIndex === -1 || endIndex < startIndex)
+  if (startIndex === -1 || endIndex === -1 || endIndex < startIndex) {
+    logError("Chat source markers were not found", {
+      sourcePath,
+      hasEndMarker: endIndex !== -1,
+      hasStartMarker: startIndex !== -1,
+    })
     return new Response("Chat source markers were not found.", { status: 500 })
+  }
 
   const before = html.slice(0, startIndex + CHAT_SOURCE_START.length)
   const after = html.slice(endIndex)
@@ -161,12 +198,14 @@ async function handleSaveSource(request: Request) {
 
 async function handleRespond(request: Request) {
   if (request.method !== "POST")
-    return new Response("Method not allowed", { status: 405 })
+    return methodNotAllowed("respond requires POST", request)
 
   const source = await request.text()
   const parsed = await parseTranscriptForPrompt(source)
-  if (parsed.messages.length === 0)
+  if (parsed.messages.length === 0) {
+    logWarn("respond could not find chat messages", { bytes: source.length })
     return new Response("No chat messages found.", { status: 400 })
+  }
 
   const requestBody = {
     model: DEFAULT_MODEL,
@@ -188,12 +227,19 @@ async function handleRespond(request: Request) {
   }
 
   const upstream = await fetchResponses(requestBody)
-  if (!upstream.ok)
-    return new Response(await upstream.text(), {
+  if (!upstream.ok) {
+    const body = await upstream.text()
+    logError("Upstream response failed", {
+      bodyPreview: body.slice(0, 1000),
+      status: upstream.status,
+      statusText: upstream.statusText,
+    })
+    return new Response(body, {
       status: upstream.status,
       statusText: upstream.statusText,
       headers: { "content-type": "text/plain; charset=utf-8" },
     })
+  }
 
   return new Response(streamPlainTextDeltas(upstream), {
     headers: {
@@ -205,14 +251,24 @@ async function handleRespond(request: Request) {
 
 async function handleFileStatus(url: URL) {
   const requestedPath = url.searchParams.get("path")
-  if (!requestedPath)
+  if (!requestedPath) {
+    logWarn("file-status missing path", { pathname: url.pathname })
     return json({ exists: false, error: "path is required" }, 400)
+  }
   const resolved = resolveAllowedFile(requestedPath)
-  if (!resolved)
+  if (!resolved) {
+    logWarn("file-status path is outside allowed roots", {
+      allowedRoots: referenceRoots,
+      requestedPath,
+    })
     return json({ exists: false, error: "path is not allowed" }, 403)
+  }
   try {
     const info = await stat(resolved)
-    if (!info.isFile()) return json({ exists: false, error: "not a file" })
+    if (!info.isFile()) {
+      logWarn("file-status path is not a file", { requestedPath, resolved })
+      return json({ exists: false, error: "not a file" })
+    }
     const bytes = await readFile(resolved)
     return json({
       exists: true,
@@ -220,7 +276,12 @@ async function handleFileStatus(url: URL) {
       path: resolved,
       sha256: createHash("sha256").update(bytes).digest("hex"),
     })
-  } catch {
+  } catch (error) {
+    logWarn("file-status file does not exist", {
+      ...errorLogContext(error),
+      requestedPath,
+      resolved,
+    })
     return json({ exists: false })
   }
 }
@@ -324,6 +385,11 @@ async function expandReferences(references: FileReference[]) {
   for (const reference of references) {
     const resolved = resolveAllowedFile(reference.path)
     if (!resolved) {
+      logWarn("Referenced file is outside allowed roots", {
+        allowedRoots: referenceRoots,
+        label: reference.label,
+        path: reference.path,
+      })
       sections.push(`Referenced file unavailable: ${reference.label}\nPath: ${reference.path}\nReason: path is outside the allowed repo root.`)
       continue
     }
@@ -342,6 +408,12 @@ async function expandReferences(references: FileReference[]) {
         "```",
       ].filter(Boolean).join("\n"))
     } catch (error) {
+      logWarn("Referenced file could not be read", {
+        ...errorLogContext(error),
+        label: reference.label,
+        path: reference.path,
+        resolved,
+      })
       sections.push(`Referenced file unavailable: ${reference.label}\nPath: ${reference.path}\nReason: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
@@ -463,9 +535,8 @@ function textFromResponseObject(response: unknown) {
 }
 
 function resolveAllowedFile(input: string) {
-  const resolved = path.isAbsolute(input)
-    ? path.resolve(input)
-    : path.resolve(appRoot, input)
+  const resolved = resolveReferenceFilePath(input)
+  if (!resolved) return undefined
   if (!referenceRoots.some((root) => containsPath(root, resolved))) return undefined
   const segments = resolved.split(path.sep)
   if (segments.includes(".git") || segments.includes("node_modules"))
@@ -473,6 +544,34 @@ function resolveAllowedFile(input: string) {
   if (path.basename(resolved).startsWith(".env"))
     return undefined
   return resolved
+}
+
+function resolveReferenceFilePath(input: string) {
+  const url = parseUrl(input)
+  if (url) return resolveReferenceUrlFile(url)
+  if (input.startsWith("/")) {
+    const publicFile = resolvePublicPath(input)
+    if (publicFile) return publicFile
+  }
+  return path.isAbsolute(input)
+    ? path.resolve(input)
+    : path.resolve(appRoot, input)
+}
+
+function parseUrl(input: string) {
+  try {
+    return new URL(input)
+  } catch {
+    return undefined
+  }
+}
+
+function resolveReferenceUrlFile(url: URL) {
+  if (url.protocol === "file:") return fileURLToPath(url)
+  if (url.protocol !== "https:" && url.protocol !== "http:") return undefined
+  const match = url.href.match(/^https:\/\/cdn\.jsdelivr\.net\/gh\/subtleGradient\/web-native@[^/]+\/(.+)$/)
+  if (!match) return undefined
+  return resolvePublicPath(`/${match[1]}`)
 }
 
 function allowedReferenceRoots() {
@@ -520,19 +619,34 @@ function publicUrlPath(filePath: string) {
 }
 
 function resolvePublicPath(pathname: string) {
+  return lookupPublicPath(pathname).filePath
+}
+
+function lookupPublicPath(pathname: string): PublicPathLookup {
   let decoded: string
   try {
     decoded = decodeURIComponent(pathname)
   } catch {
-    return undefined
+    return { attempts: [], reason: "pathname could not be decoded" }
   }
   if (decoded === "/")
     decoded = `/${path.relative(publicRoot, launchPath).split(path.sep).join("/")}`
-  return (
-    resolvePublicRootPath(publicRoot, decoded) ??
-    (decoded.startsWith("/src/")
-      ? resolvePublicRootPath(packageRoot, decoded)
-      : undefined)
+
+  const attempts: string[] = []
+  for (const root of publicRootsForPath(decoded)) {
+    const filePath = resolvePublicRootPath(root, decoded)
+    if (!filePath) continue
+    attempts.push(filePath)
+    if (existsSync(filePath)) return { attempts, decoded, filePath }
+  }
+  return { attempts, decoded, reason: "no candidate file exists" }
+}
+
+function publicRootsForPath(decodedPathname: string) {
+  return uniquePaths(
+    decodedPathname.startsWith("/src/")
+      ? [packageRoot, publicRoot]
+      : [publicRoot],
   )
 }
 
@@ -696,6 +810,70 @@ function json(value: unknown, status = 200) {
       "content-type": "application/json; charset=utf-8",
     },
   })
+}
+
+function notFound(
+  message: string,
+  request: Request,
+  url: URL,
+  context: Record<string, unknown> = {},
+) {
+  logWarn(message, { ...requestLogContext(request, url), ...context })
+  return new Response("Not found", { status: 404 })
+}
+
+function forbidden(message: string, request: Request, url: URL) {
+  logWarn(message, requestLogContext(request, url))
+  return new Response("Forbidden", { status: 403 })
+}
+
+function methodNotAllowed(message: string, request: Request) {
+  const url = new URL(request.url)
+  logWarn(message, requestLogContext(request, url))
+  return new Response("Method not allowed", { status: 405 })
+}
+
+function badRequest(message: string, context: Record<string, unknown> = {}) {
+  logWarn(message, context)
+  return new Response(message, { status: 400 })
+}
+
+function requestLogContext(request: Request, url: URL) {
+  return {
+    hasTokenParam: url.searchParams.has("t"),
+    method: request.method,
+    pathname: url.pathname,
+  }
+}
+
+function logWarn(message: string, context: Record<string, unknown> = {}) {
+  console.warn(formatLog("warn", message, context))
+}
+
+function logError(message: string, context: Record<string, unknown> = {}) {
+  console.error(formatLog("error", message, context))
+}
+
+function formatLog(
+  level: "error" | "warn",
+  message: string,
+  context: Record<string, unknown>,
+) {
+  const details = JSON.stringify(context, (_key, value) => {
+    if (typeof value === "bigint") return value.toString()
+    if (value instanceof Error) return errorLogContext(value)
+    return value
+  })
+  return `[web-native-ai-chat] ${level}: ${message}${details === "{}" ? "" : ` ${details}`}`
+}
+
+function errorLogContext(error: unknown) {
+  if (error instanceof Error)
+    return {
+      error: error.message,
+      stack: error.stack,
+    }
+  return { error: String(error) }
 }
 
 function contentType(filePath: string) {
