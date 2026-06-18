@@ -16,7 +16,7 @@ type OpenAIOAuth = {
 
 const HOST = "localhost"
 const DEFAULT_PORT = 4174
-const DEFAULT_DEMO_PATH = "../openai.web/examples/index.html"
+const DEFAULT_DEMO_PATH = "../ai.web/examples/index.html"
 const OPENAI_API_BASE_URL = "https://api.openai.com/v1"
 const OPENAI_RESPONSES_WS_URL = "wss://api.openai.com/v1/responses"
 const CODEX_RESPONSES_URL = "https://chatgpt.com/backend-api/codex/responses"
@@ -93,7 +93,7 @@ function serveOpenAIRunner(requestedPort: number, fixedPort: boolean) {
 
 function launchLabel() {
   return path.basename(launchPath) === "index.html"
-    ? "OpenAI demos"
+    ? "AI demos"
     : path.basename(launchPath)
 }
 
@@ -523,7 +523,7 @@ async function codexHeaders() {
   const headers: Record<string, string> = {
     authorization: `Bearer ${accessToken}`,
     "content-type": "application/json",
-    "user-agent": "web-native-openai",
+    "user-agent": "web-native-ai-broker",
   }
   if (auth.accountId) headers["ChatGPT-Account-Id"] = auth.accountId
   return headers

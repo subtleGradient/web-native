@@ -267,7 +267,7 @@ describe("openai browser client", () => {
       </form>
       <openai-result for="ai"></openai-result>
     `)
-    const controller = /** @type {import("./openai.js").OpenAIClientElement} */ (root.querySelector("openai-client"))
+    const controller = /** @type {import("./ai.js").OpenAIClientElement} */ (root.querySelector("openai-client"))
     controller.apiKey = "sk-test"
     controller.client.fetchFn = async (_input, init) => {
       bodies.push(JSON.parse(String(init?.body)))
@@ -342,7 +342,7 @@ describe("openai browser client", () => {
         <textarea name="include">["web_search_call.action.sources"]</textarea>
       </form>
     `)
-    const controller = /** @type {import("./openai.js").OpenAIClientElement} */ (root.querySelector("openai-client"))
+    const controller = /** @type {import("./ai.js").OpenAIClientElement} */ (root.querySelector("openai-client"))
     controller.apiKey = "sk-test"
     controller.client.fetchFn = async (_input, init) => {
       bodies.push(JSON.parse(String(init?.body)))
@@ -366,7 +366,7 @@ describe("openai browser client", () => {
 
   it("does not rebuild the OpenAI client when only the model attribute changes", () => {
     const root = mount(html`<openai-client id="ai" model="gpt-first"></openai-client>`)
-    const controller = /** @type {import("./openai.js").OpenAIClientElement} */ (root.querySelector("openai-client"))
+    const controller = /** @type {import("./ai.js").OpenAIClientElement} */ (root.querySelector("openai-client"))
     const fetchFn = async () => new Response(JSON.stringify({ output_text: "ok" }), { status: 200 })
     controller.client.fetchFn = fetchFn
     controller.client.auth = { type: "api-key", apiKey: "sk-test", organization: "org-test", project: "proj-test" }
@@ -391,7 +391,7 @@ describe("openai browser client", () => {
       <form id="first" onsubmit="ai.respond(event)"><textarea name="prompt">first</textarea></form>
       <form id="second" onsubmit="ai.respond(event)"><textarea name="prompt">second</textarea></form>
     `)
-    const controller = /** @type {import("./openai.js").OpenAIClientElement} */ (root.querySelector("openai-client"))
+    const controller = /** @type {import("./ai.js").OpenAIClientElement} */ (root.querySelector("openai-client"))
     controller.apiKey = "sk-test"
     controller.client.fetchFn = async (_input, init) => new Promise((resolve) => {
       pending.push({ body: /** @type {Record<string, unknown>} */ (JSON.parse(String(init?.body))), resolve })
@@ -557,7 +557,7 @@ describe("openai browser client", () => {
     const originalUrl = location.href
     /** @type {string[]} */
     const saveUrls = []
-    history.pushState(null, "", "/src/openai-example.chat.webapp/index.html?t=stale")
+    history.pushState(null, "", "/src/ai-example.chat.webapp/index.html?t=stale")
     /**
      * @param {Parameters<typeof fetch>[0]} input
      * @param {Parameters<typeof fetch>[1]} init
@@ -573,7 +573,7 @@ describe("openai browser client", () => {
           headers: { "content-type": "application/json" },
         })
       }
-      if (url.pathname === "/src/openai-example.chat.webapp/index.html") {
+      if (url.pathname === "/src/ai-example.chat.webapp/index.html") {
         return new Response("<!doctype html>", {
           headers: { "x-web-native-ai-chat-token": "fresh" },
         })

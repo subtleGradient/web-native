@@ -1,11 +1,11 @@
 <!doctype html>
 <!--
 Run this demo with the Codex broker
-These demos are hard-coded to the local Codex broker exposed by openai-runner.
+These demos are hard-coded to the local Codex broker exposed by broker-runner.
 GitHub:
-bunx --bun -p https://github.com/subtleGradient/web-native/archive/refs/heads/main.tar.gz web-native-openai src/openai/examples/openai.text-stream.demo.html
+bunx --bun -p https://github.com/subtleGradient/web-native/archive/refs/heads/main.tar.gz web-native-ai-broker src/ai.web/examples/ai.text.demo.html
 Local checkout:
-bun "./src/openai/Example OpenAI Codex Broker.webapp/openai-runner.ts" src/openai/examples/openai.text-stream.demo.html
+bun "./src/ai-broker.webapp/broker-runner.ts" src/ai.web/examples/ai.text.demo.html
 
 Security: only run demos you trust. This page sends requests through the runner's local Codex broker.
 -->
@@ -15,23 +15,24 @@ Security: only run demos you trust. This page sends requests through the runner'
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
     <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="./openai.demo.css" />
-    <title>OpenAI streaming text demo</title>
+    <link rel="stylesheet" href="./ai.demo.css" />
+    <title>OpenAI text demo</title>
     <script type="module" src="../define.js"></script>
-    <script type="module" src="./openai.demo.js"></script>
+    <script type="module" src="./ai.demo.js"></script>
   </head>
   <body>
     <main>
-      <a class="back" data-preserve-search href="./index.html">← All OpenAI demos</a>
+      <a class="back" data-preserve-search href="./index.html">← All AI demos</a>
       <header>
-        <h1>Streaming text</h1>
-        <p>Send instructions and a prompt to the Responses API, rendering text deltas as they arrive.</p>
+        <h1>Text</h1>
+        <p>Send instructions and a prompt to the Responses API.</p>
       </header>
 
       <openai-client id="ai" model="gpt-5.5" transport="codex-broker"></openai-client>
 
-      <form class="panel" onsubmit="ai.respondStreaming(event)">
+      <form class="panel" onsubmit="ai.respond(event)">
         <h2>Request</h2>
+        <input type="hidden" name="stream" value="false" />
         <label>Model<input name="model" value="gpt-5.5" autocomplete="off" /></label>
         <label>
           Thinking level

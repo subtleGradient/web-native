@@ -1,11 +1,11 @@
 <!doctype html>
 <!--
 Run this demo with the Codex broker
-These demos are hard-coded to the local Codex broker exposed by openai-runner.
+These demos are hard-coded to the local Codex broker exposed by broker-runner.
 GitHub:
-bunx --bun -p https://github.com/subtleGradient/web-native/archive/refs/heads/main.tar.gz web-native-openai src/openai.web/examples/openai.image.demo.html
+bunx --bun -p https://github.com/subtleGradient/web-native/archive/refs/heads/main.tar.gz web-native-ai-broker src/ai.web/examples/ai.image.demo.html
 Local checkout:
-bun "./src/openai-codex-broker.webapp/openai-runner.ts" src/openai.web/examples/openai.image.demo.html
+bun "./src/ai-broker.webapp/broker-runner.ts" src/ai.web/examples/ai.image.demo.html
 
 Security: only run demos you trust. This page sends requests through the runner's local Codex broker.
 -->
@@ -15,14 +15,14 @@ Security: only run demos you trust. This page sends requests through the runner'
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
     <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="./openai.demo.css" />
+    <link rel="stylesheet" href="./ai.demo.css" />
     <title>OpenAI image demo</title>
     <script type="module" src="../define.js"></script>
-    <script type="module" src="./openai.demo.js"></script>
+    <script type="module" src="./ai.demo.js"></script>
   </head>
   <body>
     <main>
-      <a class="back" data-preserve-search href="./index.html">← All OpenAI demos</a>
+      <a class="back" data-preserve-search href="./index.html">← All AI demos</a>
       <header>
         <h1>Image</h1>
         <p>Generate an image through the Responses image generation tool.</p>

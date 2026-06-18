@@ -1,11 +1,11 @@
 <!doctype html>
 <!--
 Run this demo with the Codex broker
-These demos are hard-coded to the local Codex broker exposed by openai-runner.
+These demos are hard-coded to the local Codex broker exposed by broker-runner.
 GitHub:
-bunx --bun -p https://github.com/subtleGradient/web-native/archive/refs/heads/main.tar.gz web-native-openai src/openai.web/examples/index.html
+bunx --bun -p https://github.com/subtleGradient/web-native/archive/refs/heads/main.tar.gz web-native-ai-broker src/ai.web/examples/index.html
 Local checkout:
-bun "./src/openai-codex-broker.webapp/openai-runner.ts" src/openai.web/examples/index.html
+bun "./src/ai-broker.webapp/broker-runner.ts" src/ai.web/examples/index.html
 
 Security: only run demos you trust. Linked demos send requests through the runner's local Codex broker.
 -->
@@ -15,29 +15,29 @@ Security: only run demos you trust. Linked demos send requests through the runne
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
     <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="./openai.demo.css" />
-    <title>OpenAI demos</title>
-    <script type="module" src="./openai.demo.js"></script>
+    <link rel="stylesheet" href="./ai.demo.css" />
+    <title>AI demos</title>
+    <script type="module" src="./ai.demo.js"></script>
   </head>
   <body>
     <main class="index">
       <header>
-        <h1>OpenAI demos</h1>
+          <h1>AI demos</h1>
         <p>
           Pick a focused demo. Each page owns one request shape and is wired to
           the Codex broker exposed by the local runner.
         </p>
       </header>
 
-      <section class="demo-list" aria-label="OpenAI demos">
-        <a class="card" data-preserve-search href="./openai.text.demo.html">
+      <section class="demo-list" aria-label="AI demos">
+        <a class="card" data-preserve-search href="./ai.text.demo.html">
           <strong>Text</strong>
           <span>Send instructions and a prompt to the Responses API.</span>
         </a>
         <a
           class="card"
           data-preserve-search
-          href="./openai.text-stream.demo.html"
+          href="./ai.text-stream.demo.html"
         >
           <strong>Streaming text</strong>
           <span>Render Responses API text deltas as they arrive.</span>
@@ -45,7 +45,7 @@ Security: only run demos you trust. Linked demos send requests through the runne
         <a
           class="card"
           data-preserve-search
-          href="./openai.responses-websocket-eval.demo.html"
+          href="./ai.responses-websocket-eval.demo.html"
         >
           <strong>Responses WebSocket eval</strong>
           <span
@@ -56,7 +56,7 @@ Security: only run demos you trust. Linked demos send requests through the runne
         <a
           class="card"
           data-preserve-search
-          href="./openai.responses-websocket-functions.demo.html"
+          href="./ai.responses-websocket-functions.demo.html"
         >
           <strong>Responses function workbench</strong>
           <span>Edit browser-local function tools and stream results over Responses WebSocket Mode.</span>
@@ -64,12 +64,12 @@ Security: only run demos you trust. Linked demos send requests through the runne
         <a
           class="card"
           data-preserve-search
-          href="./openai.responses-websocket-reconciliation.demo.html"
+          href="./ai.responses-websocket-reconciliation.demo.html"
         >
           <strong>Responses reconciliation loop</strong>
           <span>Run a DotOK-inspired generator/critic loop until the product state satisfies the .ok spec.</span>
         </a>
-        <a class="card" data-preserve-search href="./openai.image.demo.html">
+        <a class="card" data-preserve-search href="./ai.image.demo.html">
           <strong>Image</strong>
           <span
             >Generate an image through the Responses image generation
@@ -79,7 +79,7 @@ Security: only run demos you trust. Linked demos send requests through the runne
         <a
           class="card"
           data-preserve-search
-          href="./openai.embedding.demo.html"
+          href="./ai.embedding.demo.html"
         >
           <strong>Embedding</strong>
           <span>Create an embedding vector for input text.</span>
@@ -87,7 +87,7 @@ Security: only run demos you trust. Linked demos send requests through the runne
         <a
           class="card"
           data-preserve-search
-          href="./openai.web-search.demo.html"
+          href="./ai.web-search.demo.html"
         >
           <strong>Web search</strong>
           <span
@@ -97,7 +97,7 @@ Security: only run demos you trust. Linked demos send requests through the runne
         <a
           class="card"
           data-preserve-search
-          href="./openai.file-search.demo.html"
+          href="./ai.file-search.demo.html"
         >
           <strong>File search</strong>
           <span>Query a pre-populated vector store.</span>
@@ -105,7 +105,7 @@ Security: only run demos you trust. Linked demos send requests through the runne
         <a
           class="card"
           data-preserve-search
-          href="./openai.code-interpreter.demo.html"
+          href="./ai.code-interpreter.demo.html"
         >
           <strong>Code interpreter</strong>
           <span>Run hosted Python in an ephemeral container.</span>
@@ -113,7 +113,7 @@ Security: only run demos you trust. Linked demos send requests through the runne
         <a
           class="card"
           data-preserve-search
-          href="./openai.computer-use.demo.html"
+          href="./ai.computer-use.demo.html"
         >
           <strong>Computer use</strong>
           <span
@@ -124,7 +124,7 @@ Security: only run demos you trust. Linked demos send requests through the runne
         <a
           class="card"
           data-preserve-search
-          href="./openai.remote-mcp.demo.html"
+          href="./ai.remote-mcp.demo.html"
         >
           <strong>Remote MCP</strong>
           <span>Call a public demo MCP server.</span>
@@ -132,7 +132,7 @@ Security: only run demos you trust. Linked demos send requests through the runne
         <a
           class="card"
           data-preserve-search
-          href="./openai.tool-search.demo.html"
+          href="./ai.tool-search.demo.html"
         >
           <strong>Tool search</strong>
           <span

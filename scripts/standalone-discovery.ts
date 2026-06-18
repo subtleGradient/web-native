@@ -42,13 +42,13 @@ export async function discoverVerifiableStandaloneHtmlFiles(
   return verifiable
 }
 
-export async function discoverOpenAIRunnerHtmlFiles(root: string) {
+export async function discoverBrokerRunnerHtmlFiles(root: string) {
   const candidates = await discoverHtmlFiles(root)
   const files: string[] = []
 
   for (const repoPath of candidates) {
     const html = await Bun.file(path.join(root, repoPath)).text()
-    if (hasOpenAIRunnerInstructions(html)) files.push(path.join(root, repoPath))
+    if (hasBrokerRunnerInstructions(html)) files.push(path.join(root, repoPath))
   }
 
   return files
@@ -73,9 +73,11 @@ export async function discoverChatWebappPackageFiles(root: string) {
     .sort()
 }
 
-export function hasOpenAIRunnerInstructions(html: string) {
+export function hasBrokerRunnerInstructions(html: string) {
   return (
+    html.includes("broker-runner.ts") ||
     html.includes("openai-runner.ts") ||
+    html.includes("web-native-ai-broker") ||
     html.includes("web-native-openai") ||
     html.includes("local Codex broker")
   )

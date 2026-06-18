@@ -1,15 +1,15 @@
 <!doctype html>
 <!--
 Run this demo with the Codex broker
-These demos are hard-coded to the local Codex broker exposed by openai-runner.
+These demos are hard-coded to the local Codex broker exposed by broker-runner.
 GitHub:
-bunx --bun -p https://github.com/subtleGradient/web-native/archive/refs/heads/main.tar.gz web-native-openai src/openai/examples/openai.responses-websocket-reconciliation.demo.html
+bunx --bun -p https://github.com/subtleGradient/web-native/archive/refs/heads/main.tar.gz web-native-ai-broker src/ai.web/examples/ai.responses-websocket-reconciliation.demo.html
 Local checkout:
-bun "./src/openai/Example OpenAI Codex Broker.webapp/openai-runner.ts" src/openai/examples/openai.responses-websocket-reconciliation.demo.html
+bun "./src/ai-broker.webapp/broker-runner.ts" src/ai.web/examples/ai.responses-websocket-reconciliation.demo.html
 
 Security: this demo sends the visible .ok, product, and gap text through the
 runner's local Codex broker. The runner persists the text beside this HTML file
-as openai.responses-websocket-reconciliation.demo.json5.
+as ai.responses-websocket-reconciliation.demo.json5.
 -->
 <html lang="en">
   <head>
@@ -18,7 +18,7 @@ as openai.responses-websocket-reconciliation.demo.json5.
     <meta name="color-scheme" content="light dark" />
     <link rel="icon" href="data:," />
     <title>Responses WebSocket reconciliation loop</title>
-    <script type="module" src="./openai.demo.js"></script>
+    <script type="module" src="./ai.demo.js"></script>
     <style>
       :root {
         color-scheme: light dark;
@@ -275,7 +275,7 @@ as openai.responses-websocket-reconciliation.demo.json5.
           <span id="status" class="status" data-state="idle">loading state</span>
           <small id="save-status">not saved yet</small>
         </div>
-        <p class="note">State is saved through the local runner as <code>openai.responses-websocket-reconciliation.demo.json5</code> next to this HTML file. If the page says state persistence is unavailable, restart the runner and use the new launch URL.</p>
+        <p class="note">State is saved through the local runner as <code>ai.responses-websocket-reconciliation.demo.json5</code> next to this HTML file. If the page says state persistence is unavailable, restart the runner and use the new launch URL.</p>
       </form>
 
       <section class="loop-grid" aria-label="Reconciliation fields">
