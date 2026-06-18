@@ -1,4 +1,6 @@
-export const bottombarStyle = String.raw`
+const css = String.raw
+
+export const bottombarStyle = css`
   .footer {
     align-items: center;
     color: var(--muted-foreground);

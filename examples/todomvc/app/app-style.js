@@ -1,4 +1,6 @@
-export const appStyle = String.raw`
+const css = String.raw
+
+export const appStyle = css`
   :root {
     color-scheme: light dark;
     font-family:
