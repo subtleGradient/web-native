@@ -275,7 +275,7 @@ class CommitResolver {
     const file = Bun.file(absolute)
     if (!(await file.exists())) throw new Error(`Missing JS module: ${repoPath}`)
 
-    const source = await file.text()
+    const source = stripShebang(await file.text())
     const imports = new Bun.Transpiler({ loader: jsGraphLoaderForPath(repoPath) }).scanImports(source)
 
     for (const item of imports) {
@@ -340,6 +340,10 @@ function jsGraphLoaderForPath(repoPath: string): "js" | "jsx" | "ts" | "tsx" {
   if (extension === ".tsx") return "tsx"
   if (extension === ".ts" || extension === ".mts" || extension === ".cts") return "ts"
   return "js"
+}
+
+function stripShebang(source: string) {
+  return source.startsWith("#!") ? source.replace(/^#![^\n]*(?:\n|$)/, "") : source
 }
 
 function newestCommit(commits: CommitInfo[]) {
