@@ -1,0 +1,150 @@
+<!doctype html>
+<!--
+Run this example with the OpenAI chat runner:
+
+cd "src/openai/example.chat.webapp"
+bun dev
+
+The transcript between CHAT_SOURCE_START and CHAT_SOURCE_END is the durable
+conversation state. Runtime edits rewrite that semantic HTML region in this
+file; no JSON state file, localStorage, or sidecar transcript is used.
+-->
+<html lang="en" data-model="gpt-5.5">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>Example AI Chat</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        background: Canvas;
+        color: CanvasText;
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        line-height: 1.5;
+        margin: 0;
+      }
+
+      .app-shell {
+        display: grid;
+        grid-template-rows: minmax(0, 1fr) auto;
+        min-block-size: 100svh;
+      }
+
+      .thread-region {
+        min-block-size: 0;
+        overflow: auto;
+      }
+
+      chat-file-reference {
+        display: block;
+        margin-block: -0.25rem 0.5rem;
+        margin-inline: min(11rem, 16vw) 0;
+      }
+
+      @media (max-width: 48rem) {
+        chat-file-reference {
+          margin-inline-start: 0;
+        }
+      }
+    </style>
+    <script
+      type="module"
+      src="https://cdn.jsdelivr.net/gh/subtleGradient/web-native@main/src/openai/ai-chat.define.js"
+    ></script>
+  </head>
+  <body>
+    <main>
+      <ai-chat-app
+        class="app-shell"
+        transcript="chat-thread"
+        model="gpt-5.5"
+        transport-label="codex-broker"
+      >
+        <section class="thread-region" aria-label="Conversation">
+          <!-- CHAT_SOURCE_START -->
+          <topic-transcript
+            id="chat-thread"
+            data-index="001"
+            data-topic="example-ai-chat"
+            data-start-message="0001"
+            data-end-message="0003"
+            data-message-count="3"
+            editable=""
+          >
+            <header>
+              <h1>Example AI Chat</h1>
+              <p>
+                A small semantic transcript that can continue itself through the
+                local OpenAI runner.
+              </p>
+            </header>
+            <chat-summary data-scope="previous">
+              <p>
+                The assistant should answer using the visible transcript and any
+                referenced local files that the runner expands at request time.
+              </p>
+            </chat-summary>
+            <chat-message
+              id="msg-0001"
+              data-source="0001-user.md"
+              data-turn="1"
+              data-role="user"
+              data-created="2026-06-18T15:00:00.000Z"
+            >
+              <pre>
+Use the referenced file as context. What is this chat component designed to preserve?</pre
+              >
+            </chat-message>
+            <chat-file-reference
+              data-for="msg-0001"
+              data-path="../../chat.web/README.md"
+              data-mime="text/markdown"
+              >src/chat.web/README.md</chat-file-reference
+            >
+            <chat-message
+              id="msg-0002"
+              data-source="0002-assistant.md"
+              data-turn="2"
+              data-role="assistant"
+              data-model="gpt-5.5"
+              data-created="2026-06-18T15:00:08.000Z"
+            >
+              <pre>
+It is designed to preserve the transcript as portable source markup while rendering it as readable chat UI. The raw message body stays in the light DOM, and the custom element renders a cleaner display from that source.</pre
+              >
+            </chat-message>
+            <chat-message
+              id="msg-0003"
+              data-source="0003-user.md"
+              data-turn="3"
+              data-role="user"
+              data-created="2026-06-18T15:00:20.000Z"
+            >
+              <pre>
+Keep using the semantic transcript as the durable state.</pre
+              >
+            </chat-message>
+          </topic-transcript>
+          <!-- CHAT_SOURCE_END -->
+        </section>
+        <chat-composer placeholder="Add a message"></chat-composer>
+        <chat-message-editor></chat-message-editor>
+      </ai-chat-app>
+    </main>
+  </body>
+</html>

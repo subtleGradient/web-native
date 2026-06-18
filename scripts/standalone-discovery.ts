@@ -54,6 +54,25 @@ export async function discoverOpenAIRunnerHtmlFiles(root: string) {
   return files
 }
 
+export async function discoverChatWebappPackageFiles(root: string) {
+  const tracked = await gitLines(root, [
+    "ls-files",
+    "--",
+    ":(glob)**/*.chat.webapp/package.json",
+  ])
+  const untracked = await gitLines(root, [
+    "ls-files",
+    "--others",
+    "--exclude-standard",
+    "--",
+    ":(glob)**/*.chat.webapp/package.json",
+  ])
+  return Array.from(new Set([...tracked, ...untracked]))
+    .filter((repoPath) => existsSync(path.join(root, repoPath)))
+    .map((repoPath) => path.join(root, repoPath))
+    .sort()
+}
+
 export function hasOpenAIRunnerInstructions(html: string) {
   return (
     html.includes("openai-runner.ts") ||

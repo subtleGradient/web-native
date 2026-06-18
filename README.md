@@ -99,7 +99,7 @@ bun run standalone --cdn --all --check
 bun run hooks:install
 ```
 
-`bun run standalone --cdn --all` discovers standalone HTML pages from repo conventions and repo CDN usage, then pins this repo's CSS imports to the newest commit that changed their CSS import graph, and JS imports to the newest commit that changed their transitive JS module graph. `bun run standalone --local --all` removes only this repo's jsDelivr GitHub CDN URLs; third-party CDN dependencies are preserved.
+`bun run standalone --cdn --all` discovers standalone HTML pages from repo conventions and repo CDN usage, then pins this repo's CSS imports to the newest commit that changed their CSS import graph, JS imports to the newest commit that changed their transitive JS module graph, and `.chat.webapp/package.json` GitHub tarballs to the commit that provides their shared runner bin. `bun run standalone --local --all` removes only this repo's jsDelivr GitHub CDN URLs and rewrites chat runner package scripts back to local runner paths; third-party CDN dependencies are preserved.
 
 ## Browser Imports
 
