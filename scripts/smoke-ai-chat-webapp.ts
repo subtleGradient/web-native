@@ -18,13 +18,17 @@ try {
   })
   const stderr = collectStream(readablePipe(runner.stderr, "runner stderr"))
   const launchUrl = await waitForLaunchUrl(readablePipe(runner.stdout, "runner stdout"))
+  const parsedLaunchUrl = new URL(launchUrl)
+  const expectedPathname = `/${path.basename(appPath)}/index.html`
+  if (decodeURIComponent(parsedLaunchUrl.pathname) !== expectedPathname)
+    throw new Error(`launch URL used ${parsedLaunchUrl.pathname}, expected ${expectedPathname}`)
   const page = await fetch(launchUrl)
   if (!page.ok) throw new Error(`chat page failed: HTTP ${page.status}`)
   const html = await page.text()
   if (!html.includes("<topic-transcript")) throw new Error("chat transcript was not served")
   if (!html.includes("<ai-chat-app")) throw new Error("ai-chat-app markup was not served")
 
-  const token = new URL(launchUrl).searchParams.get("t")
+  const token = parsedLaunchUrl.searchParams.get("t")
   if (!token) throw new Error("launch URL did not include runner token")
   const referencePath = firstEnclosurePath(html) ?? "../chat.web/README.md"
   await verifyFileStatus(referencePath, token)

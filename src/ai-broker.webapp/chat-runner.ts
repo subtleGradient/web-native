@@ -43,6 +43,7 @@ const CHAT_SOURCE_END = "<!-- CHAT_SOURCE_END -->"
 const launchPath = resolveLaunchPath(process.argv[2] ?? DEFAULT_DEMO_PATH)
 const appRoot = path.dirname(launchPath)
 const packageRoot = findWorkspaceRoot(appRoot) ?? appRoot
+const publicRoot = path.dirname(appRoot)
 const referenceRoots = allowedReferenceRoots()
 const sourcePath = launchPath
 const token = crypto.randomUUID()
@@ -512,7 +513,7 @@ function resolveLaunchPath(input: string) {
 
 function publicUrlPath(filePath: string) {
   return path
-    .relative(packageRoot, filePath)
+    .relative(publicRoot, filePath)
     .split(path.sep)
     .map((segment) => encodeURIComponent(segment))
     .join("/")
@@ -526,12 +527,18 @@ function resolvePublicPath(pathname: string) {
     return undefined
   }
   if (decoded === "/")
-    decoded = `/${path.relative(packageRoot, launchPath).split(path.sep).join("/")}`
-  const filePath = path.resolve(packageRoot, `.${decoded}`)
-  return filePath === packageRoot ||
-    filePath.startsWith(`${packageRoot}${path.sep}`)
-    ? filePath
-    : undefined
+    decoded = `/${path.relative(publicRoot, launchPath).split(path.sep).join("/")}`
+  return (
+    resolvePublicRootPath(publicRoot, decoded) ??
+    (decoded.startsWith("/src/")
+      ? resolvePublicRootPath(packageRoot, decoded)
+      : undefined)
+  )
+}
+
+function resolvePublicRootPath(root: string, decodedPathname: string) {
+  const filePath = path.resolve(root, `.${decodedPathname}`)
+  return containsPath(root, filePath) ? filePath : undefined
 }
 
 function findWorkspaceRoot(start: string) {
