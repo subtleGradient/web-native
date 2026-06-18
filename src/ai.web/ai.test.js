@@ -299,7 +299,7 @@ describe("openai browser client", () => {
       </form>
       <openai-result for="ai"></openai-result>
     `)
-    const controller = /** @type {import("./openai.js").OpenAIClientElement} */ (root.querySelector("openai-client"))
+    const controller = /** @type {import("./ai.js").OpenAIClientElement} */ (root.querySelector("openai-client"))
     controller.apiKey = "sk-test"
     controller.client.fetchFn = async (_input, init) => {
       bodies.push(JSON.parse(String(init?.body)))
