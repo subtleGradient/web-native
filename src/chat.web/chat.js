@@ -2,11 +2,13 @@
 
 const pageStyleId = "web-native-chat-page-styles"
 const renderQueued = Symbol("render-queued")
+const css = String.raw
+const html = String.raw
 
 /** @typedef {{ omitMessageId?: string, omitMessageIndex?: number }} ChatSourceSerializeOptions */
 /** @typedef {{ bytes?: string, hash?: string, label: string, mime?: string, path: string, status: string }} ChatFileReferenceData */
 
-const pageStyles = String.raw`
+const pageStyles = css`
   :root {
     color-scheme: light dark;
   }
@@ -25,7 +27,7 @@ const pageStyles = String.raw`
   }
 `
 
-const transcriptStyles = String.raw`
+const transcriptStyles = css`
   :host {
     box-sizing: border-box;
     display: grid;
@@ -55,7 +57,7 @@ const transcriptStyles = String.raw`
   }
 `
 
-const summaryStyles = String.raw`
+const summaryStyles = css`
   :host {
     display: block;
   }
@@ -110,7 +112,7 @@ const summaryStyles = String.raw`
   }
 `
 
-const fileReferenceCardStyles = String.raw`
+const fileReferenceCardStyles = css`
   .file {
     background: color-mix(in oklch, Canvas 96%, CanvasText 4%);
     border: 1px solid color-mix(in oklch, CanvasText 13%, transparent);
@@ -166,7 +168,7 @@ const fileReferenceCardStyles = String.raw`
   }
 `
 
-const messageStyles = String.raw`
+const messageStyles = css`
   :host {
     display: block;
   }
@@ -544,7 +546,7 @@ const messageStyles = String.raw`
   }
 `
 
-const fileReferenceStyles = String.raw`
+const fileReferenceStyles = css`
   :host {
     display: block;
   }
@@ -552,7 +554,7 @@ const fileReferenceStyles = String.raw`
   ${fileReferenceCardStyles}
 `
 
-const composerStyles = String.raw`
+const composerStyles = css`
   :host {
     display: block;
   }
@@ -620,7 +622,7 @@ const composerStyles = String.raw`
   }
 `
 
-const editorStyles = String.raw`
+const editorStyles = css`
   :host {
     display: contents;
   }
@@ -693,7 +695,7 @@ export class TopicTranscript extends HTMLElement {
     if (this.shadowRoot) return
 
     const shadow = this.attachShadow({ mode: "open" })
-    shadow.innerHTML = String.raw`
+    shadow.innerHTML = html`
       <style>${transcriptStyles}</style>
       <div class="shell">
         <slot></slot>
@@ -839,7 +841,7 @@ export class ChatSummary extends HTMLElement {
     const previousHref = this.dataset.previousHref
     const previousTitle = this.dataset.previousTitle ?? "Previous topic"
     const shadow = this.shadowRoot ?? this.attachShadow({ mode: "open" })
-    shadow.innerHTML = String.raw`
+    shadow.innerHTML = html`
       <style>${summaryStyles}</style>
       <section class="summary" aria-label="Previous context">
         <header class="summary-header">
@@ -913,7 +915,7 @@ export class ChatMessage extends HTMLElement {
     const attachments = fileReferenceChildren(this)
     const editable = isMessageEditable(this)
     const shadow = this.shadowRoot ?? this.attachShadow({ mode: "open" })
-    shadow.innerHTML = String.raw`
+    shadow.innerHTML = html`
       <style>${messageStyles}</style>
       <article data-kind="${escapeAttribute(kind)}" data-role="${escapeAttribute(role)}" data-hidden="${hidden ? "true" : "false"}" data-editable="${editable ? "true" : "false"}">
         ${kind === "tool"
@@ -986,7 +988,7 @@ export class ChatFileReference extends HTMLElement {
 
   #render() {
     const shadow = this.shadowRoot ?? this.attachShadow({ mode: "open" })
-    shadow.innerHTML = String.raw`
+    shadow.innerHTML = html`
       <style>${fileReferenceStyles}</style>
       ${renderFileReferenceCard(fileReferenceData(this))}
     `
@@ -999,7 +1001,7 @@ export class ChatComposer extends HTMLElement {
   connectedCallback() {
     if (!this.shadowRoot) {
       const shadow = this.attachShadow({ mode: "open" })
-      shadow.innerHTML = String.raw`
+      shadow.innerHTML = html`
         <style>${composerStyles}</style>
         <form>
           <textarea name="message"></textarea>
@@ -1094,7 +1096,7 @@ export class ChatMessageEditor extends HTMLElement {
   connectedCallback() {
     if (!this.shadowRoot) {
       const shadow = this.attachShadow({ mode: "open" })
-      shadow.innerHTML = String.raw`
+      shadow.innerHTML = html`
         <style>${editorStyles}</style>
         <dialog>
           <form method="dialog">
@@ -1238,7 +1240,7 @@ function formatCreated(value) {
 function renderMessageHeader(element, kind, editable = false) {
   const created = formatCreated(messageCreated(element))
   const context = messageContext(element)
-  return String.raw`
+  return html`
     <header class="message-header">
       <strong class="speaker">${escapeHtml(displaySpeaker(kind))}</strong>
       ${created ? `<time class="time" datetime="${escapeAttribute(messageCreated(element) ?? "")}">${escapeHtml(created)}</time>` : ""}
@@ -1266,7 +1268,7 @@ function messageContext(element) {
 
 /** @param {Element[]} references */
 function renderFileAttachments(references) {
-  return String.raw`
+  return html`
     <section class="attachments" aria-label="Referenced files">
       ${references.map((reference) => renderFileReferenceCard(fileReferenceData(reference))).join("")}
     </section>
@@ -1275,7 +1277,7 @@ function renderFileAttachments(references) {
 
 /** @param {ChatFileReferenceData} reference */
 function renderFileReferenceCard(reference) {
-  return String.raw`
+  return html`
     <section class="file" aria-label="Referenced file">
       <div class="top">
         <a href="${escapeAttribute(reference.path)}" target="_blank" rel="noreferrer">${escapeHtml(reference.label)}</a>
@@ -1336,7 +1338,7 @@ function isMessageEditable(element) {
 }
 
 function renderMessageActions() {
-  return String.raw`
+  return html`
     <menu class="message-actions" aria-label="Message actions">
       <button type="button" data-chat-action="edit">Edit</button>
       <button type="button" data-chat-action="delete">Delete</button>
@@ -1353,7 +1355,7 @@ function renderToolEvent(element, body) {
   const created = formatCreated(messageCreated(element))
   const parsed = parseJson(body)
 
-  return String.raw`
+  return html`
     <section class="tool-event" aria-label="${escapeAttribute(`${recipient} event`)}">
       <header class="tool-header">
         <span class="event-dot" aria-hidden="true"></span>
@@ -1414,7 +1416,7 @@ function renderToolPayload(value) {
 function renderToolSection(key, value) {
   if (Array.isArray(value)) {
     const items = value.map((item) => renderToolItem(key, item)).join("")
-    return String.raw`
+    return html`
       <section class="tool-section">
         <strong class="tool-section-title">${escapeHtml(formatToolKey(key))}</strong>
         <ul class="tool-list">${items}</ul>
@@ -1423,7 +1425,7 @@ function renderToolSection(key, value) {
   }
 
   if (isRecord(value)) {
-    return String.raw`
+    return html`
       <section class="tool-section">
         <strong class="tool-section-title">${escapeHtml(formatToolKey(key))}</strong>
         ${renderToolFields(value)}
@@ -1431,7 +1433,7 @@ function renderToolSection(key, value) {
     `
   }
 
-  return String.raw`
+  return html`
     <section class="tool-section">
       <strong class="tool-section-title">${escapeHtml(formatToolKey(key))}</strong>
       <div class="tool-item-main">${escapeHtml(formatToolValue(value))}</div>
@@ -1449,7 +1451,7 @@ function renderToolItem(sectionKey, item) {
   }
 
   const summary = summarizeToolItem(sectionKey, item)
-  return String.raw`
+  return html`
     <li class="tool-item">
       <span class="tool-item-main">${escapeHtml(summary.main)}</span>
       ${summary.meta ? `<span class="tool-item-meta">${escapeHtml(summary.meta)}</span>` : ""}
@@ -1509,9 +1511,9 @@ function summarizeToolItem(sectionKey, item) {
 
 /** @param {Record<string, unknown>} fields */
 function renderToolFields(fields) {
-  return String.raw`
+  return html`
     <dl class="tool-fields">
-      ${Object.entries(fields).map(([key, value]) => String.raw`
+      ${Object.entries(fields).map(([key, value]) => html`
         <div class="tool-field">
           <dt class="tool-key">${escapeHtml(formatToolKey(key))}</dt>
           <dd class="tool-value">${escapeHtml(formatToolValue(value))}</dd>
@@ -1534,7 +1536,7 @@ function joinToolMeta(item, omit) {
 
 /** @param {string} body */
 function renderUnknownToolPayload(body) {
-  return String.raw`
+  return html`
     <section class="tool-section">
       <strong class="tool-section-title">Payload</strong>
       <div class="tool-item-main">${renderInline(body.trim())}</div>
@@ -1757,7 +1759,7 @@ function renderTable(lines) {
   const [headerLine, , ...bodyLines] = lines
   const headers = splitTableRow(headerLine)
   const body = bodyLines.map(splitTableRow)
-  return String.raw`
+  return html`
     <section class="table-wrap">
       <table>
         <thead><tr>${headers.map((cell) => `<th>${renderInline(cell)}</th>`).join("")}</tr></thead>
