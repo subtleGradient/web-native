@@ -3,6 +3,8 @@
 const pageStyleId = "web-native-chat-page-styles"
 const renderQueued = Symbol("render-queued")
 
+/** @typedef {{ omitMessageId?: string }} ChatSourceSerializeOptions */
+
 const pageStyles = String.raw`
   :root {
     color-scheme: light dark;
@@ -693,30 +695,21 @@ export class TopicTranscript extends HTMLElement {
   }
 
   messages() {
-    return Array.from(this.children).filter((element) => element.localName === "chat-message")
+    return chatMessageChildren(this)
   }
 
   normalize() {
-    const messages = this.messages()
-    messages.forEach((message, index) => {
-      const turn = String(index + 1)
-      message.setAttribute("data-turn", turn)
-      ensureMessageId(message)
-      if (!message.getAttribute("data-source")) {
-        const role = message.getAttribute("data-role") ?? "message"
-        message.setAttribute("data-source", `${String(index + 1).padStart(4, "0")}-${role}.md`)
-      }
-    })
-    this.dataset.startMessage = messages.length ? "0001" : ""
-    this.dataset.endMessage = messages.length ? String(messages.length).padStart(4, "0") : ""
-    this.dataset.messageCount = String(messages.length)
+    normalizeTranscriptElement(this)
     return this
   }
 
-  serializeSource() {
+  /** @param {ChatSourceSerializeOptions} [options] */
+  serializeSource(options = {}) {
     this.normalize()
     const clone = this.cloneNode(true)
     if (!(clone instanceof HTMLElement)) throw new Error("Could not clone chat transcript.")
+    if (options.omitMessageId) removeMessageFromTranscriptElement(clone, options.omitMessageId)
+    normalizeTranscriptElement(clone)
     clone.querySelectorAll("[data-ephemeral]").forEach((element) => element.remove())
     clone.querySelectorAll("chat-file-reference").forEach((element) => {
       element.removeAttribute("data-status")
@@ -1712,6 +1705,41 @@ function formatBytes(value) {
   if (value < 1024) return `${value} B`
   if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`
   return `${(value / 1024 / 1024).toFixed(1)} MB`
+}
+
+/** @param {Element} element */
+function chatMessageChildren(element) {
+  return Array.from(element.children).filter((child) => child.localName === "chat-message")
+}
+
+/** @param {HTMLElement} transcript */
+function normalizeTranscriptElement(transcript) {
+  const messages = chatMessageChildren(transcript)
+  messages.forEach((message, index) => {
+    const turn = String(index + 1)
+    message.setAttribute("data-turn", turn)
+    ensureMessageId(message)
+    if (!message.getAttribute("data-source")) {
+      const role = message.getAttribute("data-role") ?? "message"
+      message.setAttribute("data-source", `${String(index + 1).padStart(4, "0")}-${role}.md`)
+    }
+  })
+  transcript.dataset.startMessage = messages.length ? "0001" : ""
+  transcript.dataset.endMessage = messages.length ? String(messages.length).padStart(4, "0") : ""
+  transcript.dataset.messageCount = String(messages.length)
+}
+
+/**
+ * @param {Element} transcript
+ * @param {string} id
+ */
+function removeMessageFromTranscriptElement(transcript, id) {
+  for (const reference of Array.from(transcript.querySelectorAll("chat-file-reference"))) {
+    if (reference.getAttribute("data-for") === id) reference.remove()
+  }
+  for (const message of chatMessageChildren(transcript)) {
+    if (message.id === id) message.remove()
+  }
 }
 
 /** @param {Element} element */

@@ -135,9 +135,9 @@ const ok = true
   it("normalizes and serializes the semantic transcript source", async () => {
     const transcript = /** @type {import("./chat.js").TopicTranscript} */ (mount(html`
       <topic-transcript editable>
-        <chat-message data-role="user"><pre>Hello</pre></chat-message>
+        <chat-message id="msg-source" data-role="user"><pre>Hello</pre></chat-message>
         <chat-file-reference
-          data-for="missing"
+          data-for="msg-source"
           data-path="../../chat.web/README.md"
           data-status="available"
           data-current-bytes="123"
@@ -167,6 +167,12 @@ const ok = true
     expect(source).to.not.include("data-current-sha256")
     expect(source).to.not.include("data-status")
     expect(source).to.not.include("data-streaming")
+
+    const firstMessageId = transcript.messages()[0]?.id ?? ""
+    const omittedSource = transcript.serializeSource({ omitMessageId: firstMessageId })
+    expect(omittedSource).to.not.include(`id="${firstMessageId}"`)
+    expect(omittedSource).to.not.include(`data-for="${firstMessageId}"`)
+    expect(omittedSource).to.include('data-message-count="1"')
   })
 
   it("emits message action requests from editable transcript messages", async () => {
