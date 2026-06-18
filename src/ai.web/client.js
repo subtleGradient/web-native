@@ -1,7 +1,7 @@
 // @ts-check
 
 export const OPENAI_API_BASE_URL = "https://api.openai.com/v1"
-export const DEFAULT_BROKER_URL = "/__web-native-openai"
+export const DEFAULT_BROKER_URL = "/__web-native-ai"
 export const DEFAULT_TEXT_MODEL = "gpt-5.5"
 export const DEFAULT_IMAGE_TEXT_MODEL = DEFAULT_TEXT_MODEL
 export const DEFAULT_IMAGE_MODEL = "gpt-image-2"
@@ -541,7 +541,7 @@ function headersFor(client) {
     if (client.auth.organization !== undefined) headers["OpenAI-Organization"] = client.auth.organization
     if (client.auth.project !== undefined) headers["OpenAI-Project"] = client.auth.project
     const runnerToken = runnerTokenFromLocation()
-    if (runnerToken !== undefined) headers["x-web-native-openai-token"] = runnerToken
+    if (runnerToken !== undefined) headers["x-web-native-ai-token"] = runnerToken
   }
   return headers
 }

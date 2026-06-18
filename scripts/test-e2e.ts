@@ -149,9 +149,9 @@ const pages: E2EPage[] = [
     exercise: exerciseDeck,
   },
   {
-    name: "OpenAI stories",
-    path: "/src/ai.web/examples/ai.stories.html",
-    readyFlag: "__webNativeOpenAIStoriesReady",
+    name: "AI stories",
+    path: "/src/ai.web/ai.stories.html",
+    readyFlag: "__webNativeAIStoriesReady",
     minimumStories: 2,
     expectedElements: ["openai-client", "openai-key-field", "openai-result"],
     exercise: exerciseOpenAI,

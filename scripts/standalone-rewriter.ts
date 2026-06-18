@@ -135,7 +135,7 @@ export function formatGithubTarballUrl(repo: GitHubRepo, commit: string) {
 }
 
 function isBrokerRunnerComment(comment: string) {
-  return comment.includes("broker-runner.ts") || comment.includes("openai-runner.ts") || comment.includes(aiBrokerBin) || comment.includes("web-native-openai") || comment.includes("local Codex broker")
+  return comment.includes("broker-runner.ts") || comment.includes(aiBrokerBin) || comment.includes("local Codex broker")
 }
 
 function extractOpenAIRunnerWarning(comment: string) {
@@ -150,9 +150,7 @@ function parseChatRunnerLaunchPath(script: string) {
   const runnerIndex = tokens.findIndex(
     (token) =>
       token === aiChatRunnerBin ||
-      path.basename(token) === aiChatRunnerFile ||
-      path.basename(token) === "openai-chat-runner.ts" ||
-      path.basename(token) === "openai-runner.ts",
+      path.basename(token) === aiChatRunnerFile,
   )
   if (runnerIndex === -1) return undefined
   const args = tokens.slice(runnerIndex + 1).join(" ").trim()

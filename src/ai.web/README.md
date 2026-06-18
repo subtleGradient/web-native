@@ -99,7 +99,7 @@ Responses WebSocket mode demo with sandboxed local `eval_js` tool:
 bun ./src/ai-broker.webapp/broker-runner.ts src/ai.web/examples/ai.responses-websocket-eval.demo.html
 ```
 
-The runner serves demo pages from localhost and exposes guarded proxy endpoints under `/__web-native-openai`. `transport="codex-broker"` reads OpenCode OAuth auth from `OPENCODE_AUTH_FILE`, `$XDG_DATA_HOME/opencode/auth.json`, or `~/.local/share/opencode/auth.json`.
+The runner serves demo pages from localhost and exposes guarded proxy endpoints under `/__web-native-ai`. `transport="codex-broker"` reads OpenCode OAuth auth from `OPENCODE_AUTH_FILE`, `$XDG_DATA_HOME/opencode/auth.json`, or `~/.local/share/opencode/auth.json`.
 
 Transport can still be swapped in your own markup or client code:
 
@@ -117,4 +117,4 @@ const apiBroker = new OpenAIClient({ transport: "api-key-broker" })
 const codexBroker = new OpenAIClient({ transport: "codex-broker" })
 ```
 
-`api-key-direct` calls `https://api.openai.com/v1` from the browser and requires an API key. `api-key-broker` sends requests through `/__web-native-openai/api/*` and uses `OPENAI_API_KEY` or a key forwarded with `openai-key-field`. `codex-broker` sends requests through `/__web-native-openai/codex/*` and never needs a visible key control in the page.
+`api-key-direct` calls `https://api.openai.com/v1` from the browser and requires an API key. `api-key-broker` sends requests through `/__web-native-ai/api/*` and uses `OPENAI_API_KEY` or a key forwarded with `openai-key-field`. `codex-broker` sends requests through `/__web-native-ai/codex/*` and never needs a visible key control in the page.

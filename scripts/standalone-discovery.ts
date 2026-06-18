@@ -76,9 +76,7 @@ export async function discoverChatWebappPackageFiles(root: string) {
 export function hasBrokerRunnerInstructions(html: string) {
   return (
     html.includes("broker-runner.ts") ||
-    html.includes("openai-runner.ts") ||
     html.includes("web-native-ai-broker") ||
-    html.includes("web-native-openai") ||
     html.includes("local Codex broker")
   )
 }
