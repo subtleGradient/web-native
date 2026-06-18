@@ -47,11 +47,11 @@ describe("standalone rewriter", () => {
           dev: `bunx --bun -p ${tarballUrl} web-native-openai-chat index.html`,
         },
       }, null, 2)}\n`,
-      { mode: "local", runnerPath: "../openai-chat-runner.ts" },
+      { mode: "local", runnerPath: "../openai-codex-broker.webapp/openai-chat-runner.ts" },
     )
 
     expect(JSON.parse(output).scripts.dev).toBe(
-      "bun ../openai-chat-runner.ts index.html",
+      "bun ../openai-codex-broker.webapp/openai-chat-runner.ts index.html",
     )
   })
 
@@ -61,19 +61,19 @@ describe("standalone rewriter", () => {
 Run this demo with the Codex broker
 These demos are hard-coded to the local Codex broker exposed by openai-runner.
 GitHub:
-bunx --bun -p https://github.com/subtleGradient/web-native/archive/refs/heads/main.tar.gz web-native-openai src/openai/examples/index.html
+bunx --bun -p https://github.com/subtleGradient/web-native/archive/refs/heads/main.tar.gz web-native-openai src/openai.web/examples/index.html
 Local checkout:
-bun "./src/openai/Example OpenAI Codex Broker.webapp/openai-runner.ts" src/openai/examples/index.html
+bun "./src/openai-codex-broker.webapp/openai-runner.ts" src/openai.web/examples/index.html
 -->
 <title>Demo</title>`
 
     const output = rewriteOpenAIRunnerInstructions(input, {
       tarballUrl,
-      repoPath: "src/openai/examples/index.html",
+      repoPath: "src/openai.web/examples/index.html",
     })
 
     expect(output).toContain(
-      `bunx --bun -p ${tarballUrl} web-native-openai src/openai/examples/index.html`,
+      `bunx --bun -p ${tarballUrl} web-native-openai src/openai.web/examples/index.html`,
     )
     expect(output).not.toContain("refs/heads/main.tar.gz")
   })

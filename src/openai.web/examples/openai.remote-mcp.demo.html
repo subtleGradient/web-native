@@ -3,9 +3,9 @@
 Run this demo with the Codex broker
 These demos are hard-coded to the local Codex broker exposed by openai-runner.
 GitHub:
-bunx --bun -p https://github.com/subtleGradient/web-native/archive/refs/heads/main.tar.gz web-native-openai src/openai/examples/openai.text.demo.html
+bunx --bun -p https://github.com/subtleGradient/web-native/archive/refs/heads/main.tar.gz web-native-openai src/openai.web/examples/openai.remote-mcp.demo.html
 Local checkout:
-bun "./src/openai/Example OpenAI Codex Broker.webapp/openai-runner.ts" src/openai/examples/openai.text.demo.html
+bun "./src/openai-codex-broker.webapp/openai-runner.ts" src/openai.web/examples/openai.remote-mcp.demo.html
 
 Security: only run demos you trust. This page sends requests through the runner's local Codex broker.
 -->
@@ -16,7 +16,7 @@ Security: only run demos you trust. This page sends requests through the runner'
     <meta name="color-scheme" content="light dark" />
     <link rel="icon" href="data:," />
     <link rel="stylesheet" href="./openai.demo.css" />
-    <title>OpenAI text demo</title>
+    <title>OpenAI remote MCP demo</title>
     <script type="module" src="../define.js"></script>
     <script type="module" src="./openai.demo.js"></script>
   </head>
@@ -24,17 +24,18 @@ Security: only run demos you trust. This page sends requests through the runner'
     <main>
       <a class="back" data-preserve-search href="./index.html">← All OpenAI demos</a>
       <header>
-        <h1>Text</h1>
-        <p>Send instructions and a prompt to the Responses API.</p>
+        <h1>Remote MCP</h1>
+        <p>Call a public demo MCP server.</p>
       </header>
 
       <openai-client id="ai" model="gpt-5.5" transport="codex-broker"></openai-client>
 
-      <form class="panel" onsubmit="ai.respond(event)">
+      <form class="panel" onsubmit="ai.respondWithTools(event)">
         <h2>Request</h2>
-        <label>Instructions<textarea name="instructions">Answer clearly and briefly.</textarea></label>
-        <label>Prompt<textarea name="prompt">Say hello in one sentence.</textarea></label>
-        <button>Ask</button>
+        <p class="note">Calls a public demo MCP server. Only use trusted MCP servers with real data.</p>
+        <label>Prompt<textarea name="prompt">Roll 2d4+1.</textarea></label>
+        <label>Tools JSON<textarea name="tools">[{"type":"mcp","server_label":"dmcp","server_description":"A Dungeons and Dragons MCP server to assist with dice rolling.","server_url":"https://dmcp-server.deno.dev/sse","require_approval":"never","allowed_tools":["roll"]}]</textarea></label>
+        <button>Call MCP</button>
       </form>
 
       <openai-result for="ai"></openai-result>

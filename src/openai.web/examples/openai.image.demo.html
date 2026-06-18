@@ -3,9 +3,9 @@
 Run this demo with the Codex broker
 These demos are hard-coded to the local Codex broker exposed by openai-runner.
 GitHub:
-bunx --bun -p https://github.com/subtleGradient/web-native/archive/refs/heads/main.tar.gz web-native-openai src/openai/examples/openai.computer-use.demo.html
+bunx --bun -p https://github.com/subtleGradient/web-native/archive/refs/heads/main.tar.gz web-native-openai src/openai.web/examples/openai.image.demo.html
 Local checkout:
-bun "./src/openai/Example OpenAI Codex Broker.webapp/openai-runner.ts" src/openai/examples/openai.computer-use.demo.html
+bun "./src/openai-codex-broker.webapp/openai-runner.ts" src/openai.web/examples/openai.image.demo.html
 
 Security: only run demos you trust. This page sends requests through the runner's local Codex broker.
 -->
@@ -16,7 +16,7 @@ Security: only run demos you trust. This page sends requests through the runner'
     <meta name="color-scheme" content="light dark" />
     <link rel="icon" href="data:," />
     <link rel="stylesheet" href="./openai.demo.css" />
-    <title>OpenAI computer use demo</title>
+    <title>OpenAI image demo</title>
     <script type="module" src="../define.js"></script>
     <script type="module" src="./openai.demo.js"></script>
   </head>
@@ -24,18 +24,24 @@ Security: only run demos you trust. This page sends requests through the runner'
     <main>
       <a class="back" data-preserve-search href="./index.html">← All OpenAI demos</a>
       <header>
-        <h1>Computer use</h1>
-        <p>Request <code>computer_call</code> actions for a harness to execute.</p>
+        <h1>Image</h1>
+        <p>Generate an image through the Responses image generation tool.</p>
       </header>
 
       <openai-client id="ai" model="gpt-5.5" transport="codex-broker"></openai-client>
 
-      <form class="panel" onsubmit="ai.respondWithTools(event)">
+      <form class="panel" onsubmit="ai.generateImage(event)">
         <h2>Request</h2>
-        <p class="note">Returns <code>computer_call</code> actions for a harness to execute; this page intentionally does not operate your UI.</p>
-        <label>Prompt<textarea name="prompt">Ask for a screenshot, then describe the next UI action you would take to find the search field.</textarea></label>
-        <label>Tools JSON<textarea name="tools">[{"type":"computer"}]</textarea></label>
-        <button>Request UI actions</button>
+        <label>Prompt<textarea name="prompt">tiny watercolor robot on a white background</textarea></label>
+        <label>
+          Format
+          <select name="outputFormat">
+            <option>png</option>
+            <option>webp</option>
+            <option>jpeg</option>
+          </select>
+        </label>
+        <button>Generate image</button>
       </form>
 
       <openai-result for="ai"></openai-result>

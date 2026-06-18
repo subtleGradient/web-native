@@ -101,7 +101,7 @@ export function rewriteOpenAIRunnerInstructions(html: string, options: { tarball
     "GitHub:",
     `bunx --bun -p ${options.tarballUrl} web-native-openai ${options.repoPath}`,
     "Local checkout:",
-    `bun "./src/openai/Example OpenAI Codex Broker.webapp/openai-runner.ts" ${options.repoPath}`,
+    `bun "./src/openai-codex-broker.webapp/openai-runner.ts" ${options.repoPath}`,
     ...(preserved ? ["", preserved] : []),
     "-->",
   ].join("\n")

@@ -506,7 +506,7 @@ describe("openai browser client", () => {
     const originalUrl = location.href
     /** @type {string[]} */
     const saveUrls = []
-    history.pushState(null, "", "/src/openai/Example%20AI%20Chat.webapp/index.html?t=stale")
+    history.pushState(null, "", "/src/openai-example.chat.webapp/index.html?t=stale")
     /**
      * @param {Parameters<typeof fetch>[0]} input
      * @param {Parameters<typeof fetch>[1]} init
@@ -522,7 +522,7 @@ describe("openai browser client", () => {
           headers: { "content-type": "application/json" },
         })
       }
-      if (url.pathname === "/src/openai/Example%20AI%20Chat.webapp/index.html") {
+      if (url.pathname === "/src/openai-example.chat.webapp/index.html") {
         return new Response("<!doctype html>", {
           headers: { "x-web-native-ai-chat-token": "fresh" },
         })

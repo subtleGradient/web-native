@@ -1,4 +1,4 @@
-# openai
+# openai.web
 
 Browser-native OpenAI client helpers and custom elements for direct, brokered,
 and Codex-backed workflows.
@@ -25,7 +25,7 @@ Semantic chat webapps can use the generic `ai-chat-app` element with
 OpenAI-specific prefix; it only orchestrates the local runner endpoints.
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/gh/subtleGradient/web-native@main/src/openai/ai-chat.define.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/gh/subtleGradient/web-native@main/src/openai.web/ai-chat.define.js"></script>
 
 <ai-chat-app transcript="thread" model="gpt-5.5" transport-label="codex-broker">
   <topic-transcript id="thread" editable>
@@ -82,21 +82,21 @@ Realtime session creation is available through `client.realtimeSession()`. WebSo
 Run the Codex-broker demos from GitHub:
 
 ```sh
-bunx --bun -p https://github.com/subtleGradient/web-native/archive/refs/heads/openai.tar.gz web-native-openai src/openai/examples/index.html
+bunx --bun -p https://github.com/subtleGradient/web-native/archive/refs/heads/openai.tar.gz web-native-openai src/openai.web/examples/index.html
 ```
 
 Or from a local checkout:
 
 ```sh
-bun ./src/openai/examples/scripts/openai-runner.ts src/openai/examples/index.html
+bun ./src/openai-codex-broker.webapp/openai-runner.ts src/openai.web/examples/index.html
 ```
 
-To open one small demo directly, replace the path with a focused page such as `src/openai/examples/openai.web-search.demo.html`.
+To open one small demo directly, replace the path with a focused page such as `src/openai.web/examples/openai.web-search.demo.html`.
 
 Responses WebSocket Mode demo with sandboxed local `eval_js` tool:
 
 ```sh
-bun ./src/openai/examples/scripts/openai-runner.ts src/openai/examples/openai.responses-websocket-eval.demo.html
+bun ./src/openai-codex-broker.webapp/openai-runner.ts src/openai.web/examples/openai.responses-websocket-eval.demo.html
 ```
 
 The runner serves demo pages from localhost and exposes guarded proxy endpoints under `/__web-native-openai`. `transport="codex-broker"` reads OpenCode OAuth auth from `OPENCODE_AUTH_FILE`, `$XDG_DATA_HOME/opencode/auth.json`, or `~/.local/share/opencode/auth.json`.

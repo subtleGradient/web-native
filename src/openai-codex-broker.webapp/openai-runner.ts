@@ -16,7 +16,7 @@ type OpenAIOAuth = {
 
 const HOST = "localhost"
 const DEFAULT_PORT = 4174
-const DEFAULT_DEMO_PATH = "../examples/index.html"
+const DEFAULT_DEMO_PATH = "../openai.web/examples/index.html"
 const OPENAI_API_BASE_URL = "https://api.openai.com/v1"
 const OPENAI_RESPONSES_WS_URL = "wss://api.openai.com/v1/responses"
 const CODEX_RESPONSES_URL = "https://chatgpt.com/backend-api/codex/responses"
@@ -37,7 +37,7 @@ type ResponsesRelayData = {
 }
 
 const packageRoot = path.resolve(
-  fileURLToPath(new URL("../../../..", import.meta.url)),
+  fileURLToPath(new URL("../..", import.meta.url)),
 )
 const launchPath = resolveLaunchPath(process.argv[2] ?? DEFAULT_DEMO_PATH)
 const token = crypto.randomUUID()
