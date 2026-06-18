@@ -19,8 +19,9 @@ const eventNames = {
 const jsonTypes = ["object", "array", "string", "number", "integer", "boolean", "null"]
 const schemaTargets = ["input", "output"]
 const externalRefLimit = 64
+const css = String.raw
 
-const editorStyles = String.raw`
+const editorStyles = css`
   :host {
     --json-editor-accent: Highlight;
     --json-editor-danger: oklch(55% 0.17 28);

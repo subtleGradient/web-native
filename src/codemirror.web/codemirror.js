@@ -9,6 +9,7 @@ const eventNames = {
   error: "codemirror-editor:error",
 }
 
+const css = String.raw
 const defaultCdnBase = "https://esm.sh"
 const setups = ["basic", "minimal"]
 const languageAliases = new Map([
@@ -40,7 +41,7 @@ const languageSpecifiers = {
   markdown: "@codemirror/lang-markdown@6",
 }
 
-const editorStyles = String.raw`
+const editorStyles = css`
   :host {
     --codemirror-editor-accent: Highlight;
     --codemirror-editor-border: color-mix(in oklch, CanvasText 14%, transparent);
