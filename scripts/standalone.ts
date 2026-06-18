@@ -1,9 +1,12 @@
 import path from "node:path"
 import { fileURLToPath } from "node:url"
-import { discoverOpenAIRunnerHtmlFiles, discoverStandaloneHtmlFiles, hasOpenAIRunnerInstructions } from "./standalone-discovery.ts"
+import { discoverChatWebappPackageFiles, discoverOpenAIRunnerHtmlFiles, discoverStandaloneHtmlFiles, hasOpenAIRunnerInstructions } from "./standalone-discovery.ts"
 import {
+  formatGithubTarballUrl,
   getGitHubRepo,
   isRepoCdnUrl,
+  openAIChatRunnerBin,
+  rewriteChatWebappPackageJson,
   rewriteOpenAIRunnerInstructions,
   rewriteStandaloneHtml,
   type GitHubRepo,
@@ -34,14 +37,17 @@ async function main() {
   }
 
   if (!args.mode) fail("Choose exactly one mode: --cdn or --local.")
-  if (!args.all && args.files.length === 0) fail("Pass --all or at least one HTML file.")
+  if (!args.all && args.files.length === 0) fail("Pass --all or at least one file.")
 
   const repo = await getGitHubRepo(root)
-  const branch = await getCurrentBranch(root)
-  const rewriteFiles = args.all ? await discoverStandaloneHtmlFiles(root, repo) : args.files.map((file) => path.resolve(root, file))
+  const requestedFiles = args.files.map((file) => path.resolve(root, file))
+  const rewriteFiles = args.all ? await discoverStandaloneHtmlFiles(root, repo) : requestedFiles.filter(isHtmlFile)
   const instructionFiles = args.all ? await discoverOpenAIRunnerHtmlFiles(root) : rewriteFiles
+  const packageFiles = args.all ? await discoverChatWebappPackageFiles(root) : requestedFiles.filter(isChatWebappPackageFile)
   const rewriteFileSet = new Set(rewriteFiles)
-  const files = Array.from(new Set([...rewriteFiles, ...instructionFiles]))
+  const instructionFileSet = new Set(instructionFiles)
+  const packageFileSet = new Set(packageFiles)
+  const files = Array.from(new Set([...rewriteFiles, ...instructionFiles, ...packageFiles]))
   const resolver = new CommitResolver(root, repo)
   const changed: string[] = []
 
@@ -63,8 +69,26 @@ async function main() {
       })
     }
 
-    if (hasOpenAIRunnerInstructions(output)) {
-      output = rewriteOpenAIRunnerInstructions(output, { repo, branch, repoPath: path.relative(root, filePath).replaceAll(path.sep, "/") })
+    if (instructionFileSet.has(filePath) && hasOpenAIRunnerInstructions(output)) {
+      output = rewriteOpenAIRunnerInstructions(output, {
+        tarballUrl: await resolver.githubTarballForBin("web-native-openai"),
+        repoPath: path.relative(root, filePath).replaceAll(path.sep, "/"),
+      })
+    }
+
+    if (packageFileSet.has(filePath)) {
+      output = args.mode === "cdn"
+        ? rewriteChatWebappPackageJson(output, {
+          mode: "cdn",
+          tarballUrl: await resolver.githubTarballForBin(openAIChatRunnerBin),
+        })
+        : rewriteChatWebappPackageJson(output, {
+          mode: "local",
+          runnerPath: relativeScriptPath(
+            path.dirname(filePath),
+            path.join(root, await resolver.packageBinPath(openAIChatRunnerBin)),
+          ),
+        })
     }
 
     if (input === output) continue
@@ -82,7 +106,7 @@ async function main() {
     process.exitCode = 1
   } else {
     const modeLabel = args.mode === "cdn" ? "CDN" : "local"
-    console.log(changed.length === 0 ? `Standalone HTML already in ${modeLabel} mode` : `Rewrote ${changed.length} HTML file(s) to ${modeLabel} mode`)
+    console.log(changed.length === 0 ? `Standalone files already in ${modeLabel} mode` : `Rewrote ${changed.length} standalone file(s) to ${modeLabel} mode`)
   }
 }
 
@@ -121,8 +145,10 @@ function printHelp() {
   bun run standalone --remove-cdn path/to/page.html
 
 Options:
-  --cdn                 Rewrite managed local repo URLs to jsDelivr GitHub CDN URLs.
+  --cdn                 Rewrite managed local repo URLs to pinned GitHub URLs.
+                        Also pins .chat.webapp package runner tarballs.
   --local, --remove-cdn Rewrite this repo's jsDelivr GitHub CDN URLs to local relative URLs.
+                        Also restores .chat.webapp package runner scripts to local paths.
   --all                 Discover and process standalone HTML pages.
                         Also normalizes discovered OpenAI runner comments.
   --check               Report whether rewriting would change files without writing.
@@ -146,6 +172,20 @@ class CommitResolver {
     const commit = await this.latestCommitForResource(repoPath, kind)
     this.usedCommits.add(commit.commit)
     return formatCdnUrl(this.repo, commit.commit, repoPath)
+  }
+
+  async githubTarballForBin(binName: string) {
+    const commit = await this.latestCommitForBin(binName)
+    this.usedCommits.add(commit.commit)
+    return formatGithubTarballUrl(this.repo, commit.commit)
+  }
+
+  async latestCommitForBin(binName: string): Promise<CommitInfo> {
+    const binPath = await this.packageBinPath(binName)
+    return newestCommit([
+      await this.latestCommitForPath("package.json"),
+      await this.latestCommitForResource(binPath, "js"),
+    ])
   }
 
   async latestCommitForResource(repoPath: string, kind: ResourceKind): Promise<CommitInfo> {
@@ -203,6 +243,15 @@ class CommitResolver {
     const [timestamp, commit] = text.split(":")
     if (!timestamp || !commit) throw new Error(`Cannot parse git log output for ${repoPath}: ${text}`)
     return { timestamp: Number(timestamp), commit }
+  }
+
+  async packageBinPath(binName: string) {
+    const parsed = JSON.parse(await Bun.file(path.join(this.root, "package.json")).text()) as unknown
+    const value = isRecord(parsed) && isRecord(parsed.bin) ? parsed.bin[binName] : undefined
+    if (typeof value !== "string") {
+      throw new Error(`No package.json bin entry found for ${binName}`)
+    }
+    return normalizeRepoPath(value.replace(/^\.\//, ""))
   }
 
   private async readLatestCommitForDirectoryResource(repoPath: string): Promise<CommitInfo> {
@@ -306,6 +355,23 @@ function normalizeRepoPath(repoPath: string) {
   return repoPath.replace(/^\/+/, "").replaceAll(path.sep, "/")
 }
 
+function isHtmlFile(filePath: string) {
+  return path.extname(filePath).toLowerCase() === ".html"
+}
+
+function isChatWebappPackageFile(filePath: string) {
+  return path.basename(filePath) === "package.json" && path.basename(path.dirname(filePath)).endsWith(".chat.webapp")
+}
+
+function relativeScriptPath(fromDirectory: string, toFile: string) {
+  const relative = path.relative(fromDirectory, toFile).replaceAll(path.sep, "/")
+  return relative.startsWith(".") ? relative : `./${relative}`
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
 async function verifyCommitsOnGitHub(repo: GitHubRepo, commits: Set<string>) {
   if (commits.size === 0) return
 
@@ -318,11 +384,6 @@ async function verifyCommitsOnGitHub(repo: GitHubRepo, commits: Set<string>) {
       throw new Error(`Commit ${commit} is not reachable from GitHub for ${repo.owner}/${repo.repo}. Push it before generating CDN URLs.`)
     }
   }
-}
-
-async function getCurrentBranch(root: string) {
-  const branch = (await Bun.$`git -C ${root} branch --show-current`.quiet().text()).trim()
-  return branch || "main"
 }
 
 function fail(message: string): never {

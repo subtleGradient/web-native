@@ -39,13 +39,13 @@ fi
 
 "$(find_bun)" run standalone --cdn --all --allow-pending-push
 
-if [[ -z "$(git status --porcelain -- '*.html')" ]]; then
+if [[ -z "$(git status --porcelain -- '*.html' ':(glob)**/*.chat.webapp/package.json')" ]]; then
   exit 0
 fi
 
-git add -- '*.html'
+git add -- '*.html' ':(glob)**/*.chat.webapp/package.json'
 
-git commit -m "Normalize standalone CDN urls"
+git commit -m "Normalize standalone GitHub urls"
 
 echo "pre-push: created a standalone CDN normalization commit. Run git push again." >&2
 exit 1
