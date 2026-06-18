@@ -48,7 +48,7 @@ const requestedPort = readPort()
 
 const server = serveOpenAIRunner(requestedPort, explicitPort)
 
-const launchUrl = `http://${HOST}:${server.port}/${path.relative(packageRoot, launchPath).split(path.sep).join("/")}?t=${encodeURIComponent(token)}&state=1`
+const launchUrl = `http://${HOST}:${server.port}/${publicUrlPath(launchPath)}?t=${encodeURIComponent(token)}&state=1`
 if (!explicitPort && server.port !== requestedPort)
   console.warn(`Port ${requestedPort} is in use; using ${server.port}.`)
 console.log(`${launchLabel()}: ${launchUrl}`)
@@ -612,6 +612,14 @@ function requirePackageRootPath(filePath: string, input: string) {
   const relative = path.relative(packageRoot, filePath)
   if (relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative))) return filePath
   throw new Error(`Demo file must be inside ${packageRoot}: ${input}`)
+}
+
+function publicUrlPath(filePath: string) {
+  return path
+    .relative(packageRoot, filePath)
+    .split(path.sep)
+    .map((segment) => encodeURIComponent(segment))
+    .join("/")
 }
 
 function resolvePublicPath(pathname: string) {
