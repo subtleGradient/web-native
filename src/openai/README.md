@@ -20,6 +20,26 @@ and Codex-backed workflows.
 
 `OpenAIClient` supports direct official API-key calls for Responses, hosted tool calls through raw Responses requests, image generation through the Responses `image_generation` tool, embeddings, and streamed response events as async generators.
 
+Semantic chat webapps can use the generic `ai-chat-app` element with
+`chat.web` transcript components. The element name intentionally avoids an
+OpenAI-specific prefix; it only orchestrates the local runner endpoints.
+
+```html
+<script type="module" src="https://cdn.jsdelivr.net/gh/subtleGradient/web-native@main/src/openai/ai-chat.define.js"></script>
+
+<ai-chat-app transcript="thread" model="gpt-5.5" transport-label="codex-broker">
+  <topic-transcript id="thread" editable>
+    <chat-message data-role="user"><pre>Hello</pre></chat-message>
+  </topic-transcript>
+  <chat-composer></chat-composer>
+  <chat-message-editor></chat-message-editor>
+</ai-chat-app>
+```
+
+`ai-chat-app` persists only serialized `<topic-transcript>` markup through
+`/__ai-chat/save-source`, streams continuations through `/__ai-chat/respond`,
+and refreshes `<chat-file-reference>` badges through `/__ai-chat/file-status`.
+
 ```js
 import { OpenAIClient } from "./client.js"
 
