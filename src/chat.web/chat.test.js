@@ -108,12 +108,135 @@ const ok = true
     expect(summary?.shadowRoot?.querySelector(".previous-link")?.textContent).to.equal("Back to 001 Previous Topic")
   })
 
+  it("renders file references without inlining file contents", async () => {
+    const reference = /** @type {HTMLElement} */ (mount(html`
+      <chat-file-reference
+        data-path="../../chat.web/README.md"
+        data-mime="text/markdown"
+        data-status="available"
+        data-current-bytes="1522"
+        data-current-sha256="fdcf57be5725345d65b59121cd5f5a34f23d333ee733f997a724838fe991eb1d"
+      >src/chat.web/README.md</chat-file-reference>
+    `).querySelector("chat-file-reference"))
+
+    await nextFrame()
+
+    const shadow = reference.shadowRoot
+    expect(shadow?.querySelector("a")?.textContent).to.equal("src/chat.web/README.md")
+    expect(shadow?.querySelector("a")?.getAttribute("href")).to.equal("../../chat.web/README.md")
+    expect(shadow?.querySelector(".badge")?.textContent).to.equal("available")
+    expect(shadow?.querySelector("code")?.textContent).to.equal("../../chat.web/README.md")
+    expect(shadow?.textContent).to.include("text/markdown")
+    expect(shadow?.textContent).to.include("1.5 KB")
+    expect(shadow?.textContent).to.include("fdcf57be5725")
+    expect(shadow?.textContent).to.not.include("Plain custom elements for rendering lightweight archived chat transcripts")
+  })
+
+  it("normalizes and serializes the semantic transcript source", async () => {
+    const transcript = /** @type {import("./chat.js").TopicTranscript} */ (mount(html`
+      <topic-transcript editable>
+        <chat-message data-role="user"><pre>Hello</pre></chat-message>
+        <chat-file-reference
+          data-for="missing"
+          data-path="../../chat.web/README.md"
+          data-status="available"
+          data-current-bytes="123"
+          data-current-sha256="abc"
+        >src/chat.web/README.md</chat-file-reference>
+      </topic-transcript>
+    `).querySelector("topic-transcript"))
+
+    await nextFrame()
+
+    const assistant = transcript.appendMessage({
+      role: "assistant",
+      text: "Hi",
+      attrs: { "data-model": "gpt-test", "data-streaming": "true" },
+    })
+    expect(transcript.dataset.messageCount).to.equal("2")
+    expect(assistant.getAttribute("data-turn")).to.equal("2")
+    expect(transcript.messageText(assistant)).to.equal("Hi")
+
+    transcript.setMessageText(assistant, "Edited")
+    const source = transcript.serializeSource()
+
+    expect(source).to.include("<topic-transcript")
+    expect(source).to.include('data-message-count="2"')
+    expect(source).to.include("<pre>Edited</pre>")
+    expect(source).to.not.include("data-current-bytes")
+    expect(source).to.not.include("data-current-sha256")
+    expect(source).to.not.include("data-status")
+    expect(source).to.not.include("data-streaming")
+  })
+
+  it("emits message action requests from editable transcript messages", async () => {
+    const transcript = mount(html`
+      <topic-transcript editable>
+        <chat-message id="msg-editable" data-role="user"><pre>Hello</pre></chat-message>
+      </topic-transcript>
+    `).querySelector("topic-transcript")
+    const message = /** @type {HTMLElement} */ (transcript?.querySelector("chat-message"))
+
+    await nextFrame()
+
+    const edit = once(message, "chat-message-edit-request")
+    message.shadowRoot?.querySelector("[data-chat-action='edit']")?.dispatchEvent(new MouseEvent("click", { bubbles: true }))
+    const editEvent = /** @type {CustomEvent} */ (await edit)
+
+    expect(editEvent.detail.id).to.equal("msg-editable")
+  })
+
+  it("dispatches composer submissions for send and save keyboard paths", async () => {
+    const composer = /** @type {import("./chat.js").ChatComposer} */ (mount(html`
+      <chat-composer placeholder="Message"></chat-composer>
+    `).querySelector("chat-composer"))
+
+    await nextFrame()
+
+    const textarea = /** @type {HTMLTextAreaElement} */ (composer.shadowRoot?.querySelector("textarea"))
+    textarea.value = "Send this"
+    const send = once(composer, "chat-composer-submit")
+    textarea.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", metaKey: true, bubbles: true }))
+    const sendEvent = /** @type {CustomEvent} */ (await send)
+
+    expect(sendEvent.detail).to.deep.equal({ send: true, text: "Send this" })
+    expect(textarea.value).to.equal("")
+
+    textarea.value = "Save this"
+    const save = once(composer, "chat-composer-submit")
+    textarea.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", metaKey: true, altKey: true, bubbles: true }))
+    const saveEvent = /** @type {CustomEvent} */ (await save)
+
+    expect(saveEvent.detail).to.deep.equal({ send: false, text: "Save this" })
+  })
+
+  it("dispatches editor saves for the selected message", async () => {
+    const root = mount(html`
+      <chat-message id="msg-edit" data-role="user"><pre>Original</pre></chat-message>
+      <chat-message-editor></chat-message-editor>
+    `)
+    const message = /** @type {HTMLElement} */ (root.querySelector("chat-message"))
+    const editor = /** @type {import("./chat.js").ChatMessageEditor} */ (root.querySelector("chat-message-editor"))
+
+    await nextFrame()
+
+    editor.edit(message, "Original")
+    const textarea = /** @type {HTMLTextAreaElement} */ (editor.shadowRoot?.querySelector("textarea"))
+    textarea.value = "Changed"
+    const saved = once(editor, "chat-editor-save")
+    editor.shadowRoot?.querySelector("form")?.dispatchEvent(new SubmitEvent("submit", { bubbles: true, cancelable: true }))
+    const savedEvent = /** @type {CustomEvent} */ (await saved)
+
+    expect(savedEvent.detail).to.deep.equal({ id: "msg-edit", text: "Changed" })
+  })
+
   it("passes automated accessibility checks", async () => {
     const root = mount(html`
       <topic-transcript>
         <header><h1>Topic</h1></header>
         <chat-summary><p>Previous context.</p></chat-summary>
         <chat-message data-turn="1" data-role="user"><pre>Hello</pre></chat-message>
+        <chat-file-reference data-path="../../chat.web/README.md">src/chat.web/README.md</chat-file-reference>
         <chat-message data-turn="2" data-role="assistant"><pre>Hi.</pre></chat-message>
       </topic-transcript>
     `)
@@ -140,6 +263,14 @@ function mountMessage(markup) {
 async function nextFrame() {
   await new Promise((resolve) => requestAnimationFrame(resolve))
   await new Promise((resolve) => requestAnimationFrame(resolve))
+}
+
+/**
+ * @param {EventTarget} target
+ * @param {string} eventName
+ */
+function once(target, eventName) {
+  return new Promise((resolve) => target.addEventListener(eventName, resolve, { once: true }))
 }
 
 /** @param {Element} element */

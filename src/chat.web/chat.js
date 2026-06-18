@@ -46,7 +46,8 @@ const transcriptStyles = String.raw`
   }
 
   ::slotted(chat-summary),
-  ::slotted(chat-message) {
+  ::slotted(chat-message),
+  ::slotted(chat-file-reference) {
     min-width: 0;
   }
 `
@@ -177,6 +178,44 @@ const messageStyles = String.raw`
 
   article[data-kind="assistant"] .content {
     border-inline-start: 0.25rem solid color-mix(in oklch, CanvasText 32%, transparent);
+  }
+
+  article[data-editable="true"] {
+    position: relative;
+  }
+
+  .message-actions {
+    display: flex;
+    gap: 0.3rem;
+    inset-block-start: 0.35rem;
+    inset-inline-end: 0.35rem;
+    margin: 0;
+    opacity: 0;
+    padding: 0;
+    position: absolute;
+    transition: opacity 120ms ease;
+  }
+
+  article[data-editable="true"]:hover .message-actions,
+  .message-actions:focus-within {
+    opacity: 1;
+  }
+
+  .message-actions button {
+    background: color-mix(in oklch, Canvas 88%, CanvasText 12%);
+    border: 1px solid color-mix(in oklch, CanvasText 14%, transparent);
+    border-radius: 0.4rem;
+    color: CanvasText;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 650;
+    line-height: 1;
+    padding: 0.32rem 0.45rem;
+  }
+
+  .message-actions button:hover {
+    background: color-mix(in oklch, Highlight 14%, Canvas);
   }
 
   .tool-event {
@@ -444,6 +483,201 @@ const messageStyles = String.raw`
   }
 `
 
+const fileReferenceStyles = String.raw`
+  :host {
+    display: block;
+  }
+
+  .file {
+    background: color-mix(in oklch, Canvas 96%, CanvasText 4%);
+    border: 1px solid color-mix(in oklch, CanvasText 13%, transparent);
+    border-radius: 0.5rem;
+    color: CanvasText;
+    display: grid;
+    gap: 0.35rem;
+    padding: 0.7rem 0.8rem;
+  }
+
+  .top {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    justify-content: space-between;
+  }
+
+  a {
+    color: LinkText;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+    text-decoration: none;
+  }
+
+  a:hover {
+    text-decoration: underline;
+  }
+
+  .badge {
+    background: color-mix(in oklch, Highlight 12%, Canvas);
+    border: 1px solid color-mix(in oklch, Highlight 25%, transparent);
+    border-radius: 999px;
+    color: color-mix(in oklch, CanvasText 70%, transparent);
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.16rem 0.45rem;
+  }
+
+  code {
+    color: color-mix(in oklch, CanvasText 62%, transparent);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.76rem;
+    overflow-wrap: anywhere;
+  }
+
+  .meta {
+    color: color-mix(in oklch, CanvasText 56%, transparent);
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 0.76rem;
+    gap: 0.45rem;
+  }
+`
+
+const composerStyles = String.raw`
+  :host {
+    display: block;
+  }
+
+  form {
+    background: Canvas;
+    border-top: 1px solid color-mix(in oklch, CanvasText 14%, transparent);
+    display: grid;
+    gap: 0.75rem;
+    padding: clamp(0.9rem, 2vw, 1.25rem);
+  }
+
+  textarea {
+    background: color-mix(in oklch, Canvas 98%, CanvasText 2%);
+    border: 1px solid color-mix(in oklch, CanvasText 14%, transparent);
+    border-radius: 0.65rem;
+    box-sizing: border-box;
+    color: CanvasText;
+    font: inherit;
+    min-block-size: 5.5rem;
+    padding: 0.85rem;
+    resize: vertical;
+    width: 100%;
+  }
+
+  .row {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: space-between;
+  }
+
+  .status {
+    color: color-mix(in oklch, CanvasText 58%, transparent);
+    font-size: 0.82rem;
+  }
+
+  .actions {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  button {
+    background: color-mix(in oklch, Canvas 92%, CanvasText 8%);
+    border: 1px solid color-mix(in oklch, CanvasText 14%, transparent);
+    border-radius: 0.5rem;
+    color: CanvasText;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 700;
+    padding: 0.55rem 0.85rem;
+  }
+
+  button[data-primary] {
+    background: LinkText;
+    border-color: LinkText;
+    color: Canvas;
+  }
+
+  button:disabled,
+  textarea:disabled {
+    cursor: wait;
+    opacity: 0.58;
+  }
+`
+
+const editorStyles = String.raw`
+  :host {
+    display: contents;
+  }
+
+  dialog {
+    background: Canvas;
+    border: 1px solid color-mix(in oklch, CanvasText 18%, transparent);
+    border-radius: 0.75rem;
+    color: CanvasText;
+    max-inline-size: min(42rem, calc(100vw - 2rem));
+    padding: 0;
+    width: 42rem;
+  }
+
+  dialog::backdrop {
+    background: color-mix(in oklch, CanvasText 24%, transparent);
+  }
+
+  form {
+    display: grid;
+    gap: 0.85rem;
+    padding: 1rem;
+  }
+
+  h2 {
+    font-size: 1rem;
+    margin: 0;
+  }
+
+  textarea {
+    background: color-mix(in oklch, Canvas 98%, CanvasText 2%);
+    border: 1px solid color-mix(in oklch, CanvasText 14%, transparent);
+    border-radius: 0.65rem;
+    box-sizing: border-box;
+    color: CanvasText;
+    font: inherit;
+    min-block-size: 13rem;
+    padding: 0.85rem;
+    width: 100%;
+  }
+
+  .row {
+    align-items: center;
+    display: flex;
+    gap: 0.5rem;
+    justify-content: end;
+  }
+
+  button {
+    background: color-mix(in oklch, Canvas 92%, CanvasText 8%);
+    border: 1px solid color-mix(in oklch, CanvasText 14%, transparent);
+    border-radius: 0.5rem;
+    color: CanvasText;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 700;
+    padding: 0.55rem 0.85rem;
+  }
+
+  button[data-primary] {
+    background: LinkText;
+    border-color: LinkText;
+    color: Canvas;
+  }
+`
+
 export class TopicTranscript extends HTMLElement {
   connectedCallback() {
     installChatTranscriptPageStyles()
@@ -456,6 +690,127 @@ export class TopicTranscript extends HTMLElement {
         <slot></slot>
       </div>
     `
+  }
+
+  messages() {
+    return Array.from(this.children).filter((element) => element.localName === "chat-message")
+  }
+
+  normalize() {
+    const messages = this.messages()
+    messages.forEach((message, index) => {
+      const turn = String(index + 1)
+      message.setAttribute("data-turn", turn)
+      ensureMessageId(message)
+      if (!message.getAttribute("data-source")) {
+        const role = message.getAttribute("data-role") ?? "message"
+        message.setAttribute("data-source", `${String(index + 1).padStart(4, "0")}-${role}.md`)
+      }
+    })
+    this.dataset.startMessage = messages.length ? "0001" : ""
+    this.dataset.endMessage = messages.length ? String(messages.length).padStart(4, "0") : ""
+    this.dataset.messageCount = String(messages.length)
+    return this
+  }
+
+  serializeSource() {
+    this.normalize()
+    const clone = this.cloneNode(true)
+    if (!(clone instanceof HTMLElement)) throw new Error("Could not clone chat transcript.")
+    clone.querySelectorAll("[data-ephemeral]").forEach((element) => element.remove())
+    clone.querySelectorAll("chat-file-reference").forEach((element) => {
+      element.removeAttribute("data-status")
+      element.removeAttribute("data-current-bytes")
+      element.removeAttribute("data-current-sha256")
+    })
+    clone.querySelectorAll("chat-message").forEach((element) => {
+      element.removeAttribute("data-streaming")
+    })
+    return clone.outerHTML
+  }
+
+  /**
+   * @param {{ role?: string, text?: string, attrs?: Record<string, string | undefined> }} [options]
+   */
+  appendMessage(options = {}) {
+    const role = options.role ?? "user"
+    const message = document.createElement("chat-message")
+    message.id = options.attrs?.id ?? nextMessageId()
+    message.dataset.role = role
+    message.dataset.created = new Date().toISOString()
+    for (const [name, value] of Object.entries(options.attrs ?? {})) {
+      if (value !== undefined && name !== "id") message.setAttribute(name, value)
+    }
+    const pre = document.createElement("pre")
+    pre.textContent = options.text ?? ""
+    message.append(pre)
+    this.append(message)
+    this.normalize()
+    message.scrollIntoView({ block: "nearest" })
+    this.#dispatchChange("append", message)
+    return message
+  }
+
+  /** @param {string | Element} target */
+  deleteMessage(target) {
+    const message = this.messageElement(target)
+    if (!message) return false
+    const id = message.id
+    for (const reference of Array.from(this.querySelectorAll("chat-file-reference"))) {
+      if (reference.getAttribute("data-for") === id) reference.remove()
+    }
+    message.remove()
+    this.normalize()
+    this.#dispatchChange("delete", message)
+    return true
+  }
+
+  /** @param {string | Element} target */
+  messageText(target) {
+    const message = this.messageElement(target)
+    return message?.querySelector("pre")?.textContent ?? ""
+  }
+
+  /**
+   * @param {string | Element} target
+   * @param {string} text
+   */
+  setMessageText(target, text) {
+    const message = this.messageElement(target)
+    if (!message) return false
+    let pre = message.querySelector("pre")
+    if (!pre) {
+      pre = document.createElement("pre")
+      message.replaceChildren(pre)
+    }
+    pre.textContent = text
+    this.#dispatchChange("edit", message)
+    return true
+  }
+
+  /** @param {string | Element} target */
+  messageElement(target) {
+    if (target instanceof Element) {
+      return target.localName === "chat-message" && target.parentElement === this
+        ? target
+        : null
+    }
+    const element = document.getElementById(target)
+    return element?.localName === "chat-message" && element.parentElement === this
+      ? element
+      : null
+  }
+
+  /**
+   * @param {string} action
+   * @param {Element} message
+   */
+  #dispatchChange(action, message) {
+    this.dispatchEvent(new CustomEvent("chat-transcript-change", {
+      bubbles: true,
+      composed: true,
+      detail: { action, message },
+    }))
   }
 }
 
@@ -540,15 +895,245 @@ export class ChatMessage extends HTMLElement {
     const hidden = this.dataset.hidden === "true"
     const kind = this.dataset.recipient ? "tool" : role === "user" ? "user" : "assistant"
     const body = getRawMessageBody(this)
+    const editable = isMessageEditable(this)
     const shadow = this.shadowRoot ?? this.attachShadow({ mode: "open" })
     shadow.innerHTML = String.raw`
       <style>${messageStyles}</style>
-      <article data-kind="${escapeAttribute(kind)}" data-role="${escapeAttribute(role)}" data-hidden="${hidden ? "true" : "false"}">
+      <article data-kind="${escapeAttribute(kind)}" data-role="${escapeAttribute(role)}" data-hidden="${hidden ? "true" : "false"}" data-editable="${editable ? "true" : "false"}">
         ${kind === "tool"
           ? renderToolEvent(this, body)
           : `${renderMessageHeader(this, kind)}<section class="content">${renderMarkdown(body)}</section>`}
+        ${editable ? renderMessageActions() : ""}
       </article>
     `
+    shadow.querySelector("[data-chat-action='edit']")?.addEventListener("click", () => {
+      this.dispatchEvent(new CustomEvent("chat-message-edit-request", {
+        bubbles: true,
+        composed: true,
+        detail: { id: ensureMessageId(this), message: this },
+      }))
+    })
+    shadow.querySelector("[data-chat-action='delete']")?.addEventListener("click", () => {
+      this.dispatchEvent(new CustomEvent("chat-message-delete-request", {
+        bubbles: true,
+        composed: true,
+        detail: { id: ensureMessageId(this), message: this },
+      }))
+    })
+  }
+}
+
+export class ChatFileReference extends HTMLElement {
+  static observedAttributes = [
+    "data-current-bytes",
+    "data-current-sha256",
+    "data-mime",
+    "data-path",
+    "data-status",
+  ]
+
+  /** @type {MutationObserver | undefined} */
+  #observer
+
+  connectedCallback() {
+    this.#observer = new MutationObserver(this.#queueRender)
+    this.#observer.observe(this, { childList: true, subtree: true, characterData: true })
+    this.#queueRender()
+  }
+
+  disconnectedCallback() {
+    this.#observer?.disconnect()
+    this.#observer = undefined
+  }
+
+  attributeChangedCallback() {
+    this.#queueRender()
+  }
+
+  /** @type {() => void} */
+  #queueRender = () => {
+    if (Reflect.get(this, renderQueued)) return
+    Reflect.set(this, renderQueued, true)
+    requestAnimationFrame(() => {
+      Reflect.set(this, renderQueued, false)
+      this.#render()
+    })
+  }
+
+  #render() {
+    const filePath = this.dataset.path ?? ""
+    const label = this.textContent?.trim() || filePath
+    const status = this.dataset.status ?? "unchecked"
+    const bytes = this.dataset.currentBytes
+    const hash = this.dataset.currentSha256
+    const shadow = this.shadowRoot ?? this.attachShadow({ mode: "open" })
+    shadow.innerHTML = String.raw`
+      <style>${fileReferenceStyles}</style>
+      <section class="file" aria-label="Referenced file">
+        <div class="top">
+          <a href="${escapeAttribute(filePath)}" target="_blank" rel="noreferrer">${escapeHtml(label)}</a>
+          <span class="badge">${escapeHtml(status)}</span>
+        </div>
+        <code>${escapeHtml(filePath)}</code>
+        <div class="meta">
+          <span>${escapeHtml(this.dataset.mime ?? "file")}</span>
+          ${bytes ? `<span>${escapeHtml(formatBytes(Number(bytes)))}</span>` : ""}
+          ${hash ? `<span>${escapeHtml(hash.slice(0, 12))}</span>` : ""}
+        </div>
+      </section>
+    `
+  }
+}
+
+export class ChatComposer extends HTMLElement {
+  static observedAttributes = ["busy", "placeholder", "status"]
+
+  connectedCallback() {
+    if (!this.shadowRoot) {
+      const shadow = this.attachShadow({ mode: "open" })
+      shadow.innerHTML = String.raw`
+        <style>${composerStyles}</style>
+        <form>
+          <textarea name="message"></textarea>
+          <div class="row">
+            <span class="status" role="status"></span>
+            <span class="actions">
+              <button type="button" data-save>Save</button>
+              <button type="submit" data-primary>Send</button>
+            </span>
+          </div>
+        </form>
+      `
+      shadow.querySelector("form")?.addEventListener("submit", (event) => {
+        event.preventDefault()
+        this.#submit(true)
+      })
+      shadow.querySelector("[data-save]")?.addEventListener("click", () => this.#submit(false))
+      shadow.querySelector("textarea")?.addEventListener("keydown", (event) => {
+        if (!(event instanceof KeyboardEvent)) return
+        if (event.key !== "Enter") return
+        if (!event.metaKey && !event.ctrlKey) return
+        event.preventDefault()
+        this.#submit(!event.altKey)
+      })
+    }
+    this.#sync()
+  }
+
+  attributeChangedCallback() {
+    this.#sync()
+  }
+
+  get busy() {
+    return this.hasAttribute("busy")
+  }
+
+  /** @param {boolean} value */
+  set busy(value) {
+    this.toggleAttribute("busy", value)
+  }
+
+  get status() {
+    return this.getAttribute("status") ?? ""
+  }
+
+  /** @param {string} value */
+  set status(value) {
+    this.setAttribute("status", value)
+  }
+
+  /** @returns {HTMLTextAreaElement | null} */
+  get textarea() {
+    return /** @type {HTMLTextAreaElement | null} */ (this.shadowRoot?.querySelector("textarea") ?? null)
+  }
+
+  #sync() {
+    const textarea = this.textarea
+    const status = this.shadowRoot?.querySelector(".status")
+    const disabled = this.busy
+    if (textarea) {
+      textarea.placeholder = this.getAttribute("placeholder") ?? "Add a message"
+      textarea.toggleAttribute("disabled", disabled)
+    }
+    if (status) status.textContent = this.status
+    this.shadowRoot?.querySelectorAll("button").forEach((button) => {
+      button.toggleAttribute("disabled", disabled)
+    })
+  }
+
+  /** @param {boolean} send */
+  #submit(send) {
+    const textarea = this.textarea
+    if (!(textarea instanceof HTMLTextAreaElement)) return
+    const text = textarea.value.trim()
+    if (!text) return
+    const event = new CustomEvent("chat-composer-submit", {
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+      detail: { send, text },
+    })
+    if (this.dispatchEvent(event)) textarea.value = ""
+  }
+}
+
+export class ChatMessageEditor extends HTMLElement {
+  #messageId = ""
+
+  connectedCallback() {
+    if (!this.shadowRoot) {
+      const shadow = this.attachShadow({ mode: "open" })
+      shadow.innerHTML = String.raw`
+        <style>${editorStyles}</style>
+        <dialog>
+          <form method="dialog">
+            <h2>Edit message</h2>
+            <textarea name="message"></textarea>
+            <div class="row">
+              <button type="button" data-cancel>Cancel</button>
+              <button type="submit" data-primary>Save</button>
+            </div>
+          </form>
+        </dialog>
+      `
+      shadow.querySelector("form")?.addEventListener("submit", (event) => {
+        event.preventDefault()
+        this.#save()
+      })
+      shadow.querySelector("[data-cancel]")?.addEventListener("click", () => this.close())
+    }
+  }
+
+  /**
+   * @param {Element} message
+   * @param {string} text
+   */
+  edit(message, text = message.querySelector("pre")?.textContent ?? "") {
+    this.#messageId = ensureMessageId(message)
+    const textarea = this.shadowRoot?.querySelector("textarea")
+    const dialog = this.shadowRoot?.querySelector("dialog")
+    if (textarea instanceof HTMLTextAreaElement) textarea.value = text
+    if (dialog instanceof HTMLDialogElement) {
+      dialog.showModal()
+      textarea instanceof HTMLTextAreaElement && textarea.focus()
+    }
+  }
+
+  close() {
+    const dialog = this.shadowRoot?.querySelector("dialog")
+    if (dialog instanceof HTMLDialogElement) dialog.close()
+  }
+
+  #save() {
+    const textarea = this.shadowRoot?.querySelector("textarea")
+    const text = textarea instanceof HTMLTextAreaElement ? textarea.value : ""
+    const id = this.#messageId
+    this.close()
+    this.dispatchEvent(new CustomEvent("chat-editor-save", {
+      bubbles: true,
+      composed: true,
+      detail: { id, text },
+    }))
   }
 }
 
@@ -608,6 +1193,20 @@ function messageContext(element) {
   if (element.dataset.thinking === "true") return "working note"
   if (element.dataset.channel && element.dataset.channel !== "final") return element.dataset.channel
   return undefined
+}
+
+/** @param {Element} element */
+function isMessageEditable(element) {
+  return Boolean(element.closest("topic-transcript")?.hasAttribute("editable"))
+}
+
+function renderMessageActions() {
+  return String.raw`
+    <menu class="message-actions" aria-label="Message actions">
+      <button type="button" data-chat-action="edit">Edit</button>
+      <button type="button" data-chat-action="delete">Delete</button>
+    </menu>
+  `
 }
 
 /**
@@ -1107,6 +1706,25 @@ function escapeAttribute(text) {
   return escapeHtml(text).replace(/"/g, "&quot;")
 }
 
+/** @param {number} value */
+function formatBytes(value) {
+  if (!Number.isFinite(value)) return ""
+  if (value < 1024) return `${value} B`
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`
+  return `${(value / 1024 / 1024).toFixed(1)} MB`
+}
+
+/** @param {Element} element */
+function ensureMessageId(element) {
+  if (!(element instanceof HTMLElement)) throw new Error("Expected an HTML message element.")
+  if (!element.id) element.id = nextMessageId()
+  return element.id
+}
+
+function nextMessageId() {
+  return `msg-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+}
+
 /** @param {string} [topicName] */
 export function defineTopicTranscript(topicName = "topic-transcript") {
   if (!customElements.get(topicName)) {
@@ -1128,8 +1746,32 @@ export function defineChatMessage(messageName = "chat-message") {
   }
 }
 
+/** @param {string} [referenceName] */
+export function defineChatFileReference(referenceName = "chat-file-reference") {
+  if (!customElements.get(referenceName)) {
+    customElements.define(referenceName, ChatFileReference)
+  }
+}
+
+/** @param {string} [composerName] */
+export function defineChatComposer(composerName = "chat-composer") {
+  if (!customElements.get(composerName)) {
+    customElements.define(composerName, ChatComposer)
+  }
+}
+
+/** @param {string} [editorName] */
+export function defineChatMessageEditor(editorName = "chat-message-editor") {
+  if (!customElements.get(editorName)) {
+    customElements.define(editorName, ChatMessageEditor)
+  }
+}
+
 export function defineChatTranscriptElements() {
   defineTopicTranscript()
   defineChatSummary()
   defineChatMessage()
+  defineChatFileReference()
+  defineChatComposer()
+  defineChatMessageEditor()
 }
