@@ -1,4 +1,6 @@
-export const topbarStyle = String.raw`
+const css = String.raw
+
+export const topbarStyle = css`
   .header {
     display: grid;
   }

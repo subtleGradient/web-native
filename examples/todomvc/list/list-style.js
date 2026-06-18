@@ -1,4 +1,6 @@
-export const listStyle = String.raw`
+const css = String.raw
+
+export const listStyle = css`
   todo-list {
     display: block;
   }

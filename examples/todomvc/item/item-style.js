@@ -1,4 +1,6 @@
-export const itemStyle = String.raw`
+const css = String.raw
+
+export const itemStyle = css`
   .todo-list li {
     border-block-end: 1px solid var(--border);
     color: var(--foreground);

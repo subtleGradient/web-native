@@ -551,7 +551,7 @@ only run demos you trust and review tool calls.
       }
 
       function sandboxHtml() {
-        const script = String.raw`
+        const script = js`
           const workerSource = ${JSON.stringify(workerSource)};
           const worker = new Worker(URL.createObjectURL(new Blob([workerSource], { type: "text/javascript" })));
           worker.onmessage = (event) => parent.postMessage(event.data, "*");
