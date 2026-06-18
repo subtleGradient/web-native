@@ -24,6 +24,8 @@ const CODEX_RESPONSES_WS_URL = "wss://chatgpt.com/backend-api/codex/responses"
 const CODEX_EMBEDDINGS_URL = "https://chatgpt.com/backend-api/codex/embeddings"
 const AUTH_URL = "https://auth.openai.com/oauth/token"
 const OPENAI_OAUTH_CLIENT_ID = "app_EMoamEEZ73f0CkXaXp7hrann"
+const BROKER_PREFIX = "/__web-native-ai"
+const LEGACY_BROKER_PREFIX = "/__web-native-openai"
 
 type ResponsesRelayData = {
   apiKey?: string
@@ -103,16 +105,17 @@ async function handleFetch(request: Request) {
   if (url.pathname === "/favicon.ico")
     return new Response(null, { status: 204 })
 
-  if (url.pathname.startsWith("/__web-native-openai/")) {
+  const brokerPath = brokerPathname(url.pathname)
+  if (brokerPath !== undefined) {
     if (!authorized(request, url))
       return new Response("Forbidden", { status: 403 })
-    if (url.pathname === "/__web-native-openai/api/responses/ws")
+    if (brokerPath === "/api/responses/ws")
       return handleResponsesWebSocket(request, "api-key-broker")
-    if (url.pathname === "/__web-native-openai/codex/responses/ws")
+    if (brokerPath === "/codex/responses/ws")
       return handleResponsesWebSocket(request, "codex-broker")
-    if (url.pathname === "/__web-native-openai/state")
+    if (brokerPath === "/state")
       return handleStateFetch(request, url)
-    return handleBrokerFetch(request, url)
+    return handleBrokerFetch(request, brokerPath)
   }
 
   const filePath = resolvePublicPath(url.pathname)
@@ -315,38 +318,38 @@ function parseRelayConnectMessage(text: string) {
   return parsed
 }
 
-async function handleBrokerFetch(request: Request, url: URL) {
+async function handleBrokerFetch(request: Request, brokerPath: string) {
   if (request.method !== "POST")
     return new Response("Method not allowed", { status: 405 })
 
-  if (url.pathname === "/__web-native-openai/api/responses") {
+  if (brokerPath === "/api/responses") {
     return proxyJson(
       request,
       `${OPENAI_API_BASE_URL}/responses`,
       openAIHeaders(request),
     )
   }
-  if (url.pathname === "/__web-native-openai/api/embeddings") {
+  if (brokerPath === "/api/embeddings") {
     return proxyJson(
       request,
       `${OPENAI_API_BASE_URL}/embeddings`,
       openAIHeaders(request),
     )
   }
-  if (url.pathname === "/__web-native-openai/api/realtime/session") {
+  if (brokerPath === "/api/realtime/session") {
     return proxyJson(
       request,
       `${OPENAI_API_BASE_URL}/realtime/sessions`,
       openAIHeaders(request),
     )
   }
-  if (url.pathname === "/__web-native-openai/codex/responses") {
+  if (brokerPath === "/codex/responses") {
     return proxyJson(request, CODEX_RESPONSES_URL, await codexHeaders())
   }
-  if (url.pathname === "/__web-native-openai/codex/embeddings") {
+  if (brokerPath === "/codex/embeddings") {
     return proxyJson(request, CODEX_EMBEDDINGS_URL, await codexHeaders())
   }
-  if (url.pathname === "/__web-native-openai/codex/realtime/session") {
+  if (brokerPath === "/codex/realtime/session") {
     return new Response("Codex realtime broker is not implemented yet.", {
       status: 501,
     })
@@ -595,9 +598,18 @@ function responseHeaders(response: Response) {
 
 function authorized(request: Request, url: URL) {
   return (
+    request.headers.get("x-web-native-ai-token") === token ||
     request.headers.get("x-web-native-openai-token") === token ||
     url.searchParams.get("t") === token
   )
+}
+
+function brokerPathname(pathname: string) {
+  if (pathname.startsWith(`${BROKER_PREFIX}/`))
+    return pathname.slice(BROKER_PREFIX.length)
+  if (pathname.startsWith(`${LEGACY_BROKER_PREFIX}/`))
+    return pathname.slice(LEGACY_BROKER_PREFIX.length)
+  return undefined
 }
 
 function resolveLaunchPath(input: string) {

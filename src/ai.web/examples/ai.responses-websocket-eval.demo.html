@@ -316,7 +316,7 @@ only run demos you trust and review tool calls.
           const effort = textField(data, "effort") || "medium"
 
           this.status("connecting local relay")
-          const client = new OpenAIClient({ brokerUrl: "/__web-native-openai", transport: "codex-broker" })
+          const client = new OpenAIClient({ brokerUrl: "/__web-native-ai", transport: "codex-broker" })
           const relay = client.responsesSocket()
           this.socket = relay
           await waitForOpen(relay.socket)

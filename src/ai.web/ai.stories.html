@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>ai.web stories</title>
+    <script type="module" src="./define.js"></script>
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        background:
+          radial-gradient(circle at 15% 8%, color-mix(in oklch, Highlight 18%, transparent), transparent 28rem),
+          color-mix(in oklch, Canvas 94%, CanvasText 6%);
+        color: CanvasText;
+        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        line-height: 1.5;
+        margin: 0;
+      }
+
+      main {
+        display: grid;
+        gap: clamp(1rem, 3vw, 2rem);
+        margin-inline: auto;
+        max-inline-size: 72rem;
+        padding: clamp(1rem, 4vw, 3rem);
+      }
+
+      header,
+      section,
+      form,
+      .story-grid,
+      .result-grid,
+      .notes {
+        display: grid;
+        gap: 1rem;
+      }
+
+      header {
+        max-inline-size: 56rem;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-block: 0;
+      }
+
+      h1 {
+        font-size: clamp(2.4rem, 9vw, 6rem);
+        letter-spacing: -0.07em;
+        line-height: 0.88;
+      }
+
+      h2 {
+        font-size: clamp(1.35rem, 3vw, 2rem);
+        letter-spacing: -0.035em;
+      }
+
+      h3 {
+        font-size: 1rem;
+      }
+
+      code,
+      pre {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+
+      pre {
+        background: color-mix(in oklch, Canvas 88%, CanvasText 12%);
+        border: 1px solid color-mix(in oklch, CanvasText 14%, transparent);
+        border-radius: 0.85rem;
+        margin: 0;
+        overflow: auto;
+        padding: 0.85rem;
+        white-space: pre-wrap;
+      }
+
+      [data-story] {
+        background: color-mix(in oklch, Canvas 97%, CanvasText 3%);
+        border: 1px solid color-mix(in oklch, CanvasText 13%, transparent);
+        border-radius: 1.25rem;
+        box-shadow: 0 1rem 2.5rem color-mix(in oklch, CanvasText 8%, transparent);
+        padding: clamp(1rem, 3vw, 1.5rem);
+      }
+
+      .story-grid {
+        grid-template-columns: minmax(0, 1fr) minmax(16rem, 0.85fr);
+      }
+
+      .result-grid {
+        grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+      }
+
+      label {
+        display: grid;
+        gap: 0.35rem;
+        font-weight: 700;
+      }
+
+      input,
+      select,
+      textarea,
+      button {
+        border: 1px solid color-mix(in oklch, CanvasText 22%, transparent);
+        border-radius: 0.65rem;
+        font: inherit;
+        padding: 0.65rem 0.75rem;
+      }
+
+      textarea {
+        min-block-size: 5rem;
+        resize: vertical;
+      }
+
+      button {
+        background: CanvasText;
+        color: Canvas;
+        font-weight: 800;
+        width: fit-content;
+      }
+
+      output,
+      .note {
+        color: color-mix(in oklch, CanvasText 62%, transparent);
+      }
+
+      openai-key-field,
+      openai-result,
+      ai-chat-app {
+        display: block;
+      }
+
+      ai-chat-app {
+        border: 1px solid color-mix(in oklch, CanvasText 12%, transparent);
+        border-radius: 1rem;
+        overflow: clip;
+      }
+
+      chat-composer,
+      chat-message-editor {
+        display: none;
+      }
+
+      @media (max-width: 54rem) {
+        .story-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>ai.web component stories</h1>
+        <p>
+          Fixture-backed examples for the browser-native AI elements. These stories
+          document the current OpenAI-shaped behavior without making a live network
+          request.
+        </p>
+      </header>
+
+      <section data-story="client-key-result">
+        <h2>Client, key field, and result</h2>
+        <div class="story-grid">
+          <div class="notes">
+            <p>
+              <code>openai-client</code> owns request state. <code>openai-key-field</code>
+              writes an API key into that client. <code>openai-result</code> renders
+              the latest text, JSON, image, or error result emitted by the client.
+            </p>
+            <pre><code>&lt;openai-client id="fixture-ai" model="gpt-fixture"&gt;&lt;/openai-client&gt;
+&lt;openai-key-field target="fixture-ai"&gt;&lt;/openai-key-field&gt;
+&lt;form onsubmit="AIStories.respond(event)"&gt;...&lt;/form&gt;
+&lt;openai-result for="fixture-ai"&gt;&lt;/openai-result&gt;</code></pre>
+          </div>
+          <div>
+            <openai-client id="fixture-ai" model="gpt-fixture"></openai-client>
+            <openai-key-field id="fixture-key" target="fixture-ai" label="Fixture API key"></openai-key-field>
+            <form id="fixture-ai-form" onsubmit="AIStories.respond(event)">
+              <label>
+                Instructions
+                <textarea name="instructions">Answer from the local fixture.</textarea>
+              </label>
+              <label>
+                Prompt
+                <textarea name="prompt">What should this story prove?</textarea>
+              </label>
+              <button>Run fixture response</button>
+            </form>
+            <openai-result id="fixture-result" for="fixture-ai"></openai-result>
+            <output id="openai-output">No request yet.</output>
+          </div>
+        </div>
+      </section>
+
+      <section data-story="operation-forms">
+        <h2>Operation forms</h2>
+        <p class="note">
+          The same client element exposes domain methods for text, image,
+          embeddings, and raw tool requests. Forms call the client directly from
+          markup.
+        </p>
+        <div class="result-grid">
+          <form onsubmit="fixtureAi.respond(event)">
+            <h3>Text</h3>
+            <label>
+              Prompt
+              <textarea name="prompt">Summarize the component contract.</textarea>
+            </label>
+            <button>Respond</button>
+          </form>
+          <form onsubmit="fixtureAi.generateImage(event)">
+            <h3>Image</h3>
+            <label>
+              Prompt
+              <textarea name="prompt">A one-pixel fixture image.</textarea>
+            </label>
+            <label>
+              Output format
+              <input name="outputFormat" value="png" />
+            </label>
+            <button>Generate image</button>
+          </form>
+          <form onsubmit="fixtureAi.embed(event)">
+            <h3>Embedding</h3>
+            <label>
+              Prompt
+              <textarea name="prompt">Embed this local fixture text.</textarea>
+            </label>
+            <button>Embed</button>
+          </form>
+          <form onsubmit="fixtureAi.respondWithTools(event)">
+            <h3>Tools JSON</h3>
+            <label>
+              Prompt
+              <textarea name="prompt">Call the declared fixture tool.</textarea>
+            </label>
+            <label>
+              Tools
+              <textarea name="tools">[{"type":"function","name":"fixture_tool"}]</textarea>
+            </label>
+            <button>Respond with tools</button>
+          </form>
+        </div>
+      </section>
+
+      <section data-story="result-states">
+        <h2>Result states</h2>
+        <p class="note">Static fixtures for each renderer branch in <code>openai-result</code>.</p>
+        <div class="result-grid">
+          <openai-client id="text-ai" hidden></openai-client>
+          <openai-client id="json-ai" hidden></openai-client>
+          <openai-client id="image-ai" hidden></openai-client>
+          <openai-client id="error-ai" hidden></openai-client>
+          <openai-result id="text-result" for="text-ai"></openai-result>
+          <openai-result id="json-result" for="json-ai"></openai-result>
+          <openai-result id="image-result" for="image-ai"></openai-result>
+          <openai-result id="error-result" for="error-ai"></openai-result>
+        </div>
+      </section>
+
+      <section data-story="chat-app">
+        <h2>Chat app orchestration</h2>
+        <p class="note">
+          <code>ai-chat-app</code> wraps <code>chat.web</code> transcript elements and
+          targets the local runner endpoints for save, response, and file-status
+          operations. This story uses fixture URLs so it is safe to open directly.
+        </p>
+        <ai-chat-app
+          transcript="fixture-thread"
+          model="gpt-fixture"
+          transport-label="fixture-runner"
+          save-source-url="data:application/json,{&quot;ok&quot;:true}"
+          respond-url="data:text/plain,Fixture%20assistant%20response"
+          file-status-url="data:application/json,{&quot;exists&quot;:true,&quot;bytes&quot;:123,&quot;sha256&quot;:&quot;fixture&quot;}"
+        >
+          <topic-transcript id="fixture-thread" editable>
+            <header>
+              <h3>Fixture transcript</h3>
+              <p>The transcript remains semantic source markup.</p>
+            </header>
+            <chat-summary>
+              <p>Use this pattern when an HTML document is the durable chat state.</p>
+            </chat-summary>
+            <chat-message created="2026-06-18T15:00:00.000Z">
+              <pre>What does ai-chat-app preserve?</pre>
+              <a rel="enclosure" href="../chat.web/README.md" type="text/markdown">chat.web README</a>
+            </chat-message>
+            <chat-message from="assistant" model="gpt-fixture" created="2026-06-18T15:00:01.000Z">
+              <pre>It preserves the semantic transcript while coordinating runner calls.</pre>
+            </chat-message>
+          </topic-transcript>
+          <chat-composer placeholder="Hidden in this static story"></chat-composer>
+          <chat-message-editor></chat-message-editor>
+        </ai-chat-app>
+      </section>
+    </main>
+
+    <script type="module">
+      await Promise.all([
+        customElements.whenDefined("openai-client"),
+        customElements.whenDefined("openai-key-field"),
+        customElements.whenDefined("openai-result"),
+        customElements.whenDefined("ai-chat-app"),
+      ])
+
+      const fixtureAi = document.querySelector("#fixture-ai")
+      globalThis.fixtureAi = fixtureAi
+
+      fixtureAi.apiKey = "sk-fixture"
+      fixtureAi.client.fetchFn = async (_input, init) => {
+        const body = JSON.parse(String(init?.body ?? "{}"))
+        document.querySelector("#openai-output").textContent = `Fixture request: ${body.model ?? "default model"}`
+        if (Array.isArray(body.input)) {
+          return jsonResponse({ output_text: `Fixture answer for: ${body.input[0]?.content?.[0]?.text ?? "unknown"}` })
+        }
+        if (Array.isArray(body.tools)) {
+          return jsonResponse({ output_text: "Fixture tool request accepted.", request: body })
+        }
+        return jsonResponse({ output_text: `Fixture response for: ${body.input ?? "unknown"}` })
+      }
+      fixtureAi.client.image = async () => ({
+        base64: "R0lGODlhAQABAAAAACw=",
+        dataUrl: "data:image/gif;base64,R0lGODlhAQABAAAAACw=",
+        mediaType: "image/gif",
+        raw: "fixture-image",
+      })
+      fixtureAi.client.embeddings = async (input) => ({
+        data: [{ index: 0, embedding: [0.1, 0.2, 0.3] }],
+        input,
+        model: "fixture-embedding",
+      })
+
+      const fixtures = new Map([
+        ["#text-ai", { kind: "text", text: "Fixture text result", raw: "Fixture text result" }],
+        ["#json-ai", { kind: "json", json: { ok: true, component: "openai-result" }, raw: { ok: true } }],
+        ["#image-ai", { kind: "image", image: { dataUrl: "data:image/gif;base64,R0lGODlhAQABAAAAACw=", base64: "R0lGODlhAQABAAAAACw=", mediaType: "image/gif", raw: "fixture" }, raw: "fixture" }],
+        ["#error-ai", { kind: "error", error: "Fixture error state", raw: "Fixture error state" }],
+      ])
+
+      for (const [selector, result] of fixtures) {
+        const target = document.querySelector(selector)
+        target.lastResult = result
+        target.dispatchEvent(new CustomEvent(result.kind === "error" ? "openai:error" : "openai:result", { bubbles: true, composed: true, detail: result }))
+      }
+
+      globalThis.AIStories = {
+        async respond(event) {
+          event.preventDefault()
+          await fixtureAi.respond(event)
+        },
+      }
+
+      function jsonResponse(value) {
+        return new Response(JSON.stringify(value), {
+          headers: { "content-type": "application/json" },
+        })
+      }
+
+      globalThis.__webNativeAIStoriesReady = true
+    </script>
+  </body>
+</html>

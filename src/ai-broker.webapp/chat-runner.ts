@@ -618,6 +618,7 @@ function isCodexAuthNotFoundError(error: unknown) {
 
 function authorized(request: Request, url: URL) {
   return (
+    request.headers.get("x-web-native-ai-token") === token ||
     request.headers.get("x-web-native-openai-token") === token ||
     url.searchParams.get("t") === token
   )

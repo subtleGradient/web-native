@@ -353,7 +353,7 @@ export class AIChatApp extends HTMLElement {
     const headers = /** @type {Record<string, string>} */ ({})
     const token = runnerToken()
     if (contentType) headers["content-type"] = contentType
-    if (token) headers["x-web-native-openai-token"] = token
+    if (token) headers["x-web-native-ai-token"] = token
     return headers
   }
 }
