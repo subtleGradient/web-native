@@ -2,11 +2,13 @@
 
 import { DEFAULT_TEXT_MODEL, OpenAIClient } from "./client.js"
 
+const css = String.raw
+const html = String.raw
 const statusEventName = "openai:status"
 const resultEventName = "openai:result"
 const errorEventName = "openai:error"
 
-const resultStyles = String.raw`
+const resultStyles = css`
   :host {
     display: block;
   }
@@ -39,7 +41,7 @@ const resultStyles = String.raw`
   }
 `
 
-const keyFieldStyles = String.raw`
+const keyFieldStyles = css`
   :host {
     display: block;
   }
@@ -260,7 +262,7 @@ export class OpenAIKeyField extends HTMLElement {
     if (!this.shadowRoot) this.attachShadow({ mode: "open" })
     const shadow = /** @type {ShadowRoot} */ (this.shadowRoot)
     const label = this.getAttribute("label") ?? "OpenAI API key"
-    shadow.innerHTML = String.raw`
+    shadow.innerHTML = html`
       <style>${keyFieldStyles}</style>
       <form>
         <label for="key">${escapeHtml(label)}</label>
@@ -354,22 +356,22 @@ export class OpenAIResultElement extends HTMLElement {
       return
     }
     if (result.kind === "image" && result.image) {
-      shadow.innerHTML = String.raw`<style>${resultStyles}</style><section class="result"><img alt="Generated image" src="${result.image.dataUrl}" /></section>`
+      shadow.innerHTML = html`<style>${resultStyles}</style><section class="result"><img alt="Generated image" src="${result.image.dataUrl}" /></section>`
       return
     }
     if (result.kind === "error") {
-      shadow.innerHTML = String.raw`<style>${resultStyles}</style><section class="result"><strong>Error</strong><pre>${escapeHtml(result.error ?? "Unknown error")}</pre></section>`
+      shadow.innerHTML = html`<style>${resultStyles}</style><section class="result"><strong>Error</strong><pre>${escapeHtml(result.error ?? "Unknown error")}</pre></section>`
       return
     }
     const text = result.text ?? (result.json === undefined ? String(result.raw ?? "") : JSON.stringify(result.json, null, 2))
-    shadow.innerHTML = String.raw`<style>${resultStyles}</style><section class="result"><pre>${escapeHtml(text)}</pre></section>`
+    shadow.innerHTML = html`<style>${resultStyles}</style><section class="result"><pre>${escapeHtml(text)}</pre></section>`
   }
 
   /** @param {string} status */
   #renderStatus(status) {
     this.#ensureShadow()
     const shadow = /** @type {ShadowRoot} */ (this.shadowRoot)
-    shadow.innerHTML = String.raw`<style>${resultStyles}</style><section class="result"><span class="status">${escapeHtml(status)}</span></section>`
+    shadow.innerHTML = html`<style>${resultStyles}</style><section class="result"><span class="status">${escapeHtml(status)}</span></section>`
   }
 }
 
