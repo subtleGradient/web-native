@@ -13,7 +13,7 @@ export const testModules = [
   "/src/chat.web/chat.test.js",
   "/src/codemirror.web/codemirror.test.js",
   "/src/json-editor.web/json-editor.test.js",
-  "/src/openai.web/openai.test.js",
+  "/src/ai.web/ai.test.js",
   "/src/deck-gl.web/deck-gl.test.js",
   "/src/json-canvas.web/json-canvas.test.js",
   "/src/shadcn.web/shadcn.test.js",

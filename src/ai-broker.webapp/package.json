@@ -1,0 +1,8 @@
+{
+  "name": "ai-broker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --hot broker-runner.ts ../ai.web/examples/index.html"
+  }
+}

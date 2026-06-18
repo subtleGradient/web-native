@@ -24,8 +24,9 @@ export type ResourceKind = "css" | "js" | "other"
 const fallbackRepo: GitHubRepo = { owner: "subtleGradient", repo: "web-native" }
 const repoCdnHosts = new Set(["cdn.jsdelivr.net", "gcore.jsdelivr.net"])
 const rewrittenAttributes = ["src", "href"] as const
-export const openAIChatRunnerBin = "web-native-openai-chat"
-export const openAIChatRunnerFile = "openai-chat-runner.ts"
+export const aiBrokerBin = "web-native-ai-broker"
+export const aiChatRunnerBin = "web-native-ai-chat"
+export const aiChatRunnerFile = "chat-runner.ts"
 
 export async function getGitHubRepo(root: string): Promise<GitHubRepo> {
   const remote = (await Bun.$`git -C ${root} remote get-url origin`.quiet().text()).trim()
@@ -89,19 +90,19 @@ export function isRepoCdnUrl(value: string, repo: GitHubRepo) {
   return Boolean(parseRepoCdnUrl(value, repo))
 }
 
-export function rewriteOpenAIRunnerInstructions(html: string, options: { tarballUrl: string; repoPath: string }) {
+export function rewriteBrokerRunnerInstructions(html: string, options: { tarballUrl: string; repoPath: string }) {
   const match = html.match(/^(<!doctype html>\s*)<!--\n([\s\S]*?)\n-->/i)
-  if (!match || !isOpenAIRunnerComment(match[2]!)) return html
+  if (!match || !isBrokerRunnerComment(match[2]!)) return html
 
   const preserved = extractOpenAIRunnerWarning(match[2]!)
   const comment = [
     "<!--",
     "Run this demo with the Codex broker",
-    "These demos are hard-coded to the local Codex broker exposed by openai-runner.",
+    "These demos are hard-coded to the local Codex broker exposed by broker-runner.",
     "GitHub:",
-    `bunx --bun -p ${options.tarballUrl} web-native-openai ${options.repoPath}`,
+    `bunx --bun -p ${options.tarballUrl} ${aiBrokerBin} ${options.repoPath}`,
     "Local checkout:",
-    `bun "./src/openai-codex-broker.webapp/openai-runner.ts" ${options.repoPath}`,
+    `bun "./src/ai-broker.webapp/broker-runner.ts" ${options.repoPath}`,
     ...(preserved ? ["", preserved] : []),
     "-->",
   ].join("\n")
@@ -122,7 +123,7 @@ export function rewriteChatWebappPackageJson(
   const currentDev = typeof scripts.dev === "string" ? scripts.dev : ""
   const launchPath = parseChatRunnerLaunchPath(currentDev) ?? "index.html"
   scripts.dev = options.mode === "cdn"
-    ? `bunx --bun -p ${options.tarballUrl} ${openAIChatRunnerBin} ${launchPath}`
+    ? `bunx --bun -p ${options.tarballUrl} ${aiChatRunnerBin} ${launchPath}`
     : `bun ${options.runnerPath} ${launchPath}`
   parsed.scripts = scripts
 
@@ -133,8 +134,8 @@ export function formatGithubTarballUrl(repo: GitHubRepo, commit: string) {
   return `https://github.com/${repo.owner}/${repo.repo}/archive/${commit}.tar.gz`
 }
 
-function isOpenAIRunnerComment(comment: string) {
-  return comment.includes("openai-runner.ts") || comment.includes("web-native-openai") || comment.includes("local Codex broker")
+function isBrokerRunnerComment(comment: string) {
+  return comment.includes("broker-runner.ts") || comment.includes("openai-runner.ts") || comment.includes(aiBrokerBin) || comment.includes("web-native-openai") || comment.includes("local Codex broker")
 }
 
 function extractOpenAIRunnerWarning(comment: string) {
@@ -148,8 +149,9 @@ function parseChatRunnerLaunchPath(script: string) {
   const tokens = shellWords(script)
   const runnerIndex = tokens.findIndex(
     (token) =>
-      token === openAIChatRunnerBin ||
-      path.basename(token) === openAIChatRunnerFile ||
+      token === aiChatRunnerBin ||
+      path.basename(token) === aiChatRunnerFile ||
+      path.basename(token) === "openai-chat-runner.ts" ||
       path.basename(token) === "openai-runner.ts",
   )
   if (runnerIndex === -1) return undefined

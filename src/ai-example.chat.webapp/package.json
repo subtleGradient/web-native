@@ -3,6 +3,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun ../openai-codex-broker.webapp/openai-chat-runner.ts index.html"
+    "dev": "bun ../ai-broker.webapp/chat-runner.ts index.html"
   }
 }

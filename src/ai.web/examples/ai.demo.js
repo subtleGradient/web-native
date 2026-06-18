@@ -24,8 +24,8 @@ function showRunnerWarning() {
   const main = document.querySelector("main") ?? document.body
   const anchor = main.querySelector("header")?.nextSibling ?? main.firstChild
   const demoPath = currentDemoPath()
-  const githubCommand = `bunx --bun -p https://github.com/subtleGradient/web-native/archive/refs/heads/openai.tar.gz web-native-openai ${demoPath}`
-  const localCommand = `bun ./src/openai-codex-broker.webapp/openai-runner.ts ${demoPath}`
+  const githubCommand = `bunx --bun -p https://github.com/subtleGradient/web-native/archive/refs/heads/main.tar.gz web-native-ai-broker ${demoPath}`
+  const localCommand = `bun ./src/ai-broker.webapp/broker-runner.ts ${demoPath}`
   const warning = document.createElement("shadcn-alert")
   warning.className = "runner-warning"
   warning.dataset.runnerWarning = ""
@@ -36,7 +36,7 @@ function showRunnerWarning() {
 
   const description = document.createElement("shadcn-alert-description")
   const summary = document.createElement("span")
-  summary.textContent = "These demos are hard-coded to the local Codex broker exposed by openai-runner."
+  summary.textContent = "These demos are hard-coded to the local Codex broker exposed by broker-runner."
   description.append(summary, commandBlock("GitHub", githubCommand), commandBlock("Local checkout", localCommand))
 
   warning.append(title, description)
@@ -65,16 +65,16 @@ function commandBlock(label, command) {
 }
 
 function currentDemoPath() {
-  let pathname = "src/openai.web/examples/index.html"
+  let pathname = "src/ai.web/examples/index.html"
   try {
     pathname = decodeURIComponent(location.pathname).replace(/^\/+/, "")
   } catch {
     return pathname
   }
-  const marker = "src/openai.web/examples/"
+  const marker = "src/ai.web/examples/"
   const markerIndex = pathname.lastIndexOf(marker)
   if (markerIndex >= 0) return pathname.slice(markerIndex)
-  return pathname.endsWith(".demo.html") ? `src/openai.web/examples/${pathname.split("/").at(-1)}` : "src/openai.web/examples/index.html"
+  return pathname.endsWith(".demo.html") ? `src/ai.web/examples/${pathname.split("/").at(-1)}` : "src/ai.web/examples/index.html"
 }
 
 function ensureRunnerWarningStyles() {

@@ -1,13 +1,14 @@
 import path from "node:path"
 import { fileURLToPath } from "node:url"
-import { discoverChatWebappPackageFiles, discoverOpenAIRunnerHtmlFiles, discoverStandaloneHtmlFiles, hasOpenAIRunnerInstructions } from "./standalone-discovery.ts"
+import { discoverBrokerRunnerHtmlFiles, discoverChatWebappPackageFiles, discoverStandaloneHtmlFiles, hasBrokerRunnerInstructions } from "./standalone-discovery.ts"
 import {
+  aiBrokerBin,
+  aiChatRunnerBin,
   formatGithubTarballUrl,
   getGitHubRepo,
   isRepoCdnUrl,
-  openAIChatRunnerBin,
   rewriteChatWebappPackageJson,
-  rewriteOpenAIRunnerInstructions,
+  rewriteBrokerRunnerInstructions,
   rewriteStandaloneHtml,
   type GitHubRepo,
   type ResourceKind,
@@ -42,7 +43,7 @@ async function main() {
   const repo = await getGitHubRepo(root)
   const requestedFiles = args.files.map((file) => path.resolve(root, file))
   const rewriteFiles = args.all ? await discoverStandaloneHtmlFiles(root, repo) : requestedFiles.filter(isHtmlFile)
-  const instructionFiles = args.all ? await discoverOpenAIRunnerHtmlFiles(root) : rewriteFiles
+  const instructionFiles = args.all ? await discoverBrokerRunnerHtmlFiles(root) : rewriteFiles
   const packageFiles = args.all ? await discoverChatWebappPackageFiles(root) : requestedFiles.filter(isChatWebappPackageFile)
   const rewriteFileSet = new Set(rewriteFiles)
   const instructionFileSet = new Set(instructionFiles)
@@ -69,9 +70,9 @@ async function main() {
       })
     }
 
-    if (instructionFileSet.has(filePath) && hasOpenAIRunnerInstructions(output)) {
-      output = rewriteOpenAIRunnerInstructions(output, {
-        tarballUrl: await resolver.githubTarballForBin("web-native-openai"),
+    if (instructionFileSet.has(filePath) && hasBrokerRunnerInstructions(output)) {
+      output = rewriteBrokerRunnerInstructions(output, {
+        tarballUrl: await resolver.githubTarballForBin(aiBrokerBin),
         repoPath: path.relative(root, filePath).replaceAll(path.sep, "/"),
       })
     }
@@ -80,13 +81,13 @@ async function main() {
       output = args.mode === "cdn"
         ? rewriteChatWebappPackageJson(output, {
           mode: "cdn",
-          tarballUrl: await resolver.githubTarballForBin(openAIChatRunnerBin),
+          tarballUrl: await resolver.githubTarballForBin(aiChatRunnerBin),
         })
         : rewriteChatWebappPackageJson(output, {
           mode: "local",
           runnerPath: relativeScriptPath(
             path.dirname(filePath),
-            path.join(root, await resolver.packageBinPath(openAIChatRunnerBin)),
+            path.join(root, await resolver.packageBinPath(aiChatRunnerBin)),
           ),
         })
     }

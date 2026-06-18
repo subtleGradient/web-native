@@ -533,7 +533,7 @@ async function codexHeaders() {
   const headers: Record<string, string> = {
     authorization: `Bearer ${accessToken}`,
     "content-type": "application/json",
-    "user-agent": "web-native-openai-chat",
+    "user-agent": "web-native-ai-chat",
   }
   if (auth.accountId) headers["ChatGPT-Account-Id"] = auth.accountId
   return headers
