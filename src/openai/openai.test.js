@@ -441,6 +441,64 @@ describe("openai browser client", () => {
     }
   })
 
+  it("persists deletions before removing the message from the live transcript", async () => {
+    const originalFetch = globalThis.fetch
+    const originalConfirm = globalThis.confirm
+    let saveBody = ""
+    /** @type {(() => void) | undefined} */
+    let resolveSave
+    Reflect.set(globalThis, "confirm", () => true)
+    /**
+     * @param {Parameters<typeof fetch>[0]} input
+     * @param {Parameters<typeof fetch>[1]} init
+     */
+    const mockFetch = async (input, init) => {
+      const url = new URL(String(input), location.href)
+      if (url.pathname === "/__ai-chat/save-source") {
+        saveBody = String(init?.body)
+        return new Promise((resolve) => {
+          resolveSave = () => resolve(new Response(JSON.stringify({ ok: true }), {
+            headers: { "content-type": "application/json" },
+          }))
+        })
+      }
+      throw new Error(`Unexpected fetch: ${url.pathname}`)
+    }
+    Reflect.set(globalThis, "fetch", mockFetch)
+
+    try {
+      const root = mount(html`
+        <ai-chat-app transcript="thread-delete">
+          <topic-transcript id="thread-delete" editable>
+            <chat-message id="msg-delete" data-role="user"><pre>Delete me</pre></chat-message>
+            <chat-file-reference data-for="msg-delete" data-path="../../chat.web/README.md">README</chat-file-reference>
+            <chat-message id="msg-keep" data-role="assistant"><pre>Keep me</pre></chat-message>
+          </topic-transcript>
+          <chat-composer></chat-composer>
+          <chat-message-editor></chat-message-editor>
+        </ai-chat-app>
+      `)
+
+      await customElements.whenDefined("ai-chat-app")
+      await waitFor(() => Boolean(root.querySelector("chat-message")?.shadowRoot?.querySelector("[data-chat-action='delete']")))
+      root.querySelector("chat-message")?.shadowRoot?.querySelector("[data-chat-action='delete']")?.dispatchEvent(new MouseEvent("click", { bubbles: true }))
+      await waitFor(() => saveBody.length > 0)
+
+      expect(root.querySelectorAll("chat-message")).to.have.length(2)
+      expect(saveBody).to.not.include("msg-delete")
+      expect(saveBody).to.not.include('data-for="msg-delete"')
+      expect(saveBody).to.include("msg-keep")
+
+      resolveSave?.()
+      await waitFor(() => root.querySelectorAll("chat-message").length === 1)
+
+      expect(root.querySelector("chat-message")?.id).to.equal("msg-keep")
+    } finally {
+      Reflect.set(globalThis, "fetch", originalFetch)
+      Reflect.set(globalThis, "confirm", originalConfirm)
+    }
+  })
+
   it("extracts output text from common streamed and JSON response shapes", () => {
     expect(extractOutputText([
       'data: {"type":"response.output_text.delta","delta":"a"}',

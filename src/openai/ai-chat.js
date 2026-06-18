@@ -101,7 +101,7 @@ export class AIChatApp extends HTMLElement {
     event.stopPropagation()
     const text = typeof event.detail.text === "string" ? event.detail.text : ""
     const send = event.detail.send !== false
-    void this.#addComposerMessage(text, send)
+    void this.#addComposerMessage(text, send).catch((error) => this.#reportError(error))
   }
 
   /** @param {Event} event */
@@ -126,7 +126,7 @@ export class AIChatApp extends HTMLElement {
     const id = typeof event.detail.id === "string" ? event.detail.id : ""
     if (!id) return
     if (typeof confirm === "function" && !confirm("Delete this message?")) return
-    void this.#deleteMessage(id)
+    void this.#deleteMessage(id).catch((error) => this.#reportError(error))
   }
 
   /** @param {Event} event */
@@ -136,7 +136,7 @@ export class AIChatApp extends HTMLElement {
     const id = typeof event.detail.id === "string" ? event.detail.id : ""
     const text = typeof event.detail.text === "string" ? event.detail.text : ""
     if (!id) return
-    void this.#saveEditedMessage(id, text)
+    void this.#saveEditedMessage(id, text).catch((error) => this.#reportError(error))
   }
 
   /**
@@ -165,8 +165,10 @@ export class AIChatApp extends HTMLElement {
   /** @param {string} id */
   async #deleteMessage(id) {
     const transcript = this.#requireTranscript()
-    if (!transcript.deleteMessage(id)) return
-    await this.saveSource()
+    if (!transcript.messageElement(id)) return
+    await this.saveSource(transcript.serializeSource({ omitMessageId: id }))
+    transcript.deleteMessage(id)
+    this.#setStatus("Saved")
   }
 
   /**
@@ -181,7 +183,8 @@ export class AIChatApp extends HTMLElement {
     await this.saveSource()
   }
 
-  async saveSource() {
+  /** @param {string} [source] */
+  async saveSource(source) {
     const transcript = this.#requireTranscript()
     this.#setBusy(true)
     this.#setStatus("Saving")
@@ -189,10 +192,13 @@ export class AIChatApp extends HTMLElement {
       const response = await fetch(this.#tokenUrl(this.saveSourceUrl), {
         method: "POST",
         headers: this.#runnerHeaders("text/html; charset=utf-8"),
-        body: transcript.serializeSource(),
+        body: source ?? transcript.serializeSource(),
       })
       if (!response.ok) throw new Error(await response.text())
       this.#setStatus("Saved")
+    } catch (error) {
+      this.#setStatus("Save failed")
+      throw error
     } finally {
       this.#setBusy(false)
     }
@@ -268,6 +274,12 @@ export class AIChatApp extends HTMLElement {
     const transcript = this.transcript
     if (!transcript) throw new Error("Missing chat transcript.")
     return transcript
+  }
+
+  /** @param {unknown} error */
+  #reportError(error) {
+    console.error(error)
+    if ((this.getAttribute("status") ?? "") !== "Save failed") this.#setStatus("Error")
   }
 
   /** @param {boolean} busy */
