@@ -5,8 +5,8 @@ import puppeteer from "puppeteer-core"
 
 const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)))
 const port = Number(process.env.OPENAI_WS_SMOKE_PORT ?? "4198")
-const pagePath = "src/openai/examples/openai.responses-websocket-eval.demo.html"
-const runnerPath = path.join(root, "src/openai/Example OpenAI Codex Broker.webapp/openai-runner.ts")
+const pagePath = "src/openai.web/examples/openai.responses-websocket-eval.demo.html"
+const runnerPath = path.join(root, "src/openai-codex-broker.webapp/openai-runner.ts")
 const timeoutMs = Number(process.env.OPENAI_WS_SMOKE_TIMEOUT ?? "120000")
 
 let browser: Awaited<ReturnType<typeof puppeteer.launch>> | undefined

@@ -5,8 +5,8 @@
   "type": "module",
   "description": "Generic universal web-native ESM modules and custom elements.",
   "bin": {
-    "web-native-openai": "./src/openai/Example OpenAI Codex Broker.webapp/openai-runner.ts",
-    "web-native-openai-chat": "./src/openai/openai-chat-runner.ts"
+    "web-native-openai": "./src/openai-codex-broker.webapp/openai-runner.ts",
+    "web-native-openai-chat": "./src/openai-codex-broker.webapp/openai-chat-runner.ts"
   },
   "scripts": {
     "check": "tsgo --noEmit",

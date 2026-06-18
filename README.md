@@ -78,7 +78,8 @@ Development should follow RGRTDD / demo-first flow:
 - `src/base.web/radio-group/` ports Base UI Radio Group as `base-radio-group` and `base-radio`.
 - `src/chat.web/` adds `topic-transcript`, `chat-summary`, `chat-message`, `chat-file-reference`, `chat-composer`, and `chat-message-editor` elements for lightweight archived and editable chat transcript pages.
 - `src/codemirror.web/` adds `codemirror-editor` and language aliases for CodeMirror-backed textarea enhancement.
-- `src/openai/` adds BYOK OpenAI client helpers plus `openai-client`, `openai-key-field`, and `openai-result` elements.
+- `src/openai.web/` adds BYOK OpenAI client helpers plus `openai-client`, `openai-key-field`, and `openai-result` elements.
+- `src/openai-codex-broker.webapp/` contains the Bun-native localhost broker runners used by OpenAI demos and chat webapps.
 - `src/json-editor.web/` adds `json-editor` for schema-aware textarea enhancement.
 - `src/deck-gl.web/` adds deck.gl-inspired `deck-gl`, `deck-layer-list`, and `deck-details-panel` elements for static HTML map examples.
 - `src/json-canvas.web/` adds `json-canvas`, `json-canvas-node`, `json-canvas-edge`, and `noodle-wire` elements for mapping JSON Canvas documents to HTML.
