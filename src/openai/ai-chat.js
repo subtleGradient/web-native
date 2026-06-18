@@ -123,20 +123,28 @@ export class AIChatApp extends HTMLElement {
   #handleDeleteRequest = (event) => {
     if (!(event instanceof CustomEvent) || !isRecord(event.detail)) return
     event.stopPropagation()
-    const id = typeof event.detail.id === "string" ? event.detail.id : ""
-    if (!id) return
+    const target = event.detail.message instanceof Element
+      ? event.detail.message
+      : typeof event.detail.id === "string"
+        ? event.detail.id
+        : null
+    if (!target) return
     if (typeof confirm === "function" && !confirm("Delete this message?")) return
-    void this.#deleteMessage(id).catch((error) => this.#reportError(error))
+    void this.#deleteMessage(target).catch((error) => this.#reportError(error))
   }
 
   /** @param {Event} event */
   #handleEditorSave = (event) => {
     if (!(event instanceof CustomEvent) || !isRecord(event.detail)) return
     event.stopPropagation()
-    const id = typeof event.detail.id === "string" ? event.detail.id : ""
+    const target = event.detail.message instanceof Element
+      ? event.detail.message
+      : typeof event.detail.id === "string"
+        ? event.detail.id
+        : null
     const text = typeof event.detail.text === "string" ? event.detail.text : ""
-    if (!id) return
-    void this.#saveEditedMessage(id, text).catch((error) => this.#reportError(error))
+    if (!target) return
+    void this.#saveEditedMessage(target, text).catch((error) => this.#reportError(error))
   }
 
   /**
@@ -155,31 +163,35 @@ export class AIChatApp extends HTMLElement {
       role: "assistant",
       text: "",
       attrs: {
-        "data-model": this.model,
+        model: this.model,
         "data-streaming": "true",
       },
     })
     await this.#streamAssistantResponse(sourceForModel, assistant)
   }
 
-  /** @param {string} id */
-  async #deleteMessage(id) {
+  /** @param {string | Element} target */
+  async #deleteMessage(target) {
     const transcript = this.#requireTranscript()
-    if (!transcript.messageElement(id)) return
-    await this.saveSource(transcript.serializeSource({ omitMessageId: id }))
-    transcript.deleteMessage(id)
+    const message = transcript.messageElement(target)
+    if (!message) return
+    const index = transcript.messages().indexOf(message)
+    await this.saveSource(transcript.serializeSource(message.id
+      ? { omitMessageId: message.id }
+      : { omitMessageIndex: index }))
+    transcript.deleteMessage(message)
     this.#setStatus("Saved")
   }
 
   /**
-   * @param {string} id
+   * @param {string | Element} target
    * @param {string} text
    */
-  async #saveEditedMessage(id, text) {
+  async #saveEditedMessage(target, text) {
     const transcript = this.#requireTranscript()
-    if (!transcript.setMessageText(id, text)) return
-    const message = transcript.messageElement(id)
-    if (message instanceof HTMLElement) message.dataset.edited = new Date().toISOString()
+    if (!transcript.setMessageText(target, text)) return
+    const message = transcript.messageElement(target)
+    if (message instanceof HTMLElement) message.setAttribute("edited", new Date().toISOString())
     await this.saveSource()
   }
 
@@ -189,7 +201,7 @@ export class AIChatApp extends HTMLElement {
     this.#setBusy(true)
     this.#setStatus("Saving")
     try {
-      const response = await fetch(this.#tokenUrl(this.saveSourceUrl), {
+      const response = await this.#fetchRunner(this.saveSourceUrl, {
         method: "POST",
         headers: this.#runnerHeaders("text/html; charset=utf-8"),
         body: source ?? transcript.serializeSource(),
@@ -207,13 +219,14 @@ export class AIChatApp extends HTMLElement {
   async refreshFileStatuses() {
     const transcript = this.transcript
     if (!transcript) return
-    const references = Array.from(transcript.querySelectorAll("chat-file-reference[data-path]"))
+    const references = Array.from(transcript.querySelectorAll("chat-file-reference[data-path], chat-file-reference[path], chat-file-reference[href], a[rel~='enclosure'][href]"))
     for (const reference of references) {
-      const path = reference.getAttribute("data-path") ?? ""
+      const path = fileReferencePath(reference)
+      if (!path) continue
       try {
         const url = new URL(this.fileStatusUrl, location.href)
         url.searchParams.set("path", path)
-        const response = await fetch(this.#tokenUrl(url), {
+        const response = await this.#fetchRunner(url, {
           headers: this.#runnerHeaders(),
         })
         const status = await response.json()
@@ -235,7 +248,7 @@ export class AIChatApp extends HTMLElement {
     this.#setBusy(true)
     this.#setStatus("Thinking")
     try {
-      const response = await fetch(this.#tokenUrl(this.respondUrl), {
+      const response = await this.#fetchRunner(this.respondUrl, {
         method: "POST",
         headers: this.#runnerHeaders("text/html; charset=utf-8"),
         body: sourceForModel,
@@ -259,7 +272,7 @@ export class AIChatApp extends HTMLElement {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       if (assistant instanceof HTMLElement) {
-        assistant.dataset.channel = "error"
+        assistant.setAttribute("channel", "error")
         assistant.removeAttribute("data-streaming")
       }
       this.#requireTranscript().setMessageText(assistant, `Error: ${message}`)
@@ -304,6 +317,37 @@ export class AIChatApp extends HTMLElement {
     return url.href
   }
 
+  /**
+   * @param {string | URL} path
+   * @param {RequestInit} [init]
+   */
+  async #fetchRunner(path, init) {
+    const response = await fetch(this.#tokenUrl(path), init)
+    if (response.status !== 403 || !(await this.#refreshRunnerToken())) return response
+    return fetch(this.#tokenUrl(path), init)
+  }
+
+  async #refreshRunnerToken() {
+    try {
+      const url = new URL(location.href)
+      url.searchParams.delete("t")
+      const response = await fetch(url.href, {
+        cache: "no-store",
+        headers: { accept: "text/html" },
+      })
+      const token =
+        response.headers.get("x-web-native-ai-chat-token") ??
+        new URL(response.url).searchParams.get("t")
+      if (!token) return false
+      const nextUrl = new URL(location.href)
+      nextUrl.searchParams.set("t", token)
+      history.replaceState(null, "", nextUrl)
+      return true
+    } catch {
+      return false
+    }
+  }
+
   /** @param {string} [contentType] */
   #runnerHeaders(contentType) {
     const headers = /** @type {Record<string, string>} */ ({})
@@ -326,6 +370,12 @@ export function defineAIChatElements() {
 
 function runnerToken() {
   return new URL(location.href).searchParams.get("t") ?? ""
+}
+
+/** @param {Element} element */
+function fileReferencePath(element) {
+  if (element.localName === "a") return element.getAttribute("href") ?? ""
+  return element.getAttribute("path") ?? element.getAttribute("href") ?? element.getAttribute("data-path") ?? ""
 }
 
 /** @param {unknown} value */

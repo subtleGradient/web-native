@@ -29,7 +29,7 @@ OpenAI-specific prefix; it only orchestrates the local runner endpoints.
 
 <ai-chat-app transcript="thread" model="gpt-5.5" transport-label="codex-broker">
   <topic-transcript id="thread" editable>
-    <chat-message data-role="user"><pre>Hello</pre></chat-message>
+    <chat-message><pre>Hello</pre></chat-message>
   </topic-transcript>
   <chat-composer></chat-composer>
   <chat-message-editor></chat-message-editor>
@@ -38,7 +38,8 @@ OpenAI-specific prefix; it only orchestrates the local runner endpoints.
 
 `ai-chat-app` persists only serialized `<topic-transcript>` markup through
 `/__ai-chat/save-source`, streams continuations through `/__ai-chat/respond`,
-and refreshes `<chat-file-reference>` badges through `/__ai-chat/file-status`.
+and refreshes nested `a[rel~="enclosure"]` file badges through
+`/__ai-chat/file-status`.
 
 ```js
 import { OpenAIClient } from "./client.js"

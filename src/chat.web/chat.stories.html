@@ -34,18 +34,18 @@
           <chat-summary data-scope="previous" data-previous-href="#previous" data-previous-title="Previous topic">
             <p>Previous context is compact, linked, and visually distinct from the live transcript.</p>
           </chat-summary>
-          <chat-message data-source="0001-user.md" data-turn="1" data-role="user" data-created="2026-05-14T12:00:00.000Z">
+          <chat-message created="2026-05-14T12:00:00.000Z">
             <pre># User request
 
 Render markdown, bullets, and long code safely.
 
 - one
 - two</pre>
+            <a rel="enclosure" href="../../chat.web/README.md" type="text/markdown" data-status="available">
+              src/chat.web/README.md
+            </a>
           </chat-message>
-          <chat-file-reference data-for="0001-user.md" data-path="../../chat.web/README.md" data-mime="text/markdown" data-status="available">
-            src/chat.web/README.md
-          </chat-file-reference>
-          <chat-message data-source="0002-assistant.md" data-turn="2" data-role="assistant" data-model="gpt-fixture" data-created="2026-05-14T12:00:03.000Z" data-channel="final">
+          <chat-message model="gpt-fixture" created="2026-05-14T12:00:03.000Z" channel="final">
             <pre>Here is a table and a citation-like token.
 
 | Component | State |
@@ -54,10 +54,10 @@ Render markdown, bullets, and long code safely.
 
 Citation: turn1search0</pre>
           </chat-message>
-          <chat-message data-source="0003-tool-call.md" data-turn="3" data-role="assistant" data-recipient="web.run" data-content-type="code" data-created="2026-05-14T12:00:05.000Z">
+          <chat-message from="assistant" recipient="web.run" content-type="code" created="2026-05-14T12:00:05.000Z">
             <pre>{"search_query":[{"q":"offline fixture"}],"response_length":"short"}</pre>
           </chat-message>
-          <chat-message data-source="0004-tool-result.md" data-turn="4" data-role="tool" data-recipient="assistant" data-content-type="json" data-created="2026-05-14T12:00:06.000Z">
+          <chat-message from="tool" recipient="assistant" content-type="json" created="2026-05-14T12:00:06.000Z">
             <pre>{"ok":true,"items":[{"title":"Fixture result","url":"https://example.test"}]}</pre>
           </chat-message>
         </topic-transcript>
