@@ -76,7 +76,7 @@ Development should follow RGRTDD / demo-first flow:
 - `src/base.web/tabs/` ports Base UI Tabs as `base-tabs`, `base-tabs-list`, `base-tab`, and `base-tabs-panel`.
 - `src/base.web/progress/` ports Base UI Progress as `base-progress`, `base-progress-track`, `base-progress-indicator`, `base-progress-label`, and `base-progress-value`.
 - `src/base.web/radio-group/` ports Base UI Radio Group as `base-radio-group` and `base-radio`.
-- `src/chat.web/` adds `topic-transcript`, `chat-summary`, and `chat-message` elements for lightweight archived chat transcript pages.
+- `src/chat.web/` adds `topic-transcript`, `chat-summary`, `chat-message`, `chat-file-reference`, `chat-composer`, and `chat-message-editor` elements for lightweight archived and editable chat transcript pages.
 - `src/codemirror.web/` adds `codemirror-editor` and language aliases for CodeMirror-backed textarea enhancement.
 - `src/openai/` adds BYOK OpenAI client helpers plus `openai-client`, `openai-key-field`, and `openai-result` elements.
 - `src/json-editor.web/` adds `json-editor` for schema-aware textarea enhancement.
