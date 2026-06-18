@@ -28,13 +28,7 @@
       thread.
     </p>
   </chat-summary>
-  <chat-message
-    data-source="0001-user.md"
-    id="0001-user"
-    data-turn="1"
-    data-role="user"
-    data-created="2026-05-13T20:36:49.063Z"
-  >
+  <chat-message created="2026-05-13T20:36:49.063Z">
     <pre>
 # Can this render raw message innards?
 
@@ -44,20 +38,9 @@ Please keep the source light, but make it readable.
 - render common Markdown
 - hide archival noise by default</pre
     >
+    <a rel="enclosure" href="../../chat.web/README.md" type="text/markdown">src/chat.web/README.md</a>
   </chat-message>
-  <chat-file-reference
-    data-for="0001-user"
-    data-path="../../chat.web/README.md"
-    data-mime="text/markdown"
-  >src/chat.web/README.md</chat-file-reference>
-  <chat-message
-    data-source="0002-assistant.md"
-    data-turn="2"
-    data-role="assistant"
-    data-model="gpt-test"
-    data-created="2026-05-13T20:40:15.673Z"
-    data-channel="final"
-  >
+  <chat-message model="gpt-test" created="2026-05-13T20:40:15.673Z" channel="final">
     <pre>
 Yes. Tables and code fences render too.
 
@@ -74,14 +57,7 @@ customElements.define("chat-message", ChatMessage)
 ```</pre
     >
   </chat-message>
-  <chat-message
-    data-source="0003-assistant.md"
-    data-turn="3"
-    data-role="assistant"
-    data-recipient="web.run"
-    data-content-type="code"
-    data-created="2026-05-13T20:41:02.000Z"
-  >
+  <chat-message from="assistant" recipient="web.run" content-type="code" created="2026-05-13T20:41:02.000Z">
     <pre>
 {"search_query":[{"q":"Hacker News Who is hiring May 2026 freelance contract remote developer"},{"q":"remote freelance accessibility audit website contractor job"}],"response_length":"medium"}</pre
     >

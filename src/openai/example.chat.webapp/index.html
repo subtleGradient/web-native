@@ -50,14 +50,14 @@ file; no JSON state file, localStorage, or sidecar transcript is used.
         overflow: auto;
       }
 
-      chat-file-reference {
+      chat-message > a[rel~="enclosure"] {
         display: block;
         margin-block: -0.25rem 0.5rem;
         margin-inline: min(11rem, 16vw) 0;
       }
 
       @media (max-width: 48rem) {
-        chat-file-reference {
+        chat-message > a[rel~="enclosure"] {
           margin-inline-start: 0;
         }
       }
@@ -99,42 +99,23 @@ file; no JSON state file, localStorage, or sidecar transcript is used.
                 referenced local files that the runner expands at request time.
               </p>
             </chat-summary>
-            <chat-message
-              id="msg-0001"
-              data-source="0001-user.md"
-              data-turn="1"
-              data-role="user"
-              data-created="2026-06-18T15:00:00.000Z"
-            >
+            <chat-message created="2026-06-18T15:00:00.000Z">
               <pre>
 Use the referenced file as context. What is this chat component designed to preserve?</pre
               >
+              <a
+                rel="enclosure"
+                href="../../chat.web/README.md"
+                type="text/markdown"
+                >src/chat.web/README.md</a
+              >
             </chat-message>
-            <chat-file-reference
-              data-for="msg-0001"
-              data-path="../../chat.web/README.md"
-              data-mime="text/markdown"
-              >src/chat.web/README.md</chat-file-reference
-            >
-            <chat-message
-              id="msg-0002"
-              data-source="0002-assistant.md"
-              data-turn="2"
-              data-role="assistant"
-              data-model="gpt-5.5"
-              data-created="2026-06-18T15:00:08.000Z"
-            >
+            <chat-message model="gpt-5.5" created="2026-06-18T15:00:08.000Z">
               <pre>
 It is designed to preserve the transcript as portable source markup while rendering it as readable chat UI. The raw message body stays in the light DOM, and the custom element renders a cleaner display from that source.</pre
               >
             </chat-message>
-            <chat-message
-              id="msg-0003"
-              data-source="0003-user.md"
-              data-turn="3"
-              data-role="user"
-              data-created="2026-06-18T15:00:20.000Z"
-            >
+            <chat-message created="2026-06-18T15:00:20.000Z">
               <pre>
 Keep using the semantic transcript as the durable state.</pre
               >

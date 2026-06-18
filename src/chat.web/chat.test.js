@@ -12,7 +12,7 @@ describe("chat transcript elements", () => {
 
   it("renders chat-message metadata and markdown-ish innards", async () => {
     const message = mountMessage(html`
-      <chat-message data-turn="42" data-role="assistant" data-model="gpt-test" data-created="2026-05-13T20:40:15.673Z" data-channel="final">
+      <chat-message from="assistant" model="gpt-test" created="2026-05-13T20:40:15.673Z" channel="final">
         <pre># Heading
 
 Paragraph with **bold** and &#96;code&#96;.
@@ -53,8 +53,10 @@ const ok = true
 
   it("makes user and assistant messages visually distinct without noisy metadata", async () => {
     const root = mount(html`
-      <chat-message data-turn="1" data-role="user" data-created="2026-05-13T20:36:49.063Z"><pre>Hello</pre></chat-message>
-      <chat-message data-turn="2" data-role="assistant" data-model="gpt-test" data-channel="final"><pre>Hi.</pre></chat-message>
+      <topic-transcript>
+        <chat-message created="2026-05-13T20:36:49.063Z"><pre>Hello</pre></chat-message>
+        <chat-message model="gpt-test" channel="final"><pre>Hi.</pre></chat-message>
+      </topic-transcript>
     `)
 
     await nextFrame()
@@ -70,7 +72,7 @@ const ok = true
 
   it("renders tool-call JSON as event summaries instead of raw JSON", async () => {
     const message = mountMessage(html`
-      <chat-message data-role="assistant" data-recipient="web.run" data-content-type="code" data-created="2026-05-13T20:40:15.673Z">
+      <chat-message from="assistant" recipient="web.run" content-type="code" created="2026-05-13T20:40:15.673Z">
         <pre>{"search_query":[{"q":"Hacker News Who is hiring May 2026 freelance contract remote developer","domains":["news.ycombinator.com"]},{"q":"remote freelance accessibility audit website contractor job"}],"response_length":"medium"}</pre>
       </chat-message>
     `)
@@ -109,19 +111,23 @@ const ok = true
   })
 
   it("renders file references without inlining file contents", async () => {
-    const reference = /** @type {HTMLElement} */ (mount(html`
-      <chat-file-reference
-        data-path="../../chat.web/README.md"
-        data-mime="text/markdown"
-        data-status="available"
-        data-current-bytes="1522"
-        data-current-sha256="fdcf57be5725345d65b59121cd5f5a34f23d333ee733f997a724838fe991eb1d"
-      >src/chat.web/README.md</chat-file-reference>
-    `).querySelector("chat-file-reference"))
+    const message = mountMessage(html`
+      <chat-message>
+        <pre>Use this file.</pre>
+        <a
+          rel="enclosure"
+          href="../../chat.web/README.md"
+          type="text/markdown"
+          data-status="available"
+          data-current-bytes="1522"
+          data-current-sha256="fdcf57be5725345d65b59121cd5f5a34f23d333ee733f997a724838fe991eb1d"
+        >src/chat.web/README.md</a>
+      </chat-message>
+    `)
 
     await nextFrame()
 
-    const shadow = reference.shadowRoot
+    const shadow = message.shadowRoot
     expect(shadow?.querySelector("a")?.textContent).to.equal("src/chat.web/README.md")
     expect(shadow?.querySelector("a")?.getAttribute("href")).to.equal("../../chat.web/README.md")
     expect(shadow?.querySelector(".badge")?.textContent).to.equal("available")
@@ -135,14 +141,16 @@ const ok = true
   it("normalizes and serializes the semantic transcript source", async () => {
     const transcript = /** @type {import("./chat.js").TopicTranscript} */ (mount(html`
       <topic-transcript editable>
-        <chat-message id="msg-source" data-role="user"><pre>Hello</pre></chat-message>
-        <chat-file-reference
-          data-for="msg-source"
-          data-path="../../chat.web/README.md"
-          data-status="available"
-          data-current-bytes="123"
-          data-current-sha256="abc"
-        >src/chat.web/README.md</chat-file-reference>
+        <chat-message><pre>Hello</pre>
+          <a
+            rel="enclosure"
+            href="../../chat.web/README.md"
+            type="text/markdown"
+            data-status="available"
+            data-current-bytes="123"
+            data-current-sha256="abc"
+          >src/chat.web/README.md</a>
+        </chat-message>
       </topic-transcript>
     `).querySelector("topic-transcript"))
 
@@ -151,10 +159,11 @@ const ok = true
     const assistant = transcript.appendMessage({
       role: "assistant",
       text: "Hi",
-      attrs: { "data-model": "gpt-test", "data-streaming": "true" },
+      attrs: { model: "gpt-test", "data-streaming": "true" },
     })
     expect(transcript.dataset.messageCount).to.equal("2")
-    expect(assistant.getAttribute("data-turn")).to.equal("2")
+    expect(assistant.hasAttribute("data-turn")).to.equal(false)
+    expect(assistant.getAttribute("from")).to.equal("assistant")
     expect(transcript.messageText(assistant)).to.equal("Hi")
 
     transcript.setMessageText(assistant, "Edited")
@@ -163,33 +172,37 @@ const ok = true
     expect(source).to.include("<topic-transcript")
     expect(source).to.include('data-message-count="2"')
     expect(source).to.include("<pre>Edited</pre>")
+    expect(source).to.include('rel="enclosure"')
+    expect(source).to.not.include("data-source")
+    expect(source).to.not.include("data-turn")
     expect(source).to.not.include("data-current-bytes")
     expect(source).to.not.include("data-current-sha256")
     expect(source).to.not.include("data-status")
     expect(source).to.not.include("data-streaming")
 
-    const firstMessageId = transcript.messages()[0]?.id ?? ""
-    const omittedSource = transcript.serializeSource({ omitMessageId: firstMessageId })
-    expect(omittedSource).to.not.include(`id="${firstMessageId}"`)
-    expect(omittedSource).to.not.include(`data-for="${firstMessageId}"`)
+    const omittedSource = transcript.serializeSource({ omitMessageIndex: 0 })
+    expect(omittedSource).to.not.include("src/chat.web/README.md")
     expect(omittedSource).to.include('data-message-count="1"')
   })
 
   it("emits message action requests from editable transcript messages", async () => {
     const transcript = mount(html`
       <topic-transcript editable>
-        <chat-message id="msg-editable" data-role="user"><pre>Hello</pre></chat-message>
+        <chat-message id="msg-editable" from="user"><pre>Hello</pre></chat-message>
       </topic-transcript>
     `).querySelector("topic-transcript")
     const message = /** @type {HTMLElement} */ (transcript?.querySelector("chat-message"))
 
     await nextFrame()
 
+    const actions = /** @type {HTMLElement} */ (message.shadowRoot?.querySelector(".message-actions"))
+    expect(getComputedStyle(actions).opacity).to.equal("1")
     const edit = once(message, "chat-message-edit-request")
     message.shadowRoot?.querySelector("[data-chat-action='edit']")?.dispatchEvent(new MouseEvent("click", { bubbles: true }))
     const editEvent = /** @type {CustomEvent} */ (await edit)
 
     expect(editEvent.detail.id).to.equal("msg-editable")
+    expect(editEvent.detail.message).to.equal(message)
   })
 
   it("dispatches composer submissions for send and save keyboard paths", async () => {
@@ -218,7 +231,7 @@ const ok = true
 
   it("dispatches editor saves for the selected message", async () => {
     const root = mount(html`
-      <chat-message id="msg-edit" data-role="user"><pre>Original</pre></chat-message>
+      <chat-message id="msg-edit" from="user"><pre>Original</pre></chat-message>
       <chat-message-editor></chat-message-editor>
     `)
     const message = /** @type {HTMLElement} */ (root.querySelector("chat-message"))
@@ -233,7 +246,9 @@ const ok = true
     editor.shadowRoot?.querySelector("form")?.dispatchEvent(new SubmitEvent("submit", { bubbles: true, cancelable: true }))
     const savedEvent = /** @type {CustomEvent} */ (await saved)
 
-    expect(savedEvent.detail).to.deep.equal({ id: "msg-edit", text: "Changed" })
+    expect(savedEvent.detail.id).to.equal("msg-edit")
+    expect(savedEvent.detail.message).to.equal(message)
+    expect(savedEvent.detail.text).to.equal("Changed")
   })
 
   it("passes automated accessibility checks", async () => {
@@ -241,9 +256,10 @@ const ok = true
       <topic-transcript>
         <header><h1>Topic</h1></header>
         <chat-summary><p>Previous context.</p></chat-summary>
-        <chat-message data-turn="1" data-role="user"><pre>Hello</pre></chat-message>
-        <chat-file-reference data-path="../../chat.web/README.md">src/chat.web/README.md</chat-file-reference>
-        <chat-message data-turn="2" data-role="assistant"><pre>Hi.</pre></chat-message>
+        <chat-message><pre>Hello</pre>
+          <a rel="enclosure" href="../../chat.web/README.md" type="text/markdown">src/chat.web/README.md</a>
+        </chat-message>
+        <chat-message><pre>Hi.</pre></chat-message>
       </topic-transcript>
     `)
 

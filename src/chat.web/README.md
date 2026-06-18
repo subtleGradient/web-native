@@ -12,17 +12,15 @@ Plain custom elements for rendering lightweight archived chat transcripts.
   <chat-summary data-scope=previous data-previous-href=000-previous.topic.htm data-previous-title="000 Previous Topic">
     <p>No previous topic.</p>
   </chat-summary>
-  <chat-message data-turn=1 data-role=user data-created=2026-05-13T20:36:49.063Z>
+  <chat-message>
     <pre># Raw message body
 
 - Markdown-ish source
 - Rendered inside the component shadow tree</pre>
+    <a rel=enclosure href=../../chat.web/README.md type=text/markdown>
+      src/chat.web/README.md
+    </a>
   </chat-message>
-  <chat-file-reference
-    data-for=0001-user
-    data-path=../../chat.web/README.md
-    data-mime=text/markdown
-  >src/chat.web/README.md</chat-file-reference>
 </topic-transcript>
 
 <chat-composer placeholder="Add a message"></chat-composer>
@@ -31,14 +29,16 @@ Plain custom elements for rendering lightweight archived chat transcripts.
 
 `chat-message` reads its light DOM body, preferring a nested `pre`, then renders common Markdown-like structures in shadow DOM: headings, paragraphs, lists, blockquotes, fenced code blocks, inline code, links, horizontal rules, simple pipe tables, and ChatGPT-style citation tokens like `citeturn289313search1turn289313search21`.
 
-User and assistant messages are visually distinct without surfacing archival noise like turn numbers or model ids. Messages with `data-recipient` render as tool events; JSON payloads are parsed into action summaries instead of being dumped as raw JSON. The original light DOM is left in place so transcript source remains portable and inspectable.
+User and assistant messages are inferred from transcript order when `from` is omitted, and are visually distinct without surfacing archival noise like turn numbers or model ids. Messages with `recipient` render as tool events; JSON payloads are parsed into action summaries instead of being dumped as raw JSON. The original light DOM is left in place so transcript source remains portable and inspectable.
 
 When `chat-summary` has `data-previous-href`, it renders a compact link back to the previous topic.
 
-`chat-file-reference` renders a referenced file as a compact file card from
-semantic attributes and light DOM label text. It intentionally does not inline
-the file contents; callers can set `data-status`, `data-current-bytes`, and
-`data-current-sha256` after checking the file externally.
+Native links with `rel=enclosure`, `href`, and `type` are rendered as compact
+file cards when nested directly in a `chat-message`. They intentionally do not
+inline file contents; callers can set runtime-only `data-status`,
+`data-current-bytes`, and `data-current-sha256` after checking the file
+externally. The older `chat-file-reference` element remains supported as a
+compatibility alias.
 
 `topic-transcript` also exposes source-oriented methods for interactive shells:
 `normalize()`, `serializeSource()`, `appendMessage()`, `deleteMessage()`,

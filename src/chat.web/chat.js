@@ -3,7 +3,8 @@
 const pageStyleId = "web-native-chat-page-styles"
 const renderQueued = Symbol("render-queued")
 
-/** @typedef {{ omitMessageId?: string }} ChatSourceSerializeOptions */
+/** @typedef {{ omitMessageId?: string, omitMessageIndex?: number }} ChatSourceSerializeOptions */
+/** @typedef {{ bytes?: string, hash?: string, label: string, mime?: string, path: string, status: string }} ChatFileReferenceData */
 
 const pageStyles = String.raw`
   :root {
@@ -109,6 +110,62 @@ const summaryStyles = String.raw`
   }
 `
 
+const fileReferenceCardStyles = String.raw`
+  .file {
+    background: color-mix(in oklch, Canvas 96%, CanvasText 4%);
+    border: 1px solid color-mix(in oklch, CanvasText 13%, transparent);
+    border-radius: 0.5rem;
+    color: CanvasText;
+    display: grid;
+    gap: 0.35rem;
+    padding: 0.7rem 0.8rem;
+  }
+
+  .file .top {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    justify-content: space-between;
+  }
+
+  .file a {
+    color: LinkText;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+    text-decoration: none;
+  }
+
+  .file a:hover {
+    text-decoration: underline;
+  }
+
+  .file .badge {
+    background: color-mix(in oklch, Highlight 12%, Canvas);
+    border: 1px solid color-mix(in oklch, Highlight 25%, transparent);
+    border-radius: 999px;
+    color: color-mix(in oklch, CanvasText 70%, transparent);
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.16rem 0.45rem;
+  }
+
+  .file code {
+    color: color-mix(in oklch, CanvasText 62%, transparent);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.76rem;
+    overflow-wrap: anywhere;
+  }
+
+  .file .meta {
+    color: color-mix(in oklch, CanvasText 56%, transparent);
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 0.76rem;
+    gap: 0.45rem;
+  }
+`
+
 const messageStyles = String.raw`
   :host {
     display: block;
@@ -182,25 +239,12 @@ const messageStyles = String.raw`
     border-inline-start: 0.25rem solid color-mix(in oklch, CanvasText 32%, transparent);
   }
 
-  article[data-editable="true"] {
-    position: relative;
-  }
-
   .message-actions {
     display: flex;
     gap: 0.3rem;
-    inset-block-start: 0.35rem;
-    inset-inline-end: 0.35rem;
+    justify-content: end;
     margin: 0;
-    opacity: 0;
     padding: 0;
-    position: absolute;
-    transition: opacity 120ms ease;
-  }
-
-  article[data-editable="true"]:hover .message-actions,
-  .message-actions:focus-within {
-    opacity: 1;
   }
 
   .message-actions button {
@@ -351,6 +395,17 @@ const messageStyles = String.raw`
     margin-block-end: 0;
   }
 
+  .attachments {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  article:not([data-kind="tool"]) .attachments {
+    grid-column: 2;
+  }
+
+  ${fileReferenceCardStyles}
+
   h1,
   h2,
   h3,
@@ -482,6 +537,10 @@ const messageStyles = String.raw`
       padding-block-start: 0;
       text-align: start;
     }
+
+    article:not([data-kind="tool"]) .attachments {
+      grid-column: 1;
+    }
   }
 `
 
@@ -490,59 +549,7 @@ const fileReferenceStyles = String.raw`
     display: block;
   }
 
-  .file {
-    background: color-mix(in oklch, Canvas 96%, CanvasText 4%);
-    border: 1px solid color-mix(in oklch, CanvasText 13%, transparent);
-    border-radius: 0.5rem;
-    color: CanvasText;
-    display: grid;
-    gap: 0.35rem;
-    padding: 0.7rem 0.8rem;
-  }
-
-  .top {
-    align-items: center;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.45rem;
-    justify-content: space-between;
-  }
-
-  a {
-    color: LinkText;
-    font-weight: 700;
-    overflow-wrap: anywhere;
-    text-decoration: none;
-  }
-
-  a:hover {
-    text-decoration: underline;
-  }
-
-  .badge {
-    background: color-mix(in oklch, Highlight 12%, Canvas);
-    border: 1px solid color-mix(in oklch, Highlight 25%, transparent);
-    border-radius: 999px;
-    color: color-mix(in oklch, CanvasText 70%, transparent);
-    font-size: 0.72rem;
-    font-weight: 700;
-    padding: 0.16rem 0.45rem;
-  }
-
-  code {
-    color: color-mix(in oklch, CanvasText 62%, transparent);
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    font-size: 0.76rem;
-    overflow-wrap: anywhere;
-  }
-
-  .meta {
-    color: color-mix(in oklch, CanvasText 56%, transparent);
-    display: flex;
-    flex-wrap: wrap;
-    font-size: 0.76rem;
-    gap: 0.45rem;
-  }
+  ${fileReferenceCardStyles}
 `
 
 const composerStyles = String.raw`
@@ -708,10 +715,15 @@ export class TopicTranscript extends HTMLElement {
     this.normalize()
     const clone = this.cloneNode(true)
     if (!(clone instanceof HTMLElement)) throw new Error("Could not clone chat transcript.")
-    if (options.omitMessageId) removeMessageFromTranscriptElement(clone, options.omitMessageId)
+    if (options.omitMessageId || options.omitMessageIndex !== undefined) {
+      removeMessageFromTranscriptElement(clone, {
+        id: options.omitMessageId,
+        index: options.omitMessageIndex,
+      })
+    }
     normalizeTranscriptElement(clone)
     clone.querySelectorAll("[data-ephemeral]").forEach((element) => element.remove())
-    clone.querySelectorAll("chat-file-reference").forEach((element) => {
+    clone.querySelectorAll("chat-file-reference, a[rel~='enclosure']").forEach((element) => {
       element.removeAttribute("data-status")
       element.removeAttribute("data-current-bytes")
       element.removeAttribute("data-current-sha256")
@@ -728,9 +740,9 @@ export class TopicTranscript extends HTMLElement {
   appendMessage(options = {}) {
     const role = options.role ?? "user"
     const message = document.createElement("chat-message")
-    message.id = options.attrs?.id ?? nextMessageId()
-    message.dataset.role = role
-    message.dataset.created = new Date().toISOString()
+    if (options.attrs?.id) message.id = options.attrs.id
+    message.setAttribute("from", role)
+    message.setAttribute("created", new Date().toISOString())
     for (const [name, value] of Object.entries(options.attrs ?? {})) {
       if (value !== undefined && name !== "id") message.setAttribute(name, value)
     }
@@ -749,8 +761,8 @@ export class TopicTranscript extends HTMLElement {
     const message = this.messageElement(target)
     if (!message) return false
     const id = message.id
-    for (const reference of Array.from(this.querySelectorAll("chat-file-reference"))) {
-      if (reference.getAttribute("data-for") === id) reference.remove()
+    for (const reference of Array.from(this.querySelectorAll("chat-file-reference, a[rel~='enclosure']"))) {
+      if (id && fileReferenceFor(reference) === id) reference.remove()
     }
     message.remove()
     this.normalize()
@@ -842,6 +854,9 @@ export class ChatSummary extends HTMLElement {
 
 export class ChatMessage extends HTMLElement {
   static observedAttributes = [
+    "channel",
+    "content-type",
+    "created",
     "data-channel",
     "data-content-type",
     "data-created",
@@ -853,6 +868,13 @@ export class ChatMessage extends HTMLElement {
     "data-thinking",
     "data-thinking-effort",
     "data-turn",
+    "from",
+    "model",
+    "recipient",
+    "source",
+    "thinking",
+    "thinking-effort",
+    "turn",
   ]
 
   /** @type {MutationObserver | undefined} */
@@ -860,7 +882,7 @@ export class ChatMessage extends HTMLElement {
 
   connectedCallback() {
     this.#observer = new MutationObserver(this.#queueRender)
-    this.#observer.observe(this, { childList: true, subtree: true, characterData: true })
+    this.#observer.observe(this, { attributes: true, childList: true, subtree: true, characterData: true })
     this.#queueRender()
   }
 
@@ -884,10 +906,11 @@ export class ChatMessage extends HTMLElement {
   }
 
   #render() {
-    const role = this.dataset.role ?? "message"
-    const hidden = this.dataset.hidden === "true"
-    const kind = this.dataset.recipient ? "tool" : role === "user" ? "user" : "assistant"
+    const role = messageFrom(this)
+    const hidden = attributeValue(this, "hidden", "data-hidden") === "true"
+    const kind = messageRecipient(this) ? "tool" : role === "user" ? "user" : role === "system" ? "system" : "assistant"
     const body = getRawMessageBody(this)
+    const attachments = fileReferenceChildren(this)
     const editable = isMessageEditable(this)
     const shadow = this.shadowRoot ?? this.attachShadow({ mode: "open" })
     shadow.innerHTML = String.raw`
@@ -895,22 +918,23 @@ export class ChatMessage extends HTMLElement {
       <article data-kind="${escapeAttribute(kind)}" data-role="${escapeAttribute(role)}" data-hidden="${hidden ? "true" : "false"}" data-editable="${editable ? "true" : "false"}">
         ${kind === "tool"
           ? renderToolEvent(this, body)
-          : `${renderMessageHeader(this, kind)}<section class="content">${renderMarkdown(body)}</section>`}
-        ${editable ? renderMessageActions() : ""}
+          : `${renderMessageHeader(this, kind, editable)}<section class="content">${renderMarkdown(body)}</section>`}
+        ${attachments.length ? renderFileAttachments(attachments) : ""}
+        ${kind === "tool" && editable ? renderMessageActions() : ""}
       </article>
     `
     shadow.querySelector("[data-chat-action='edit']")?.addEventListener("click", () => {
       this.dispatchEvent(new CustomEvent("chat-message-edit-request", {
         bubbles: true,
         composed: true,
-        detail: { id: ensureMessageId(this), message: this },
+        detail: { id: this.id || undefined, message: this },
       }))
     })
     shadow.querySelector("[data-chat-action='delete']")?.addEventListener("click", () => {
       this.dispatchEvent(new CustomEvent("chat-message-delete-request", {
         bubbles: true,
         composed: true,
-        detail: { id: ensureMessageId(this), message: this },
+        detail: { id: this.id || undefined, message: this },
       }))
     })
   }
@@ -918,11 +942,18 @@ export class ChatMessage extends HTMLElement {
 
 export class ChatFileReference extends HTMLElement {
   static observedAttributes = [
+    "current-bytes",
+    "current-sha256",
     "data-current-bytes",
     "data-current-sha256",
     "data-mime",
     "data-path",
     "data-status",
+    "href",
+    "mime",
+    "path",
+    "status",
+    "type",
   ]
 
   /** @type {MutationObserver | undefined} */
@@ -954,26 +985,10 @@ export class ChatFileReference extends HTMLElement {
   }
 
   #render() {
-    const filePath = this.dataset.path ?? ""
-    const label = this.textContent?.trim() || filePath
-    const status = this.dataset.status ?? "unchecked"
-    const bytes = this.dataset.currentBytes
-    const hash = this.dataset.currentSha256
     const shadow = this.shadowRoot ?? this.attachShadow({ mode: "open" })
     shadow.innerHTML = String.raw`
       <style>${fileReferenceStyles}</style>
-      <section class="file" aria-label="Referenced file">
-        <div class="top">
-          <a href="${escapeAttribute(filePath)}" target="_blank" rel="noreferrer">${escapeHtml(label)}</a>
-          <span class="badge">${escapeHtml(status)}</span>
-        </div>
-        <code>${escapeHtml(filePath)}</code>
-        <div class="meta">
-          <span>${escapeHtml(this.dataset.mime ?? "file")}</span>
-          ${bytes ? `<span>${escapeHtml(formatBytes(Number(bytes)))}</span>` : ""}
-          ${hash ? `<span>${escapeHtml(hash.slice(0, 12))}</span>` : ""}
-        </div>
-      </section>
+      ${renderFileReferenceCard(fileReferenceData(this))}
     `
   }
 }
@@ -1073,6 +1088,9 @@ export class ChatComposer extends HTMLElement {
 export class ChatMessageEditor extends HTMLElement {
   #messageId = ""
 
+  /** @type {Element | undefined} */
+  #message
+
   connectedCallback() {
     if (!this.shadowRoot) {
       const shadow = this.attachShadow({ mode: "open" })
@@ -1102,7 +1120,8 @@ export class ChatMessageEditor extends HTMLElement {
    * @param {string} text
    */
   edit(message, text = message.querySelector("pre")?.textContent ?? "") {
-    this.#messageId = ensureMessageId(message)
+    this.#message = message
+    this.#messageId = message.id
     const textarea = this.shadowRoot?.querySelector("textarea")
     const dialog = this.shadowRoot?.querySelector("dialog")
     if (textarea instanceof HTMLTextAreaElement) textarea.value = text
@@ -1125,7 +1144,7 @@ export class ChatMessageEditor extends HTMLElement {
     this.dispatchEvent(new CustomEvent("chat-editor-save", {
       bubbles: true,
       composed: true,
-      detail: { id, text },
+      detail: { id, message: this.#message, text },
     }))
   }
 }
@@ -1143,7 +1162,61 @@ export function installChatTranscriptPageStyles() {
 function getRawMessageBody(element) {
   const pre = element.querySelector("pre")
   if (pre) return pre.textContent ?? ""
+  const clone = element.cloneNode(true)
+  if (clone instanceof Element) {
+    clone.querySelectorAll("chat-file-reference, a[rel~='enclosure']").forEach((reference) => reference.remove())
+    return clone.textContent ?? ""
+  }
   return element.textContent ?? ""
+}
+
+/**
+ * @param {HTMLElement} element
+ * @param {string} name
+ * @param {string} [legacyName]
+ */
+function attributeValue(element, name, legacyName) {
+  return element.getAttribute(name) ?? (legacyName ? element.getAttribute(legacyName) : null) ?? undefined
+}
+
+/** @param {HTMLElement} element */
+function explicitMessageFrom(element) {
+  return attributeValue(element, "from", "data-role")
+}
+
+/** @param {HTMLElement} element */
+function messageFrom(element) {
+  return explicitMessageFrom(element) ?? inferredMessageFrom(element)
+}
+
+/** @param {HTMLElement} element */
+function inferredMessageFrom(element) {
+  const parent = element.parentElement
+  if (!parent || parent.localName !== "topic-transcript") return "message"
+  let ordinaryCount = 0
+  for (const message of chatMessageChildren(parent)) {
+    if (message === element) break
+    if (!(message instanceof HTMLElement)) continue
+    const role = explicitMessageFrom(message)
+    if (role === "system" || role === "tool" || messageRecipient(message)) continue
+    ordinaryCount += 1
+  }
+  return ordinaryCount % 2 === 0 ? "user" : "assistant"
+}
+
+/** @param {HTMLElement} element */
+function messageCreated(element) {
+  return attributeValue(element, "created", "data-created")
+}
+
+/** @param {HTMLElement} element */
+function messageRecipient(element) {
+  return attributeValue(element, "recipient", "data-recipient")
+}
+
+/** @param {HTMLElement} element */
+function messageContentType(element) {
+  return attributeValue(element, "content-type", "data-content-type")
 }
 
 /** @param {string | undefined} value */
@@ -1160,15 +1233,17 @@ function formatCreated(value) {
 /**
  * @param {HTMLElement} element
  * @param {string} kind
+ * @param {boolean} [editable]
  */
-function renderMessageHeader(element, kind) {
-  const created = formatCreated(element.dataset.created)
+function renderMessageHeader(element, kind, editable = false) {
+  const created = formatCreated(messageCreated(element))
   const context = messageContext(element)
   return String.raw`
     <header class="message-header">
       <strong class="speaker">${escapeHtml(displaySpeaker(kind))}</strong>
-      ${created ? `<time class="time" datetime="${escapeAttribute(element.dataset.created ?? "")}">${escapeHtml(created)}</time>` : ""}
+      ${created ? `<time class="time" datetime="${escapeAttribute(messageCreated(element) ?? "")}">${escapeHtml(created)}</time>` : ""}
       ${context ? `<span class="context">${escapeHtml(context)}</span>` : ""}
+      ${editable ? renderMessageActions() : ""}
     </header>
   `
 }
@@ -1182,10 +1257,77 @@ function displaySpeaker(kind) {
 
 /** @param {HTMLElement} element */
 function messageContext(element) {
-  if (element.dataset.hidden === "true") return "hidden"
-  if (element.dataset.thinking === "true") return "working note"
-  if (element.dataset.channel && element.dataset.channel !== "final") return element.dataset.channel
+  if (attributeValue(element, "hidden", "data-hidden") === "true") return "hidden"
+  if (attributeValue(element, "thinking", "data-thinking") === "true") return "working note"
+  const channel = attributeValue(element, "channel", "data-channel")
+  if (channel && channel !== "final") return channel
   return undefined
+}
+
+/** @param {Element[]} references */
+function renderFileAttachments(references) {
+  return String.raw`
+    <section class="attachments" aria-label="Referenced files">
+      ${references.map((reference) => renderFileReferenceCard(fileReferenceData(reference))).join("")}
+    </section>
+  `
+}
+
+/** @param {ChatFileReferenceData} reference */
+function renderFileReferenceCard(reference) {
+  return String.raw`
+    <section class="file" aria-label="Referenced file">
+      <div class="top">
+        <a href="${escapeAttribute(reference.path)}" target="_blank" rel="noreferrer">${escapeHtml(reference.label)}</a>
+        <span class="badge">${escapeHtml(reference.status)}</span>
+      </div>
+      <code>${escapeHtml(reference.path)}</code>
+      <div class="meta">
+        <span>${escapeHtml(reference.mime ?? "file")}</span>
+        ${reference.bytes ? `<span>${escapeHtml(formatBytes(Number(reference.bytes)))}</span>` : ""}
+        ${reference.hash ? `<span>${escapeHtml(reference.hash.slice(0, 12))}</span>` : ""}
+      </div>
+    </section>
+  `
+}
+
+/** @param {Element} element */
+function fileReferenceData(element) {
+  const path = fileReferencePath(element)
+  return {
+    bytes: attributeValue(/** @type {HTMLElement} */ (element), "current-bytes", "data-current-bytes"),
+    hash: attributeValue(/** @type {HTMLElement} */ (element), "current-sha256", "data-current-sha256"),
+    label: element.textContent?.trim() || path,
+    mime: fileReferenceMime(element),
+    path,
+    status: attributeValue(/** @type {HTMLElement} */ (element), "status", "data-status") ?? "unchecked",
+  }
+}
+
+/** @param {Element} element */
+function fileReferencePath(element) {
+  if (element.localName === "a") return element.getAttribute("href") ?? ""
+  return element.getAttribute("path") ?? element.getAttribute("href") ?? element.getAttribute("data-path") ?? ""
+}
+
+/** @param {Element} element */
+function fileReferenceMime(element) {
+  return element.getAttribute("type") ?? element.getAttribute("mime") ?? element.getAttribute("data-mime") ?? undefined
+}
+
+/** @param {Element} element */
+function fileReferenceFor(element) {
+  return element.getAttribute("for") ?? element.getAttribute("data-for") ?? undefined
+}
+
+/** @param {Element} element */
+function isEnclosureLink(element) {
+  return element.localName === "a" && Boolean(element.getAttribute("href")) && (element.getAttribute("rel") ?? "").split(/\s+/).includes("enclosure")
+}
+
+/** @param {Element} element */
+function fileReferenceChildren(element) {
+  return Array.from(element.children).filter((child) => child.localName === "chat-file-reference" || isEnclosureLink(child))
 }
 
 /** @param {Element} element */
@@ -1207,8 +1349,8 @@ function renderMessageActions() {
  * @param {string} body
  */
 function renderToolEvent(element, body) {
-  const recipient = element.dataset.recipient ?? "tool"
-  const created = formatCreated(element.dataset.created)
+  const recipient = messageRecipient(element) ?? "tool"
+  const created = formatCreated(messageCreated(element))
   const parsed = parseJson(body)
 
   return String.raw`
@@ -1217,7 +1359,7 @@ function renderToolEvent(element, body) {
         <span class="event-dot" aria-hidden="true"></span>
         <strong class="tool-name">${escapeHtml(recipient)}</strong>
         <span class="tool-status">${escapeHtml(toolStatus(element))}</span>
-        ${created ? `<time class="time" datetime="${escapeAttribute(element.dataset.created ?? "")}">${escapeHtml(created)}</time>` : ""}
+        ${created ? `<time class="time" datetime="${escapeAttribute(messageCreated(element) ?? "")}">${escapeHtml(created)}</time>` : ""}
       </header>
       <section class="tool-body">
         ${parsed.ok ? renderToolPayload(parsed.value) : renderUnknownToolPayload(body)}
@@ -1228,8 +1370,9 @@ function renderToolEvent(element, body) {
 
 /** @param {HTMLElement} element */
 function toolStatus(element) {
-  if (element.dataset.contentType === "code") return "request"
-  return element.dataset.contentType ?? "event"
+  const contentType = messageContentType(element)
+  if (contentType === "code") return "request"
+  return contentType ?? "event"
 }
 
 /** @param {string} body */
@@ -1715,15 +1858,6 @@ function chatMessageChildren(element) {
 /** @param {HTMLElement} transcript */
 function normalizeTranscriptElement(transcript) {
   const messages = chatMessageChildren(transcript)
-  messages.forEach((message, index) => {
-    const turn = String(index + 1)
-    message.setAttribute("data-turn", turn)
-    ensureMessageId(message)
-    if (!message.getAttribute("data-source")) {
-      const role = message.getAttribute("data-role") ?? "message"
-      message.setAttribute("data-source", `${String(index + 1).padStart(4, "0")}-${role}.md`)
-    }
-  })
   transcript.dataset.startMessage = messages.length ? "0001" : ""
   transcript.dataset.endMessage = messages.length ? String(messages.length).padStart(4, "0") : ""
   transcript.dataset.messageCount = String(messages.length)
@@ -1731,15 +1865,20 @@ function normalizeTranscriptElement(transcript) {
 
 /**
  * @param {Element} transcript
- * @param {string} id
+ * @param {{ id?: string, index?: number }} target
  */
-function removeMessageFromTranscriptElement(transcript, id) {
-  for (const reference of Array.from(transcript.querySelectorAll("chat-file-reference"))) {
-    if (reference.getAttribute("data-for") === id) reference.remove()
+function removeMessageFromTranscriptElement(transcript, target) {
+  const messages = chatMessageChildren(transcript)
+  const message = target.index !== undefined
+    ? messages[target.index]
+    : messages.find((candidate) => target.id && candidate.id === target.id)
+  const id = message?.id ?? target.id
+  if (id) {
+    for (const reference of Array.from(transcript.querySelectorAll("chat-file-reference, a[rel~='enclosure']"))) {
+      if (fileReferenceFor(reference) === id) reference.remove()
+    }
   }
-  for (const message of chatMessageChildren(transcript)) {
-    if (message.id === id) message.remove()
-  }
+  message?.remove()
 }
 
 /** @param {Element} element */

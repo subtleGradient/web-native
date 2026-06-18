@@ -460,8 +460,9 @@ describe("openai browser client", () => {
       const root = mount(html`
         <ai-chat-app transcript="thread" model="gpt-test" transport-label="test-broker">
           <topic-transcript id="thread" editable>
-            <chat-message id="msg-1" data-role="user"><pre>Hello</pre></chat-message>
-            <chat-file-reference data-for="msg-1" data-path="../../chat.web/README.md">README</chat-file-reference>
+            <chat-message><pre>Hello</pre>
+              <a rel="enclosure" href="../../chat.web/README.md" type="text/markdown">README</a>
+            </chat-message>
           </topic-transcript>
           <chat-composer></chat-composer>
           <chat-message-editor></chat-message-editor>
@@ -470,7 +471,7 @@ describe("openai browser client", () => {
       const composer = /** @type {import("../chat.web/chat.js").ChatComposer} */ (root.querySelector("chat-composer"))
 
       await customElements.whenDefined("ai-chat-app")
-      await waitFor(() => root.querySelector("chat-file-reference")?.getAttribute("data-status") === "available")
+      await waitFor(() => root.querySelector("a[rel~='enclosure']")?.getAttribute("data-status") === "available")
 
       const textarea = /** @type {HTMLTextAreaElement} */ (composer.shadowRoot?.querySelector("textarea"))
       textarea.value = "Next question"
@@ -521,9 +522,10 @@ describe("openai browser client", () => {
       const root = mount(html`
         <ai-chat-app transcript="thread-delete">
           <topic-transcript id="thread-delete" editable>
-            <chat-message id="msg-delete" data-role="user"><pre>Delete me</pre></chat-message>
-            <chat-file-reference data-for="msg-delete" data-path="../../chat.web/README.md">README</chat-file-reference>
-            <chat-message id="msg-keep" data-role="assistant"><pre>Keep me</pre></chat-message>
+            <chat-message><pre>Delete me</pre>
+              <a rel="enclosure" href="../../chat.web/README.md" type="text/markdown">README</a>
+            </chat-message>
+            <chat-message from="assistant"><pre>Keep me</pre></chat-message>
           </topic-transcript>
           <chat-composer></chat-composer>
           <chat-message-editor></chat-message-editor>
@@ -536,17 +538,71 @@ describe("openai browser client", () => {
       await waitFor(() => saveBody.length > 0)
 
       expect(root.querySelectorAll("chat-message")).to.have.length(2)
-      expect(saveBody).to.not.include("msg-delete")
-      expect(saveBody).to.not.include('data-for="msg-delete"')
-      expect(saveBody).to.include("msg-keep")
+      expect(saveBody).to.not.include("Delete me")
+      expect(saveBody).to.not.include("README")
+      expect(saveBody).to.include("Keep me")
 
       resolveSave?.()
       await waitFor(() => root.querySelectorAll("chat-message").length === 1)
 
-      expect(root.querySelector("chat-message")?.id).to.equal("msg-keep")
+      expect(root.querySelector("chat-message")?.querySelector("pre")?.textContent).to.equal("Keep me")
     } finally {
       Reflect.set(globalThis, "fetch", originalFetch)
       Reflect.set(globalThis, "confirm", originalConfirm)
+    }
+  })
+
+  it("refreshes a stale runner token and retries saves", async () => {
+    const originalFetch = globalThis.fetch
+    const originalUrl = location.href
+    /** @type {string[]} */
+    const saveUrls = []
+    history.pushState(null, "", "/src/openai/Example%20AI%20Chat.webapp/index.html?t=stale")
+    /**
+     * @param {Parameters<typeof fetch>[0]} input
+     * @param {Parameters<typeof fetch>[1]} init
+     */
+    const mockFetch = async (input, init) => {
+      void init
+      const url = new URL(String(input), location.href)
+      if (url.pathname === "/__ai-chat/save-source") {
+        saveUrls.push(url.href)
+        if (url.searchParams.get("t") === "stale")
+          return new Response("Forbidden", { status: 403 })
+        return new Response(JSON.stringify({ ok: true }), {
+          headers: { "content-type": "application/json" },
+        })
+      }
+      if (url.pathname === "/src/openai/Example%20AI%20Chat.webapp/index.html") {
+        return new Response("<!doctype html>", {
+          headers: { "x-web-native-ai-chat-token": "fresh" },
+        })
+      }
+      throw new Error(`Unexpected fetch: ${url.pathname}`)
+    }
+    Reflect.set(globalThis, "fetch", mockFetch)
+
+    try {
+      const root = mount(html`
+        <ai-chat-app transcript="thread-stale">
+          <topic-transcript id="thread-stale" editable>
+            <chat-message><pre>Hello</pre></chat-message>
+          </topic-transcript>
+          <chat-composer></chat-composer>
+          <chat-message-editor></chat-message-editor>
+        </ai-chat-app>
+      `)
+      const app = /** @type {import("./ai-chat.js").AIChatApp} */ (root.querySelector("ai-chat-app"))
+
+      await app.saveSource()
+
+      expect(saveUrls).to.have.length(2)
+      expect(new URL(saveUrls[0] ?? "").searchParams.get("t")).to.equal("stale")
+      expect(new URL(saveUrls[1] ?? "").searchParams.get("t")).to.equal("fresh")
+      expect(new URL(location.href).searchParams.get("t")).to.equal("fresh")
+    } finally {
+      Reflect.set(globalThis, "fetch", originalFetch)
+      history.replaceState(null, "", originalUrl)
     }
   })
 
