@@ -2,6 +2,7 @@
 
 import "../../shadcn.web/presentational/define.js"
 
+const css = String.raw
 const search = new URLSearchParams(location.search)
 
 if (search.size > 0) {
@@ -81,7 +82,7 @@ function ensureRunnerWarningStyles() {
   if (document.querySelector("style[data-runner-warning-style]")) return
   const style = document.createElement("style")
   style.dataset.runnerWarningStyle = ""
-  style.textContent = String.raw`
+  style.textContent = css`
     shadcn-alert.runner-warning {
       background: color-mix(in oklch, Canvas 92%, CanvasText 8%);
       border: 1px solid color-mix(in oklch, Highlight 52%, CanvasText 18%);

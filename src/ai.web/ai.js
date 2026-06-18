@@ -2,12 +2,11 @@
 
 import { DEFAULT_TEXT_MODEL, OpenAIClient } from "./client.js"
 
+const css = String.raw
+const html = String.raw
 const statusEventName = "openai:status"
 const resultEventName = "openai:result"
 const errorEventName = "openai:error"
-
-const css = String.raw
-const html = String.raw
 
 const resultStyles = css`
   :host {
