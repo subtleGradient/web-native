@@ -212,7 +212,8 @@ const ok = true
 
     await nextFrame()
 
-    const textarea = /** @type {HTMLTextAreaElement} */ (composer.shadowRoot?.querySelector("textarea"))
+    const textarea = /** @type {HTMLTextAreaElement} */ (composer.querySelector("textarea"))
+    expect(textarea.form).to.equal(null)
     textarea.value = "Send this"
     const send = once(composer, "chat-composer-submit")
     textarea.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", metaKey: true, bubbles: true }))
@@ -227,6 +228,26 @@ const ok = true
     const saveEvent = /** @type {CustomEvent} */ (await save)
 
     expect(saveEvent.detail).to.deep.equal({ send: false, text: "Save this" })
+  })
+
+  it("keeps composer controls in light DOM for native forms", async () => {
+    const form = /** @type {HTMLFormElement} */ (mount(html`
+      <form action="/v1/responses">
+        <chat-composer placeholder="Message">
+          <textarea name="message">Hello</textarea>
+          <input name="reasoning.effort" value="high" />
+          <button name="intent" value="send">Send</button>
+        </chat-composer>
+      </form>
+    `).querySelector("form"))
+    const composer = /** @type {import("./chat.js").ChatComposer} */ (form.querySelector("chat-composer"))
+
+    await nextFrame()
+
+    const data = new FormData(form)
+    expect(data.get("message")).to.equal("Hello")
+    expect(data.get("reasoning.effort")).to.equal("high")
+    expect(composer.textarea?.placeholder).to.equal("Message")
   })
 
   it("dispatches editor saves for the selected message", async () => {

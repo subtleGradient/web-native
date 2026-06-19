@@ -556,10 +556,6 @@ const fileReferenceStyles = css`
 
 const composerStyles = css`
   :host {
-    display: block;
-  }
-
-  form {
     background: Canvas;
     border-top: 1px solid color-mix(in oklch, CanvasText 14%, transparent);
     display: grid;
@@ -567,7 +563,7 @@ const composerStyles = css`
     padding: clamp(0.9rem, 2vw, 1.25rem);
   }
 
-  textarea {
+  ::slotted(textarea) {
     background: color-mix(in oklch, Canvas 98%, CanvasText 2%);
     border: 1px solid color-mix(in oklch, CanvasText 14%, transparent);
     border-radius: 0.65rem;
@@ -580,7 +576,7 @@ const composerStyles = css`
     width: 100%;
   }
 
-  .row {
+  ::slotted(.row) {
     align-items: center;
     display: flex;
     flex-wrap: wrap;
@@ -588,17 +584,12 @@ const composerStyles = css`
     justify-content: space-between;
   }
 
-  .status {
+  ::slotted(.status) {
     color: color-mix(in oklch, CanvasText 58%, transparent);
     font-size: 0.82rem;
   }
 
-  .actions {
-    display: flex;
-    gap: 0.5rem;
-  }
-
-  button {
+  ::slotted(button) {
     background: color-mix(in oklch, Canvas 92%, CanvasText 8%);
     border: 1px solid color-mix(in oklch, CanvasText 14%, transparent);
     border-radius: 0.5rem;
@@ -609,14 +600,14 @@ const composerStyles = css`
     padding: 0.55rem 0.85rem;
   }
 
-  button[data-primary] {
+  ::slotted(button[data-primary]) {
     background: LinkText;
     border-color: LinkText;
     color: Canvas;
   }
 
-  button:disabled,
-  textarea:disabled {
+  ::slotted(button:disabled),
+  ::slotted(textarea:disabled) {
     cursor: wait;
     opacity: 0.58;
   }
@@ -998,36 +989,25 @@ export class ChatFileReference extends HTMLElement {
 export class ChatComposer extends HTMLElement {
   static observedAttributes = ["busy", "placeholder", "status"]
 
+  /** @type {AbortController | undefined} */
+  #controller
+
   connectedCallback() {
     if (!this.shadowRoot) {
       const shadow = this.attachShadow({ mode: "open" })
       shadow.innerHTML = html`
         <style>${composerStyles}</style>
-        <form>
-          <textarea name="message"></textarea>
-          <div class="row">
-            <span class="status" role="status"></span>
-            <span class="actions">
-              <button type="button" data-save>Save</button>
-              <button type="submit" data-primary>Send</button>
-            </span>
-          </div>
-        </form>
+        <slot></slot>
       `
-      shadow.querySelector("form")?.addEventListener("submit", (event) => {
-        event.preventDefault()
-        this.#submit(true)
-      })
-      shadow.querySelector("[data-save]")?.addEventListener("click", () => this.#submit(false))
-      shadow.querySelector("textarea")?.addEventListener("keydown", (event) => {
-        if (!(event instanceof KeyboardEvent)) return
-        if (event.key !== "Enter") return
-        if (!event.metaKey && !event.ctrlKey) return
-        event.preventDefault()
-        this.#submit(!event.altKey)
-      })
     }
+    this.#ensureDefaultControls()
+    this.#install()
     this.#sync()
+  }
+
+  disconnectedCallback() {
+    this.#controller?.abort()
+    this.#controller = undefined
   }
 
   attributeChangedCallback() {
@@ -1054,19 +1034,57 @@ export class ChatComposer extends HTMLElement {
 
   /** @returns {HTMLTextAreaElement | null} */
   get textarea() {
-    return /** @type {HTMLTextAreaElement | null} */ (this.shadowRoot?.querySelector("textarea") ?? null)
+    return /** @type {HTMLTextAreaElement | null} */ (this.querySelector("textarea") ?? null)
+  }
+
+  #ensureDefaultControls() {
+    if (this.querySelector("textarea")) return
+    this.insertAdjacentHTML("beforeend", html`
+      <textarea name="message"></textarea>
+      <span class="status" role="status"></span>
+      <button type="button" data-save>Save</button>
+      <button type="button" data-send data-primary>Send</button>
+    `)
+  }
+
+  #install() {
+    this.#controller?.abort()
+    this.#controller = new AbortController()
+    const signal = this.#controller.signal
+    this.addEventListener("click", (event) => {
+      const button = event.target instanceof Element
+        ? event.target.closest("button")
+        : null
+      if (!button || !this.contains(button)) return
+      if (button.hasAttribute("data-save")) {
+        event.preventDefault()
+        this.#submit(false)
+      }
+      if (button.hasAttribute("data-send")) {
+        event.preventDefault()
+        this.#submit(true)
+      }
+    }, { signal })
+    this.addEventListener("keydown", (event) => {
+      if (!(event instanceof KeyboardEvent)) return
+      if (event.target !== this.textarea) return
+      if (event.key !== "Enter") return
+      if (!event.metaKey && !event.ctrlKey) return
+      event.preventDefault()
+      this.#submit(!event.altKey)
+    }, { signal })
   }
 
   #sync() {
     const textarea = this.textarea
-    const status = this.shadowRoot?.querySelector(".status")
+    const status = this.querySelector(".status")
     const disabled = this.busy
     if (textarea) {
       textarea.placeholder = this.getAttribute("placeholder") ?? "Add a message"
       textarea.toggleAttribute("disabled", disabled)
     }
     if (status) status.textContent = this.status
-    this.shadowRoot?.querySelectorAll("button").forEach((button) => {
+    this.querySelectorAll("button").forEach((button) => {
       button.toggleAttribute("disabled", disabled)
     })
   }
