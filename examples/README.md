@@ -7,6 +7,7 @@ Each example lives in its own folder and uses `index.html` as its entrypoint. Re
 - `composite-settings-console/` combines the shadcn-style elements into a settings UI fixture.
 - `deck-gl-cdn-scatterplot-inline/` loads deck.gl from CDN imports in one HTML page.
 - `deck-gl-sqlite-opfs-bulk/` owns its SQLite OPFS worker and renders bulk logistics data with deck.gl.
+- `evolu.web/` runs an Evolu local-first activity lab with browser-native ESM, JSDoc types, a CDN import map, encrypted SQLite, optional relay sync, and export.
 - `react-deckgl-sqlite-opfs/` owns its React page, CSS, and SQLite OPFS worker copy.
 - `react-inline-jsx/` demonstrates inline JSX transformed by Babel standalone.
 - `react-service-worker-jsx/` demonstrates multi-file JSX transformed by a local service worker.
