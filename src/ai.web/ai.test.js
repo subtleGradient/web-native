@@ -456,13 +456,18 @@ describe("openai browser client", () => {
           headers: headersRecord(init?.headers),
         })
         return new Response([
+          "event: response.created",
+          'data: {"type":"response.created","response":{"output":[]}}',
+          "",
+          "event: response.output_text.delta",
           'data: {"type":"response.output_text.delta","delta":"Assistant "}',
           "",
+          "event: response.output_text.delta",
           'data: {"type":"response.output_text.delta","delta":"response"}',
           "",
           "data: [DONE]",
           "",
-        ].join("\n"), { headers: { "content-type": "text/event-stream" } })
+        ].join("\n"), { headers: { "content-type": "text/plain; charset=utf-8" } })
       }
       throw new Error(`Unexpected fetch: ${url.pathname}`)
     }
@@ -474,6 +479,7 @@ describe("openai browser client", () => {
         <form action="/v1/responses" onsubmit="chat.respond(event)">
           <ai-chat-app id="chat" transcript="thread" model="gpt-test" transport-label="test-broker">
             <topic-transcript id="thread" editable>
+              <chat-message from="system"><pre>you're a hip dude who talks regular</pre></chat-message>
               <chat-message><pre>Hello</pre>
                 <input type="hidden" name="ai.input:json" value='{"type":"reasoning","encrypted_content":"opaque-token"}' />
                 <a rel="enclosure" href="../../chat.web/README.md" type="text/markdown">README</a>
@@ -481,6 +487,7 @@ describe("openai browser client", () => {
             </topic-transcript>
             <chat-composer>
               <textarea name="message" placeholder="Add a message"></textarea>
+              <input name="instructions" value="Use the default chat instructions" />
               <input name="reasoning.effort" value="high" />
               <input name="temperature:number" value="0.2" />
               <button name="intent" value="send">Send</button>
@@ -496,25 +503,51 @@ describe("openai browser client", () => {
       await waitFor(() => root.querySelector("a[rel~='enclosure']")?.getAttribute("data-status") === "available")
 
       const textarea = /** @type {HTMLTextAreaElement} */ (composer.querySelector("textarea"))
+      const instructions = /** @type {HTMLInputElement} */ (composer.querySelector("input[name='instructions']"))
       textarea.value = "Next question"
       form.dispatchEvent(new SubmitEvent("submit", { bubbles: true, cancelable: true, submitter: form.querySelector("button") }))
 
-      await waitFor(() => root.querySelectorAll("chat-message").length === 3)
-      await waitFor(() => root.querySelectorAll("chat-message")[2]?.querySelector("pre")?.textContent === "Assistant response")
+      await waitFor(() => root.querySelectorAll("chat-message").length === 5)
+      await waitFor(() => root.querySelectorAll("chat-message")[4]?.querySelector("pre")?.textContent === "Assistant response")
 
       expect(responses).to.have.length(1)
       expect(new URL(responses[0]?.url ?? "").searchParams.get("t")).to.equal("test-token")
       expect(responses[0]?.headers["content-type"]).to.equal("application/json")
       expect(responses[0]?.body.model).to.equal("gpt-test")
+      expect(responses[0]?.body.instructions).to.equal("Use the default chat instructions")
       expect(responses[0]?.body.reasoning).to.deep.equal({ effort: "high" })
       expect(responses[0]?.body.temperature).to.equal(0.2)
       expect(responses[0]?.body.ai).to.equal(undefined)
+      const messages = Array.from(root.querySelectorAll("chat-message"))
+      expect(messages.map((message) => message.getAttribute("from") ?? "message")).to.deep.equal(["system", "message", "user", "system", "assistant"])
+      expect(messages[3]?.querySelector("pre")?.textContent).to.equal("Use the default chat instructions")
       const input = /** @type {unknown[]} */ (responses[0]?.body.input)
       expect(input[0]).to.deep.equal({ type: "reasoning", encrypted_content: "opaque-token" })
       expect(JSON.stringify(input)).to.include("Next question")
+      expect(JSON.stringify(input)).to.not.include("you're a hip dude who talks regular")
+      expect(JSON.stringify(input)).to.not.include("Use the default chat instructions")
       expect(JSON.stringify(input)).to.not.include("Assistant response")
       expect(JSON.stringify(input.at(-1))).to.not.include("opaque-token")
+
+      textarea.value = "Follow-up question"
+      instructions.value = ""
+      form.dispatchEvent(new SubmitEvent("submit", { bubbles: true, cancelable: true, submitter: form.querySelector("button") }))
+
+      await waitFor(() => responses.length === 2)
+      await waitFor(() => root.querySelectorAll("chat-message").length === 7)
+      await waitFor(() => root.querySelectorAll("chat-message")[6]?.querySelector("pre")?.textContent === "Assistant response")
+
+      expect(responses[1]?.body.instructions).to.equal("Use the default chat instructions")
+      const nextInput = /** @type {unknown[]} */ (responses[1]?.body.input)
+      expect(JSON.stringify(nextInput)).to.include("Follow-up question")
+      expect(JSON.stringify(nextInput)).to.not.include("you're a hip dude who talks regular")
+      expect(JSON.stringify(nextInput)).to.not.include("Use the default chat instructions")
+      expect(Array.from(root.querySelectorAll("chat-message[from='system']"))).to.have.length(2)
+
       expect(saves.at(-1)).to.include("<pre>Assistant response</pre>")
+      expect(saves.at(-1)).to.include("<pre>Use the default chat instructions</pre>")
+      expect(saves.at(-1)).to.not.include("event: response")
+      expect(saves.at(-1)).to.not.include("response.output_text.delta")
       expect(saves.at(-1)).to.include('model="gpt-test"')
       expect(saves.at(-1)).to.include('thinking-effort="high"')
       expect(saves.at(-1)).to.include('temperature="0.2"')

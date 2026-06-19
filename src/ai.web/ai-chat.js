@@ -8,6 +8,8 @@ const DEFAULT_SAVE_SOURCE_URL = "/__ai-chat/save-source"
 const DEFAULT_ACTION_URL = "/v1/responses"
 const DEFAULT_FILE_STATUS_URL = "/__ai-chat/file-status"
 const DEFAULT_MODEL = "gpt-5.5"
+const DEFAULT_CHAT_INSTRUCTIONS =
+  "Continue the provided conversation as the assistant. Use the visible semantic transcript as the durable conversation state."
 const DEFAULT_TRANSPORT_LABEL = "responses"
 const FORM_CONTROL_NAMES = new Set(["message", "prompt", "input", "intent"])
 
@@ -204,10 +206,12 @@ export class AIChatApp extends HTMLElement {
 
     const attrs = messageAttrsFromParams(params)
     transcript.appendMessage({ role: "user", text, attrs })
+    const send = formIntent(data, submitter) !== "save"
+    if (send) appendInstructionMessage(transcript, params)
     clearMessageControls(form, this.composer)
     await this.saveSource()
 
-    if (formIntent(data, submitter) === "save") return
+    if (!send) return
 
     const assistant = transcript.appendMessage({
       role: "assistant",
@@ -598,6 +602,7 @@ function attributeNameForParam(key) {
 function responsesRequest(transcript, params) {
   return {
     ...params,
+    instructions: responseInstructions(transcript, params),
     input: [
       ...opaqueInputItems(transcript),
       {
@@ -615,10 +620,50 @@ function responsesRequest(transcript, params) {
 
 /**
  * @param {import("../chat.web/chat.js").TopicTranscript} transcript
+ * @param {Record<string, unknown>} params
+ */
+function responseInstructions(transcript, params) {
+  return instructionParam(params) ?? latestTranscriptInstructions(transcript) ?? DEFAULT_CHAT_INSTRUCTIONS
+}
+
+/**
+ * @param {import("../chat.web/chat.js").TopicTranscript} transcript
+ */
+function latestTranscriptInstructions(transcript) {
+  const messages = transcript.messages()
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index]
+    if (!message || messageRole(message) !== "system") continue
+    const text = messageBodyText(message)
+    if (text) return text
+  }
+  return undefined
+}
+
+/**
+ * @param {import("../chat.web/chat.js").TopicTranscript} transcript
+ * @param {Record<string, unknown>} params
+ */
+function appendInstructionMessage(transcript, params) {
+  const instructions = instructionParam(params)
+  if (!instructions) return
+  if (latestTranscriptInstructions(transcript) === instructions.trim()) return
+  transcript.appendMessage({ role: "system", text: instructions })
+}
+
+/** @param {Record<string, unknown>} params */
+function instructionParam(params) {
+  const instructions = stringParam(params.instructions)
+  return instructions?.trim() ? instructions : undefined
+}
+
+/**
+ * @param {import("../chat.web/chat.js").TopicTranscript} transcript
  */
 function transcriptPrompt(transcript) {
   const messages = transcript.messages()
-    .map((message) => `${messageRole(message).toUpperCase()}:\n${message.querySelector("pre")?.textContent?.trim() ?? ""}`)
+    .filter((message) => messageRole(message) !== "system")
+    .map((message) => `${messageRole(message).toUpperCase()}:\n${messageBodyText(message)}`)
     .join("\n\n---\n\n")
   return `Conversation transcript:\n\n${messages}\n\n---\n\nWrite the next assistant message.`
 }
@@ -626,6 +671,11 @@ function transcriptPrompt(transcript) {
 /** @param {Element} message */
 function messageRole(message) {
   return message.getAttribute("from") ?? message.getAttribute("data-role") ?? "message"
+}
+
+/** @param {Element} message */
+function messageBodyText(message) {
+  return message.querySelector("pre")?.textContent?.trim() ?? ""
 }
 
 /** @param {Element} transcript */
@@ -649,32 +699,55 @@ function opaqueInputItems(transcript) {
  */
 async function streamResponseText(response, emit) {
   const contentType = response.headers.get("content-type") ?? ""
-  if (!contentType.includes("text/event-stream")) {
-    await streamPlainText(response, emit)
+  if (contentType.includes("text/event-stream")) {
+    await streamSseText(response, emit)
     return
   }
-  await streamSseText(response, emit)
+  await streamPlainOrResponseText(response, emit)
 }
 
 /**
  * @param {Response} response
  * @param {(text: string) => void} emit
  */
-async function streamPlainText(response, emit) {
+async function streamPlainOrResponseText(response, emit) {
   const reader = response.body?.getReader()
   if (!reader) {
-    emit(await response.text())
+    emitResponseBodyText(await response.text(), emit)
     return
   }
+
   const decoder = new TextDecoder()
+  const emitEventText = responseEventTextEmitter(emit)
+  /** @type {"plain" | "sse" | undefined} */
+  let mode
+  let buffer = ""
   try {
     while (true) {
       const { done, value } = await reader.read()
       if (done) break
-      emit(decoder.decode(value, { stream: true }))
+      buffer += decoder.decode(value, { stream: true })
+      mode ??= detectResponseTextMode(buffer)
+      if (mode === "sse") {
+        buffer = consumeSseBuffer(buffer, emitEventText)
+        continue
+      }
+      if (mode === "plain") {
+        emit(buffer)
+        buffer = ""
+      }
     }
-    const rest = decoder.decode()
-    if (rest) emit(rest)
+
+    buffer += decoder.decode()
+    if (mode === "sse") {
+      consumeSseBuffer(`${buffer}\n\n`, emitEventText)
+      return
+    }
+    if (mode === "plain") {
+      if (buffer) emit(buffer)
+      return
+    }
+    emitResponseBodyText(buffer, emit)
   } finally {
     reader.releaseLock()
   }
@@ -688,29 +761,75 @@ async function streamSseText(response, emit) {
   const reader = response.body?.getReader()
   if (!reader) return
   const decoder = new TextDecoder()
+  const emitEventText = responseEventTextEmitter(emit)
   let buffer = ""
-  let sentDelta = false
   try {
     while (true) {
       const { done, value } = await reader.read()
       if (done) break
       buffer += decoder.decode(value, { stream: true })
-      buffer = consumeSseBuffer(buffer, (event) => {
-        const text = textFromResponseEvent(event, sentDelta)
-        if (!text) return
-        sentDelta = true
-        emit(text)
-      })
+      buffer = consumeSseBuffer(buffer, emitEventText)
     }
     buffer += decoder.decode()
-    consumeSseBuffer(`${buffer}\n\n`, (event) => {
-      const text = textFromResponseEvent(event, sentDelta)
-      if (!text) return
-      sentDelta = true
-      emit(text)
-    })
+    consumeSseBuffer(`${buffer}\n\n`, emitEventText)
   } finally {
     reader.releaseLock()
+  }
+}
+
+/** @param {string} buffer */
+function detectResponseTextMode(buffer) {
+  const text = buffer.replace(/^\uFEFF/, "").trimStart()
+  if (!text) return undefined
+  if (/^event:\s*response\./.test(text)) return "sse"
+  if (/^data:\s*\{[\s\S]*"type"\s*:\s*"response\./.test(text)) return "sse"
+  if (/^data:\s*\[DONE\]/.test(text)) return "sse"
+  const firstLine = text.split(/\r?\n/, 1)[0] ?? ""
+  if (/^(event|data|id|retry)\s*:/.test(firstLine) || text.startsWith("{"))
+    return undefined
+  return "plain"
+}
+
+/**
+ * @param {string} body
+ * @param {(text: string) => void} emit
+ */
+function emitResponseBodyText(body, emit) {
+  emit(textFromResponseBody(body) ?? body)
+}
+
+/** @param {string} body */
+function textFromResponseBody(body) {
+  return textFromSseBody(body) ?? textFromResponseObject(parseJson(body))
+}
+
+/** @param {string} body */
+function textFromSseBody(body) {
+  let text = ""
+  let sawResponseEvent = false
+  const emitEventText = responseEventTextEmitter((chunk) => {
+    text += chunk
+  })
+  consumeSseBuffer(`${body}\n\n`, (event) => {
+    if (isResponseEvent(event)) sawResponseEvent = true
+    emitEventText(event)
+  })
+  return sawResponseEvent ? text : undefined
+}
+
+/** @param {unknown} event */
+function isResponseEvent(event) {
+  return isRecord(event) && typeof event.type === "string" && event.type.startsWith("response.")
+}
+
+/** @param {(text: string) => void} emit */
+function responseEventTextEmitter(emit) {
+  let sentDelta = false
+  return (/** @type {unknown} */ event) => {
+    const text = textFromResponseEvent(event, sentDelta)
+    if (!text) return
+    sentDelta = true
+    emit(text)
   }
 }
 
