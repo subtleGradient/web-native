@@ -119,6 +119,12 @@ async function handleFetchUnsafe(request: Request, url: URL) {
   if (url.pathname === "/favicon.ico")
     return new Response(null, { status: 204 })
 
+  if (url.pathname === "/v1/responses") {
+    if (!authorized(request, url))
+      return forbidden("Unauthorized Responses request", request, url)
+    return handleResponsesProxy(request)
+  }
+
   if (url.pathname.startsWith("/__ai-chat/")) {
     if (!authorized(request, url))
       return forbidden("Unauthorized AI chat request", request, url)
@@ -162,6 +168,18 @@ async function handleFetchUnsafe(request: Request, url: URL) {
       "cache-control": "no-store",
       "content-type": type,
     },
+  })
+}
+
+async function handleResponsesProxy(request: Request) {
+  if (request.method !== "POST")
+    return methodNotAllowed("responses proxy requires POST", request)
+
+  const upstream = await fetchResponsesBody(await request.text())
+  return new Response(upstream.body, {
+    status: upstream.status,
+    statusText: upstream.statusText,
+    headers: responseHeaders(upstream),
   })
 }
 
@@ -428,11 +446,15 @@ function transcriptPrompt(messages: ChatMessage[]) {
 }
 
 async function fetchResponses(body: Record<string, unknown>) {
+  return fetchResponsesBody(JSON.stringify(body))
+}
+
+async function fetchResponsesBody(body: string) {
   try {
     return await fetch(CODEX_RESPONSES_URL, {
       method: "POST",
       headers: await codexHeaders(),
-      body: JSON.stringify(body),
+      body,
     })
   } catch (error) {
     if (!isCodexAuthNotFoundError(error) || !process.env.OPENAI_API_KEY)
@@ -444,7 +466,7 @@ async function fetchResponses(body: Record<string, unknown>) {
         organization: process.env.OPENAI_ORGANIZATION,
         project: process.env.OPENAI_PROJECT,
       }),
-      body: JSON.stringify(body),
+      body,
     })
   }
 }
@@ -810,6 +832,17 @@ function json(value: unknown, status = 200) {
       "content-type": "application/json; charset=utf-8",
     },
   })
+}
+
+function responseHeaders(response: Response) {
+  const headers = new Headers()
+  const contentType = response.headers.get("content-type")
+  const requestId =
+    response.headers.get("x-request-id") ??
+    response.headers.get("x-oai-request-id")
+  if (contentType) headers.set("content-type", contentType)
+  if (requestId) headers.set("x-request-id", requestId)
+  return headers
 }
 
 function notFound(

@@ -66,12 +66,13 @@ file; no JSON state file, localStorage, or sidecar transcript is used.
   </head>
   <body>
     <main>
-      <ai-chat-app
-        class="app-shell"
-        transcript="chat-thread"
-        model="gpt-5.5"
-        transport-label="codex-broker"
-      >
+      <form action="/v1/responses" method="post" onsubmit="chat.respond(event)">
+        <ai-chat-app
+          id="chat"
+          class="app-shell"
+          transcript="chat-thread"
+          model="gpt-5.5"
+        >
         <section class="thread-region" aria-label="Conversation">
           <!-- CHAT_SOURCE_START -->
           <topic-transcript
@@ -116,9 +117,17 @@ Keep using the semantic transcript as the durable state.</pre
           </topic-transcript>
           <!-- CHAT_SOURCE_END -->
         </section>
-        <chat-composer placeholder="Add a message"></chat-composer>
-        <chat-message-editor></chat-message-editor>
-      </ai-chat-app>
+          <chat-composer placeholder="Add a message">
+            <textarea name="message" required></textarea>
+            <input type="hidden" name="reasoning.effort" value="medium" />
+            <button name="intent" value="save" formnovalidate>
+              Save
+            </button>
+            <button name="intent" value="send" data-primary>Send</button>
+          </chat-composer>
+          <chat-message-editor></chat-message-editor>
+        </ai-chat-app>
+      </form>
     </main>
   </body>
 </html>
