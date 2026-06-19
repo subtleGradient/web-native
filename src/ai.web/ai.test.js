@@ -486,13 +486,16 @@ describe("openai browser client", () => {
               </chat-message>
             </topic-transcript>
             <chat-composer>
-              <textarea name="message" placeholder="Add a message"></textarea>
-              <input name="instructions" value="Use the default chat instructions" />
-              <input name="reasoning.effort" value="high" />
+              <textarea slot="message" name="message" placeholder="Add a message"></textarea>
+              <input slot="instructions" name="instructions" value="Use the default chat instructions" />
+              <fieldset slot="reasoning">
+                <legend>thinking</legend>
+                <label><input type="radio" name="reasoning.effort" value="medium" /> medium</label>
+                <label><input type="radio" name="reasoning.effort" value="high" checked /> high</label>
+              </fieldset>
               <input name="temperature:number" value="0.2" />
-              <button name="intent" value="send">Send</button>
+              <button slot="actions" name="intent" value="send">Send</button>
             </chat-composer>
-            <chat-message-editor></chat-message-editor>
           </ai-chat-app>
         </form>
       `)
@@ -603,21 +606,18 @@ describe("openai browser client", () => {
               <chat-message from="system"><pre>Keep it short.</pre></chat-message>
               <chat-message><pre>Saved user turn</pre></chat-message>
             </topic-transcript>
-            <chat-composer>
-              <textarea name="message" placeholder="Add a message"></textarea>
-              <button name="intent" value="send" formnovalidate>Send</button>
-            </chat-composer>
-            <chat-message-editor></chat-message-editor>
+            <chat-composer></chat-composer>
           </ai-chat-app>
         </form>
       `)
       const form = /** @type {HTMLFormElement} */ (root.querySelector("form"))
 
       await customElements.whenDefined("ai-chat-app")
+      await waitFor(() => Boolean(form.querySelector("button[name='intent'][value='send']")))
       form.dispatchEvent(new SubmitEvent("submit", {
         bubbles: true,
         cancelable: true,
-        submitter: form.querySelector("button"),
+        submitter: form.querySelector("button[name='intent'][value='send']"),
       }))
 
       await waitFor(() => responses.length === 1)
@@ -671,7 +671,6 @@ describe("openai browser client", () => {
             <chat-message from="assistant"><pre>Keep me</pre></chat-message>
           </topic-transcript>
           <chat-composer></chat-composer>
-          <chat-message-editor></chat-message-editor>
         </ai-chat-app>
       `)
 
@@ -722,22 +721,20 @@ describe("openai browser client", () => {
               <chat-message id="edit-target"><pre>Original message</pre></chat-message>
             </topic-transcript>
             <chat-composer></chat-composer>
-            <chat-message-editor></chat-message-editor>
           </ai-chat-app>
         </form>
       `)
       const message = /** @type {HTMLElement} */ (root.querySelector("chat-message"))
-      const editor = /** @type {import("../chat.web/chat.js").ChatMessageEditor} */ (root.querySelector("chat-message-editor"))
 
       await customElements.whenDefined("ai-chat-app")
       await waitFor(() => Boolean(message.shadowRoot?.querySelector("[data-chat-action='edit']")))
 
       message.shadowRoot?.querySelector("[data-chat-action='edit']")?.dispatchEvent(new MouseEvent("click", { bubbles: true }))
-      await waitFor(() => editor.shadowRoot?.querySelector("dialog")?.open === true)
+      await waitFor(() => Boolean(message.shadowRoot?.querySelector("codemirror-editor")))
 
-      const textarea = /** @type {HTMLTextAreaElement} */ (editor.shadowRoot?.querySelector("textarea"))
+      const textarea = /** @type {HTMLTextAreaElement} */ (message.shadowRoot?.querySelector("codemirror-editor textarea"))
       textarea.value = "Edited message"
-      const saveButton = /** @type {HTMLButtonElement} */ (editor.shadowRoot?.querySelector("button[data-primary]"))
+      const saveButton = /** @type {HTMLButtonElement} */ (message.shadowRoot?.querySelector(".inline-editor-actions button[data-primary]"))
       saveButton.click()
 
       await waitFor(() => saveBody.includes("<pre>Edited message</pre>"))
@@ -788,7 +785,6 @@ describe("openai browser client", () => {
             <chat-message><pre>Hello</pre></chat-message>
           </topic-transcript>
           <chat-composer></chat-composer>
-          <chat-message-editor></chat-message-editor>
         </ai-chat-app>
       `)
       const app = /** @type {import("./ai-chat.js").AIChatApp} */ (root.querySelector("ai-chat-app"))

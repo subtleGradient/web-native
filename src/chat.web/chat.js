@@ -600,25 +600,77 @@ const composerStyles = css`
     padding: clamp(0.9rem, 2vw, 1.25rem);
   }
 
-  ::slotted(textarea) {
-    background: color-mix(in oklch, Canvas 98%, CanvasText 2%);
-    border: 1px solid color-mix(in oklch, CanvasText 14%, transparent);
-    border-radius: 0.65rem;
-    box-sizing: border-box;
-    color: CanvasText;
-    font: inherit;
-    min-block-size: 5.5rem;
-    padding: 0.85rem;
-    resize: vertical;
-    width: 100%;
+  .composer-grid {
+    display: grid;
+    gap: 0.75rem;
   }
 
-  ::slotted(.row) {
-    align-items: center;
+  .options,
+  .footer {
+    align-items: end;
     display: flex;
     flex-wrap: wrap;
     gap: 0.75rem;
     justify-content: space-between;
+  }
+
+  .options {
+    align-items: stretch;
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: end;
+  }
+
+  ::slotted(textarea),
+  ::slotted(input:not([type="radio"]):not([type="checkbox"])) {
+    background: color-mix(in oklch, Canvas 98%, CanvasText 2%);
+    border: 1px solid color-mix(in oklch, CanvasText 14%, transparent);
+    box-sizing: border-box;
+    color: CanvasText;
+    font: inherit;
+    padding: 0.85rem;
+    width: 100%;
+  }
+
+  ::slotted(textarea) {
+    border-radius: 0.65rem;
+    min-block-size: 5.5rem;
+    resize: vertical;
+  }
+
+  ::slotted(input:not([type="radio"]):not([type="checkbox"])) {
+    border-radius: 0.5rem;
+    min-inline-size: min(18rem, 100%);
+  }
+
+  ::slotted(label),
+  ::slotted(fieldset) {
+    box-sizing: border-box;
+    color: color-mix(in oklch, CanvasText 64%, transparent);
+    font-size: 0.82rem;
+  }
+
+  ::slotted(label) {
+    display: grid;
+    gap: 0.35rem;
+    min-inline-size: min(18rem, 100%);
+  }
+
+  ::slotted(fieldset) {
+    align-content: start;
+    border: 1px solid color-mix(in oklch, CanvasText 14%, transparent);
+    border-radius: 0.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem 0.75rem;
+    margin: 0;
+    min-inline-size: min(18rem, 100%);
+    padding: 0.45rem 0.65rem 0.6rem;
+    width: 100%;
   }
 
   ::slotted(.status) {
@@ -644,76 +696,11 @@ const composerStyles = css`
   }
 
   ::slotted(button:disabled),
-  ::slotted(textarea:disabled) {
+  ::slotted(input:disabled),
+  ::slotted(textarea:disabled),
+  ::slotted(select:disabled) {
     cursor: wait;
     opacity: 0.58;
-  }
-`
-
-const editorStyles = css`
-  :host {
-    display: contents;
-  }
-
-  dialog {
-    background: Canvas;
-    border: 1px solid color-mix(in oklch, CanvasText 18%, transparent);
-    border-radius: 0.75rem;
-    color: CanvasText;
-    max-inline-size: min(42rem, calc(100vw - 2rem));
-    padding: 0;
-    width: 42rem;
-  }
-
-  dialog::backdrop {
-    background: color-mix(in oklch, CanvasText 24%, transparent);
-  }
-
-  .editor-form {
-    display: grid;
-    gap: 0.85rem;
-    padding: 1rem;
-  }
-
-  h2 {
-    font-size: 1rem;
-    margin: 0;
-  }
-
-  textarea {
-    background: color-mix(in oklch, Canvas 98%, CanvasText 2%);
-    border: 1px solid color-mix(in oklch, CanvasText 14%, transparent);
-    border-radius: 0.65rem;
-    box-sizing: border-box;
-    color: CanvasText;
-    font: inherit;
-    min-block-size: 13rem;
-    padding: 0.85rem;
-    width: 100%;
-  }
-
-  .row {
-    align-items: center;
-    display: flex;
-    gap: 0.5rem;
-    justify-content: end;
-  }
-
-  button {
-    background: color-mix(in oklch, Canvas 92%, CanvasText 8%);
-    border: 1px solid color-mix(in oklch, CanvasText 14%, transparent);
-    border-radius: 0.5rem;
-    color: CanvasText;
-    cursor: pointer;
-    font: inherit;
-    font-weight: 700;
-    padding: 0.55rem 0.85rem;
-  }
-
-  button[data-primary] {
-    background: LinkText;
-    border-color: LinkText;
-    color: Canvas;
   }
 `
 
@@ -1074,7 +1061,20 @@ export class ChatComposer extends HTMLElement {
       const shadow = this.attachShadow({ mode: "open" })
       shadow.innerHTML = html`
         <style>${composerStyles}</style>
-        <slot></slot>
+        <section class="composer-grid">
+          <slot name="message"></slot>
+          <section class="options">
+            <slot name="instructions"></slot>
+            <slot name="reasoning"></slot>
+            <slot></slot>
+          </section>
+          <footer class="footer">
+            <slot name="status"></slot>
+            <section class="actions">
+              <slot name="actions"></slot>
+            </section>
+          </footer>
+        </section>
       `
     }
     this.#ensureDefaultControls()
@@ -1111,17 +1111,57 @@ export class ChatComposer extends HTMLElement {
 
   /** @returns {HTMLTextAreaElement | null} */
   get textarea() {
-    return /** @type {HTMLTextAreaElement | null} */ (this.querySelector("textarea") ?? null)
+    return /** @type {HTMLTextAreaElement | null} */ (this.querySelector("textarea[name='message']") ?? this.querySelector("textarea") ?? null)
   }
 
   #ensureDefaultControls() {
-    if (this.querySelector("textarea")) return
-    this.insertAdjacentHTML("beforeend", html`
-      <textarea name="message"></textarea>
-      <span class="status" role="status"></span>
-      <button type="button" data-save>Save</button>
-      <button type="button" data-send data-primary>Send</button>
-    `)
+    this.#slotExistingControls()
+    if (!this.querySelector(":scope > [slot='message']")) {
+      this.insertAdjacentHTML("beforeend", html`
+        <textarea slot="message" name="message"></textarea>
+      `)
+    }
+    if (!this.querySelector(":scope > [slot='instructions']")) {
+      this.insertAdjacentHTML("beforeend", html`
+        <label slot="instructions">instructions
+          <input type="text" name="instructions" placeholder="Optional instructions" />
+        </label>
+      `)
+    }
+    if (!this.querySelector(":scope > [slot='reasoning']")) {
+      this.insertAdjacentHTML("beforeend", html`
+        <fieldset slot="reasoning">
+          <legend>thinking</legend>
+          <label><input type="radio" name="reasoning.effort" value="minimal" /> minimal</label>
+          <label><input type="radio" name="reasoning.effort" value="medium" checked /> medium</label>
+          <label><input type="radio" name="reasoning.effort" value="high" /> high</label>
+        </fieldset>
+      `)
+    }
+    if (!this.querySelector(":scope > [slot='status']")) {
+      this.insertAdjacentHTML("beforeend", html`
+        <span slot="status" class="status" role="status"></span>
+      `)
+    }
+    if (!this.querySelector(":scope > [slot='actions']")) {
+      this.insertAdjacentHTML("beforeend", html`
+        <button slot="actions" name="intent" value="save" formnovalidate data-save>Save</button>
+        <button slot="actions" name="intent" value="send" data-send data-primary>Send</button>
+      `)
+    }
+  }
+
+  #slotExistingControls() {
+    slotDirectChildren(this, "textarea", "message")
+    slotDirectChildren(this, "input[name='instructions'], textarea[name='instructions']", "instructions")
+    slotDirectChildren(this, "select[name='reasoning.effort'], input[name='reasoning.effort']", "reasoning")
+    this.querySelectorAll(":scope > fieldset").forEach((element) => {
+      if (element instanceof HTMLElement && !element.slot && element.querySelector("[name='reasoning.effort']")) {
+        element.slot = "reasoning"
+      }
+    })
+    slotDirectChildren(this, ".status, [role='status']", "status")
+    slotDirectChildren(this, "button", "actions")
   }
 
   #install() {
@@ -1133,14 +1173,11 @@ export class ChatComposer extends HTMLElement {
         ? event.target.closest("button")
         : null
       if (!button || !this.contains(button)) return
-      if (button.hasAttribute("data-save")) {
-        event.preventDefault()
-        this.#submit(false)
-      }
-      if (button.hasAttribute("data-send")) {
-        event.preventDefault()
-        this.#submit(true)
-      }
+      const intent = buttonIntent(button)
+      if (!intent) return
+      if (button.form) return
+      event.preventDefault()
+      this.#submit(intent !== "save")
     }, { signal })
     this.addEventListener("keydown", (event) => {
       if (!(event instanceof KeyboardEvent)) return
@@ -1154,95 +1191,79 @@ export class ChatComposer extends HTMLElement {
 
   #sync() {
     const textarea = this.textarea
-    const status = this.querySelector(".status")
+    const status = this.querySelector("[slot='status'], .status")
     const disabled = this.busy
     if (textarea) {
       textarea.placeholder = this.getAttribute("placeholder") ?? "Add a message"
       textarea.toggleAttribute("disabled", disabled)
     }
     if (status) status.textContent = this.status
-    this.querySelectorAll("button").forEach((button) => {
-      button.toggleAttribute("disabled", disabled)
-    })
+    this.querySelectorAll("button, input, select, textarea").forEach((control) => control.toggleAttribute("disabled", disabled))
   }
 
   /** @param {boolean} send */
   #submit(send) {
     const textarea = this.textarea
     if (!(textarea instanceof HTMLTextAreaElement)) return
+    const submitter = this.#intentButton(send)
+    if (textarea.form) {
+      textarea.form.requestSubmit(submitter?.form === textarea.form ? submitter : undefined)
+      return
+    }
     const text = textarea.value.trim()
     if (!text) return
+    const data = formDataFromControls(this)
+    if (!data.has("intent")) data.set("intent", send ? "send" : "save")
     const event = new CustomEvent("chat-composer-submit", {
       bubbles: true,
       cancelable: true,
       composed: true,
-      detail: { send, text },
+      detail: { formData: data, send, text },
     })
     if (this.dispatchEvent(event)) textarea.value = ""
   }
+
+  /** @param {boolean} send */
+  #intentButton(send) {
+    const intent = send ? "send" : "save"
+    return /** @type {HTMLButtonElement | null} */ (this.querySelector(`button[name='intent'][value='${intent}'], button[data-${intent}]`))
+  }
 }
 
-export class ChatMessageEditor extends HTMLElement {
-  #messageId = ""
+/**
+ * @param {HTMLElement} host
+ * @param {string} selector
+ * @param {string} slot
+ */
+function slotDirectChildren(host, selector, slot) {
+  host.querySelectorAll(`:scope > ${selector}`).forEach((element) => {
+    if (element instanceof HTMLElement && !element.slot) element.slot = slot
+  })
+}
 
-  /** @type {Element | undefined} */
-  #message
+/** @param {HTMLButtonElement} button */
+function buttonIntent(button) {
+  if (button.name === "intent" && button.value) return button.value
+  if (button.hasAttribute("data-save")) return "save"
+  if (button.hasAttribute("data-send")) return "send"
+  return undefined
+}
 
-  connectedCallback() {
-    if (!this.shadowRoot) {
-      const shadow = this.attachShadow({ mode: "open" })
-      shadow.innerHTML = html`
-        <style>${editorStyles}</style>
-        <dialog>
-          <section class="editor-form" role="group" aria-labelledby="chat-message-editor-title">
-            <h2 id="chat-message-editor-title">Edit message</h2>
-            <textarea name="message"></textarea>
-            <div class="row">
-              <button type="button" data-cancel onclick="this.getRootNode().host.close()">Cancel</button>
-              <button type="button" data-primary onclick="this.getRootNode().host.save()">Save</button>
-            </div>
-          </section>
-        </dialog>
-      `
+/** @param {HTMLElement} root */
+function formDataFromControls(root) {
+  const data = new FormData()
+  const controls = root.querySelectorAll("input, select, textarea")
+  for (const control of controls) {
+    if (!(control instanceof HTMLInputElement || control instanceof HTMLSelectElement || control instanceof HTMLTextAreaElement)) continue
+    if (!control.name || control.disabled) continue
+    if (control instanceof HTMLInputElement && (control.type === "radio" || control.type === "checkbox") && !control.checked) continue
+    if (control instanceof HTMLSelectElement && control.multiple) {
+      for (const option of control.selectedOptions) data.append(control.name, option.value)
+      continue
     }
+    data.append(control.name, control.value)
   }
-
-  /**
-   * @param {Element} message
-   * @param {string} text
-   */
-  edit(message, text = message.querySelector("pre")?.textContent ?? "") {
-    this.#message = message
-    this.#messageId = message.id
-    const textarea = this.shadowRoot?.querySelector("textarea")
-    const dialog = this.shadowRoot?.querySelector("dialog")
-    if (textarea instanceof HTMLTextAreaElement) textarea.value = text
-    if (dialog instanceof HTMLDialogElement) {
-      dialog.showModal()
-      textarea instanceof HTMLTextAreaElement && textarea.focus()
-    }
-  }
-
-  close() {
-    const dialog = this.shadowRoot?.querySelector("dialog")
-    if (dialog instanceof HTMLDialogElement) dialog.close()
-  }
-
-  save() {
-    this.#save()
-  }
-
-  #save() {
-    const textarea = this.shadowRoot?.querySelector("textarea")
-    const text = textarea instanceof HTMLTextAreaElement ? textarea.value : ""
-    const id = this.#messageId
-    this.close()
-    this.dispatchEvent(new CustomEvent("chat-editor-save", {
-      bubbles: true,
-      composed: true,
-      detail: { id, message: this.#message, text },
-    }))
-  }
+  return data
 }
 
 export function installChatTranscriptPageStyles() {
@@ -2053,13 +2074,6 @@ export function defineChatComposer(composerName = "chat-composer") {
   }
 }
 
-/** @param {string} [editorName] */
-export function defineChatMessageEditor(editorName = "chat-message-editor") {
-  if (!customElements.get(editorName)) {
-    customElements.define(editorName, ChatMessageEditor)
-  }
-}
-
 export function defineChatTranscriptElements() {
   defineCodeMirrorElements()
   defineTopicTranscript()
@@ -2067,5 +2081,4 @@ export function defineChatTranscriptElements() {
   defineChatMessage()
   defineChatFileReference()
   defineChatComposer()
-  defineChatMessageEditor()
 }

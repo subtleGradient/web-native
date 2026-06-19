@@ -43,7 +43,6 @@ export class AIChatApp extends HTMLElement {
       customElements.whenDefined("chat-message"),
       customElements.whenDefined("chat-file-reference"),
       customElements.whenDefined("chat-composer"),
-      customElements.whenDefined("chat-message-editor"),
     ])
     this.transcript?.normalize()
     this.#syncStatus()
@@ -60,10 +59,6 @@ export class AIChatApp extends HTMLElement {
 
   get composer() {
     return /** @type {import("../chat.web/chat.js").ChatComposer | null} */ (this.querySelector("chat-composer"))
-  }
-
-  get editor() {
-    return /** @type {import("../chat.web/chat.js").ChatMessageEditor | null} */ (this.querySelector("chat-message-editor"))
   }
 
   get model() {
@@ -91,7 +86,6 @@ export class AIChatApp extends HTMLElement {
     this.#controller = new AbortController()
     const signal = this.#controller.signal
     this.addEventListener("chat-composer-submit", this.#handleComposerSubmit, { signal })
-    this.addEventListener("chat-message-edit-request", this.#handleEditRequest, { signal })
     this.addEventListener("chat-message-delete-request", this.#handleDeleteRequest, { signal })
     this.addEventListener("chat-editor-save", this.#handleEditorSave, { signal })
   }
@@ -113,24 +107,15 @@ export class AIChatApp extends HTMLElement {
   #handleComposerSubmit = (event) => {
     if (!(event instanceof CustomEvent) || !isRecord(event.detail)) return
     event.stopPropagation()
-    const text = typeof event.detail.text === "string" ? event.detail.text : ""
+    const data = event.detail.formData instanceof FormData
+      ? event.detail.formData
+      : new FormData()
+    if (typeof event.detail.text === "string" && !data.has("message")) {
+      data.set("message", event.detail.text)
+    }
     const send = event.detail.send !== false
-    void this.#addComposerMessage(text, send).catch((error) => this.#reportError(error))
-  }
-
-  /** @param {Event} event */
-  #handleEditRequest = (event) => {
-    if (!(event instanceof CustomEvent) || !isRecord(event.detail)) return
-    event.stopPropagation()
-    const transcript = this.transcript
-    const editor = this.editor
-    const message = event.detail.message instanceof Element
-      ? event.detail.message
-      : typeof event.detail.id === "string"
-        ? transcript?.messageElement(event.detail.id)
-        : null
-    if (!transcript || !editor || !message) return
-    editor.edit(message, transcript.messageText(message))
+    if (!data.has("intent")) data.set("intent", send ? "send" : "save")
+    void this.#respondToData(data, null, undefined).catch((error) => this.#reportError(error))
   }
 
   /** @param {Event} event */
@@ -162,40 +147,20 @@ export class AIChatApp extends HTMLElement {
   }
 
   /**
-   * @param {string} text
-   * @param {boolean} send
-   */
-  async #addComposerMessage(text, send) {
-    const transcript = this.#requireTranscript()
-    if (!text.trim()) return
-    const params = {
-      model: this.model,
-      store: false,
-      stream: true,
-    }
-    const attrs = messageAttrsFromParams(params)
-    transcript.appendMessage({ role: "user", text, attrs })
-    await this.saveSource()
-
-    if (!send) return
-    const assistant = transcript.appendMessage({
-      role: "assistant",
-      text: "",
-      attrs: {
-        ...attrs,
-        "data-streaming": "true",
-      },
-    })
-    await this.#streamModelResponse(this.action, responsesRequest(transcript, params), assistant)
-  }
-
-  /**
    * @param {HTMLFormElement | null} form
    * @param {HTMLElement | null | undefined} submitter
    */
   async #respondToForm(form, submitter) {
+    await this.#respondToData(formDataFrom(form, submitter), form, submitter)
+  }
+
+  /**
+   * @param {FormData} data
+   * @param {HTMLFormElement | null} form
+   * @param {HTMLElement | null | undefined} submitter
+   */
+  async #respondToData(data, form, submitter) {
     const transcript = this.#requireTranscript()
-    const data = formDataFrom(form, submitter)
     const text = messageTextFromFormData(data) ?? this.composer?.textarea?.value.trim() ?? ""
     const send = formIntent(data, submitter) !== "save"
     if (!text.trim() && !(send && transcriptReadyForAssistant(transcript))) return

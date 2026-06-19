@@ -32,16 +32,7 @@ OpenAI-specific prefix; it only orchestrates the local runner endpoints.
     <topic-transcript id="thread" editable>
       <chat-message><pre>Hello</pre></chat-message>
     </topic-transcript>
-    <chat-composer>
-      <textarea name="message" required></textarea>
-      <select name="reasoning.effort">
-        <option value="minimal">Minimal</option>
-        <option value="medium" selected>Medium</option>
-        <option value="high">High</option>
-      </select>
-      <button name="intent" value="send">Send</button>
-    </chat-composer>
-    <chat-message-editor></chat-message-editor>
+    <chat-composer></chat-composer>
   </ai-chat-app>
 </form>
 ```
