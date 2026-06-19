@@ -1,5 +1,7 @@
 // @ts-check
 
+import { defineCodeMirrorElements } from "../codemirror.web/codemirror.js"
+
 const pageStyleId = "web-native-chat-page-styles"
 const renderQueued = Symbol("render-queued")
 const css = String.raw
@@ -397,6 +399,41 @@ const messageStyles = css`
     margin-block-end: 0;
   }
 
+  .inline-editor {
+    display: grid;
+    gap: 0.65rem;
+  }
+
+  .inline-editor codemirror-editor {
+    --codemirror-editor-block-size: clamp(12rem, 32vh, 22rem);
+    --codemirror-editor-min-block-size: 12rem;
+    --codemirror-editor-radius: 0.45rem;
+  }
+
+  .inline-editor-actions {
+    display: flex;
+    gap: 0.45rem;
+    justify-content: end;
+  }
+
+  .inline-editor-actions button {
+    background: color-mix(in oklch, Canvas 92%, CanvasText 8%);
+    border: 1px solid color-mix(in oklch, CanvasText 14%, transparent);
+    border-radius: 0.45rem;
+    color: CanvasText;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 700;
+    padding: 0.45rem 0.7rem;
+  }
+
+  .inline-editor-actions button[data-primary] {
+    background: LinkText;
+    border-color: LinkText;
+    color: Canvas;
+  }
+
   .attachments {
     display: grid;
     gap: 0.5rem;
@@ -556,10 +593,6 @@ const fileReferenceStyles = css`
 
 const composerStyles = css`
   :host {
-    display: block;
-  }
-
-  form {
     background: Canvas;
     border-top: 1px solid color-mix(in oklch, CanvasText 14%, transparent);
     display: grid;
@@ -567,111 +600,85 @@ const composerStyles = css`
     padding: clamp(0.9rem, 2vw, 1.25rem);
   }
 
-  textarea {
-    background: color-mix(in oklch, Canvas 98%, CanvasText 2%);
-    border: 1px solid color-mix(in oklch, CanvasText 14%, transparent);
-    border-radius: 0.65rem;
-    box-sizing: border-box;
-    color: CanvasText;
-    font: inherit;
-    min-block-size: 5.5rem;
-    padding: 0.85rem;
-    resize: vertical;
-    width: 100%;
+  .composer-grid {
+    display: grid;
+    gap: 0.75rem;
   }
 
-  .row {
-    align-items: center;
+  .options,
+  .footer {
+    align-items: end;
     display: flex;
     flex-wrap: wrap;
     gap: 0.75rem;
     justify-content: space-between;
   }
 
-  .status {
-    color: color-mix(in oklch, CanvasText 58%, transparent);
-    font-size: 0.82rem;
+  .options {
+    align-items: stretch;
   }
 
   .actions {
     display: flex;
-    gap: 0.5rem;
-  }
-
-  button {
-    background: color-mix(in oklch, Canvas 92%, CanvasText 8%);
-    border: 1px solid color-mix(in oklch, CanvasText 14%, transparent);
-    border-radius: 0.5rem;
-    color: CanvasText;
-    cursor: pointer;
-    font: inherit;
-    font-weight: 700;
-    padding: 0.55rem 0.85rem;
-  }
-
-  button[data-primary] {
-    background: LinkText;
-    border-color: LinkText;
-    color: Canvas;
-  }
-
-  button:disabled,
-  textarea:disabled {
-    cursor: wait;
-    opacity: 0.58;
-  }
-`
-
-const editorStyles = css`
-  :host {
-    display: contents;
-  }
-
-  dialog {
-    background: Canvas;
-    border: 1px solid color-mix(in oklch, CanvasText 18%, transparent);
-    border-radius: 0.75rem;
-    color: CanvasText;
-    max-inline-size: min(42rem, calc(100vw - 2rem));
-    padding: 0;
-    width: 42rem;
-  }
-
-  dialog::backdrop {
-    background: color-mix(in oklch, CanvasText 24%, transparent);
-  }
-
-  form {
-    display: grid;
-    gap: 0.85rem;
-    padding: 1rem;
-  }
-
-  h2 {
-    font-size: 1rem;
-    margin: 0;
-  }
-
-  textarea {
-    background: color-mix(in oklch, Canvas 98%, CanvasText 2%);
-    border: 1px solid color-mix(in oklch, CanvasText 14%, transparent);
-    border-radius: 0.65rem;
-    box-sizing: border-box;
-    color: CanvasText;
-    font: inherit;
-    min-block-size: 13rem;
-    padding: 0.85rem;
-    width: 100%;
-  }
-
-  .row {
-    align-items: center;
-    display: flex;
+    flex-wrap: wrap;
     gap: 0.5rem;
     justify-content: end;
   }
 
-  button {
+  ::slotted(textarea),
+  ::slotted(input:not([type="radio"]):not([type="checkbox"])) {
+    background: color-mix(in oklch, Canvas 98%, CanvasText 2%);
+    border: 1px solid color-mix(in oklch, CanvasText 14%, transparent);
+    box-sizing: border-box;
+    color: CanvasText;
+    font: inherit;
+    padding: 0.85rem;
+    width: 100%;
+  }
+
+  ::slotted(textarea) {
+    border-radius: 0.65rem;
+    min-block-size: 5.5rem;
+    resize: vertical;
+  }
+
+  ::slotted(input:not([type="radio"]):not([type="checkbox"])) {
+    border-radius: 0.5rem;
+    min-inline-size: min(18rem, 100%);
+  }
+
+  ::slotted(label),
+  ::slotted(fieldset) {
+    box-sizing: border-box;
+    color: color-mix(in oklch, CanvasText 64%, transparent);
+    font-size: 0.82rem;
+  }
+
+  ::slotted(label) {
+    display: grid;
+    gap: 0.35rem;
+    min-inline-size: min(18rem, 100%);
+  }
+
+  ::slotted(fieldset) {
+    align-content: start;
+    border: 1px solid color-mix(in oklch, CanvasText 14%, transparent);
+    border-radius: 0.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem 0.75rem;
+    margin: 0;
+    min-inline-size: min(18rem, 100%);
+    padding: 0.45rem 0.65rem 0.6rem;
+    width: 100%;
+  }
+
+  ::slotted(.status) {
+    color: color-mix(in oklch, CanvasText 58%, transparent);
+    font-size: 0.82rem;
+  }
+
+  ::slotted(button) {
     background: color-mix(in oklch, Canvas 92%, CanvasText 8%);
     border: 1px solid color-mix(in oklch, CanvasText 14%, transparent);
     border-radius: 0.5rem;
@@ -682,10 +689,18 @@ const editorStyles = css`
     padding: 0.55rem 0.85rem;
   }
 
-  button[data-primary] {
+  ::slotted(button[data-primary]) {
     background: LinkText;
     border-color: LinkText;
     color: Canvas;
+  }
+
+  ::slotted(button:disabled),
+  ::slotted(input:disabled),
+  ::slotted(textarea:disabled),
+  ::slotted(select:disabled) {
+    cursor: wait;
+    opacity: 0.58;
   }
 `
 
@@ -882,6 +897,8 @@ export class ChatMessage extends HTMLElement {
   /** @type {MutationObserver | undefined} */
   #observer
 
+  #editing = false
+
   connectedCallback() {
     this.#observer = new MutationObserver(this.#queueRender)
     this.#observer.observe(this, { attributes: true, childList: true, subtree: true, characterData: true })
@@ -917,28 +934,66 @@ export class ChatMessage extends HTMLElement {
     const shadow = this.shadowRoot ?? this.attachShadow({ mode: "open" })
     shadow.innerHTML = html`
       <style>${messageStyles}</style>
-      <article data-kind="${escapeAttribute(kind)}" data-role="${escapeAttribute(role)}" data-hidden="${hidden ? "true" : "false"}" data-editable="${editable ? "true" : "false"}">
-        ${kind === "tool"
-          ? renderToolEvent(this, body)
-          : `${renderMessageHeader(this, kind, editable)}<section class="content">${renderMarkdown(body)}</section>`}
+      <article data-kind="${escapeAttribute(kind)}" data-role="${escapeAttribute(role)}" data-hidden="${hidden ? "true" : "false"}" data-editable="${editable ? "true" : "false"}" data-editing="${this.#editing ? "true" : "false"}">
+        ${this.#editing
+          ? renderEditableMessage(this, kind, body)
+          : kind === "tool"
+            ? renderToolEvent(this, body)
+            : `${renderMessageHeader(this, kind, editable)}<section class="content">${renderMarkdown(body)}</section>`}
         ${attachments.length ? renderFileAttachments(attachments) : ""}
-        ${kind === "tool" && editable ? renderMessageActions() : ""}
+        ${!this.#editing && kind === "tool" && editable ? renderMessageActions() : ""}
       </article>
     `
-    shadow.querySelector("[data-chat-action='edit']")?.addEventListener("click", () => {
-      this.dispatchEvent(new CustomEvent("chat-message-edit-request", {
-        bubbles: true,
-        composed: true,
-        detail: { id: this.id || undefined, message: this },
-      }))
-    })
-    shadow.querySelector("[data-chat-action='delete']")?.addEventListener("click", () => {
-      this.dispatchEvent(new CustomEvent("chat-message-delete-request", {
-        bubbles: true,
-        composed: true,
-        detail: { id: this.id || undefined, message: this },
-      }))
-    })
+  }
+
+  edit() {
+    if (!isMessageEditable(this)) return
+    this.#editing = true
+    this.#queueRender()
+    requestAnimationFrame(() => this.#focusEditor())
+  }
+
+  cancelEdit() {
+    if (!this.#editing) return
+    this.#editing = false
+    this.#queueRender()
+  }
+
+  saveEdit() {
+    if (!this.#editing) return
+    const text = this.#inlineEditorText()
+    this.#editing = false
+    this.dispatchEvent(new CustomEvent("chat-editor-save", {
+      bubbles: true,
+      composed: true,
+      detail: { id: this.id || undefined, message: this, text },
+    }))
+    this.#queueRender()
+  }
+
+  requestDelete() {
+    this.dispatchEvent(new CustomEvent("chat-message-delete-request", {
+      bubbles: true,
+      composed: true,
+      detail: { id: this.id || undefined, message: this },
+    }))
+  }
+
+  #focusEditor() {
+    const editor = this.shadowRoot?.querySelector("codemirror-editor")
+    if (editor && "focus" in editor && typeof editor.focus === "function") {
+      editor.focus()
+      return
+    }
+    const textarea = this.shadowRoot?.querySelector("textarea")
+    if (textarea instanceof HTMLTextAreaElement) textarea.focus()
+  }
+
+  #inlineEditorText() {
+    const editor = this.shadowRoot?.querySelector("codemirror-editor")
+    if (editor && "value" in editor) return String(editor.value ?? "")
+    const textarea = this.shadowRoot?.querySelector("textarea")
+    return textarea instanceof HTMLTextAreaElement ? textarea.value : getRawMessageBody(this)
   }
 }
 
@@ -998,36 +1053,38 @@ export class ChatFileReference extends HTMLElement {
 export class ChatComposer extends HTMLElement {
   static observedAttributes = ["busy", "placeholder", "status"]
 
+  /** @type {AbortController | undefined} */
+  #controller
+
   connectedCallback() {
     if (!this.shadowRoot) {
       const shadow = this.attachShadow({ mode: "open" })
       shadow.innerHTML = html`
         <style>${composerStyles}</style>
-        <form>
-          <textarea name="message"></textarea>
-          <div class="row">
-            <span class="status" role="status"></span>
-            <span class="actions">
-              <button type="button" data-save>Save</button>
-              <button type="submit" data-primary>Send</button>
-            </span>
-          </div>
-        </form>
+        <section class="composer-grid">
+          <slot name="message"></slot>
+          <section class="options">
+            <slot name="instructions"></slot>
+            <slot name="reasoning"></slot>
+            <slot></slot>
+          </section>
+          <footer class="footer">
+            <slot name="status"></slot>
+            <section class="actions">
+              <slot name="actions"></slot>
+            </section>
+          </footer>
+        </section>
       `
-      shadow.querySelector("form")?.addEventListener("submit", (event) => {
-        event.preventDefault()
-        this.#submit(true)
-      })
-      shadow.querySelector("[data-save]")?.addEventListener("click", () => this.#submit(false))
-      shadow.querySelector("textarea")?.addEventListener("keydown", (event) => {
-        if (!(event instanceof KeyboardEvent)) return
-        if (event.key !== "Enter") return
-        if (!event.metaKey && !event.ctrlKey) return
-        event.preventDefault()
-        this.#submit(!event.altKey)
-      })
     }
+    this.#ensureDefaultControls()
+    this.#install()
     this.#sync()
+  }
+
+  disconnectedCallback() {
+    this.#controller?.abort()
+    this.#controller = undefined
   }
 
   attributeChangedCallback() {
@@ -1054,101 +1111,159 @@ export class ChatComposer extends HTMLElement {
 
   /** @returns {HTMLTextAreaElement | null} */
   get textarea() {
-    return /** @type {HTMLTextAreaElement | null} */ (this.shadowRoot?.querySelector("textarea") ?? null)
+    return /** @type {HTMLTextAreaElement | null} */ (this.querySelector("textarea[name='message']") ?? this.querySelector("textarea") ?? null)
+  }
+
+  #ensureDefaultControls() {
+    this.#slotExistingControls()
+    if (!this.querySelector(":scope > [slot='message']")) {
+      this.insertAdjacentHTML("beforeend", html`
+        <textarea slot="message" name="message"></textarea>
+      `)
+    }
+    if (!this.querySelector(":scope > [slot='instructions']")) {
+      this.insertAdjacentHTML("beforeend", html`
+        <label slot="instructions">instructions
+          <input type="text" name="instructions" placeholder="Optional instructions" />
+        </label>
+      `)
+    }
+    if (!this.querySelector(":scope > [slot='reasoning']")) {
+      this.insertAdjacentHTML("beforeend", html`
+        <fieldset slot="reasoning">
+          <legend>thinking</legend>
+          <label><input type="radio" name="reasoning.effort" value="minimal" /> minimal</label>
+          <label><input type="radio" name="reasoning.effort" value="medium" checked /> medium</label>
+          <label><input type="radio" name="reasoning.effort" value="high" /> high</label>
+        </fieldset>
+      `)
+    }
+    if (!this.querySelector(":scope > [slot='status']")) {
+      this.insertAdjacentHTML("beforeend", html`
+        <span slot="status" class="status" role="status"></span>
+      `)
+    }
+    if (!this.querySelector(":scope > [slot='actions']")) {
+      this.insertAdjacentHTML("beforeend", html`
+        <button slot="actions" name="intent" value="save" formnovalidate data-save>Save</button>
+        <button slot="actions" name="intent" value="send" data-send data-primary>Send</button>
+      `)
+    }
+  }
+
+  #slotExistingControls() {
+    slotDirectChildren(this, "textarea", "message")
+    slotDirectChildren(this, "input[name='instructions'], textarea[name='instructions']", "instructions")
+    slotDirectChildren(this, "select[name='reasoning.effort'], input[name='reasoning.effort']", "reasoning")
+    this.querySelectorAll(":scope > fieldset").forEach((element) => {
+      if (element instanceof HTMLElement && !element.slot && element.querySelector("[name='reasoning.effort']")) {
+        element.slot = "reasoning"
+      }
+    })
+    slotDirectChildren(this, ".status, [role='status']", "status")
+    slotDirectChildren(this, "button", "actions")
+  }
+
+  #install() {
+    this.#controller?.abort()
+    this.#controller = new AbortController()
+    const signal = this.#controller.signal
+    this.addEventListener("click", (event) => {
+      const button = event.target instanceof Element
+        ? event.target.closest("button")
+        : null
+      if (!button || !this.contains(button)) return
+      const intent = buttonIntent(button)
+      if (!intent) return
+      if (button.form) return
+      event.preventDefault()
+      this.#submit(intent !== "save")
+    }, { signal })
+    this.addEventListener("keydown", (event) => {
+      if (!(event instanceof KeyboardEvent)) return
+      if (event.target !== this.textarea) return
+      if (event.key !== "Enter") return
+      if (!event.metaKey && !event.ctrlKey) return
+      event.preventDefault()
+      this.#submit(!event.altKey)
+    }, { signal })
   }
 
   #sync() {
     const textarea = this.textarea
-    const status = this.shadowRoot?.querySelector(".status")
+    const status = this.querySelector("[slot='status'], .status")
     const disabled = this.busy
     if (textarea) {
       textarea.placeholder = this.getAttribute("placeholder") ?? "Add a message"
       textarea.toggleAttribute("disabled", disabled)
     }
     if (status) status.textContent = this.status
-    this.shadowRoot?.querySelectorAll("button").forEach((button) => {
-      button.toggleAttribute("disabled", disabled)
-    })
+    this.querySelectorAll("button, input, select, textarea").forEach((control) => control.toggleAttribute("disabled", disabled))
   }
 
   /** @param {boolean} send */
   #submit(send) {
     const textarea = this.textarea
     if (!(textarea instanceof HTMLTextAreaElement)) return
+    const submitter = this.#intentButton(send)
+    if (textarea.form) {
+      textarea.form.requestSubmit(submitter?.form === textarea.form ? submitter : undefined)
+      return
+    }
     const text = textarea.value.trim()
     if (!text) return
+    const data = formDataFromControls(this)
+    if (!data.has("intent")) data.set("intent", send ? "send" : "save")
     const event = new CustomEvent("chat-composer-submit", {
       bubbles: true,
       cancelable: true,
       composed: true,
-      detail: { send, text },
+      detail: { formData: data, send, text },
     })
     if (this.dispatchEvent(event)) textarea.value = ""
   }
+
+  /** @param {boolean} send */
+  #intentButton(send) {
+    const intent = send ? "send" : "save"
+    return /** @type {HTMLButtonElement | null} */ (this.querySelector(`button[name='intent'][value='${intent}'], button[data-${intent}]`))
+  }
 }
 
-export class ChatMessageEditor extends HTMLElement {
-  #messageId = ""
+/**
+ * @param {HTMLElement} host
+ * @param {string} selector
+ * @param {string} slot
+ */
+function slotDirectChildren(host, selector, slot) {
+  host.querySelectorAll(`:scope > ${selector}`).forEach((element) => {
+    if (element instanceof HTMLElement && !element.slot) element.slot = slot
+  })
+}
 
-  /** @type {Element | undefined} */
-  #message
+/** @param {HTMLButtonElement} button */
+function buttonIntent(button) {
+  if (button.name === "intent" && button.value) return button.value
+  if (button.hasAttribute("data-save")) return "save"
+  if (button.hasAttribute("data-send")) return "send"
+  return undefined
+}
 
-  connectedCallback() {
-    if (!this.shadowRoot) {
-      const shadow = this.attachShadow({ mode: "open" })
-      shadow.innerHTML = html`
-        <style>${editorStyles}</style>
-        <dialog>
-          <form method="dialog">
-            <h2>Edit message</h2>
-            <textarea name="message"></textarea>
-            <div class="row">
-              <button type="button" data-cancel>Cancel</button>
-              <button type="submit" data-primary>Save</button>
-            </div>
-          </form>
-        </dialog>
-      `
-      shadow.querySelector("form")?.addEventListener("submit", (event) => {
-        event.preventDefault()
-        this.#save()
-      })
-      shadow.querySelector("[data-cancel]")?.addEventListener("click", () => this.close())
+/** @param {HTMLElement} root */
+function formDataFromControls(root) {
+  const data = new FormData()
+  const controls = root.querySelectorAll("input, select, textarea")
+  for (const control of controls) {
+    if (!(control instanceof HTMLInputElement || control instanceof HTMLSelectElement || control instanceof HTMLTextAreaElement)) continue
+    if (!control.name || control.disabled) continue
+    if (control instanceof HTMLInputElement && (control.type === "radio" || control.type === "checkbox") && !control.checked) continue
+    if (control instanceof HTMLSelectElement && control.multiple) {
+      for (const option of control.selectedOptions) data.append(control.name, option.value)
+      continue
     }
+    data.append(control.name, control.value)
   }
-
-  /**
-   * @param {Element} message
-   * @param {string} text
-   */
-  edit(message, text = message.querySelector("pre")?.textContent ?? "") {
-    this.#message = message
-    this.#messageId = message.id
-    const textarea = this.shadowRoot?.querySelector("textarea")
-    const dialog = this.shadowRoot?.querySelector("dialog")
-    if (textarea instanceof HTMLTextAreaElement) textarea.value = text
-    if (dialog instanceof HTMLDialogElement) {
-      dialog.showModal()
-      textarea instanceof HTMLTextAreaElement && textarea.focus()
-    }
-  }
-
-  close() {
-    const dialog = this.shadowRoot?.querySelector("dialog")
-    if (dialog instanceof HTMLDialogElement) dialog.close()
-  }
-
-  #save() {
-    const textarea = this.shadowRoot?.querySelector("textarea")
-    const text = textarea instanceof HTMLTextAreaElement ? textarea.value : ""
-    const id = this.#messageId
-    this.close()
-    this.dispatchEvent(new CustomEvent("chat-editor-save", {
-      bubbles: true,
-      composed: true,
-      detail: { id, message: this.#message, text },
-    }))
-  }
+  return data
 }
 
 export function installChatTranscriptPageStyles() {
@@ -1340,9 +1455,40 @@ function isMessageEditable(element) {
 function renderMessageActions() {
   return html`
     <menu class="message-actions" aria-label="Message actions">
-      <button type="button" data-chat-action="edit">Edit</button>
-      <button type="button" data-chat-action="delete">Delete</button>
+      <button type="button" data-chat-action="edit" onclick="this.getRootNode().host.edit()">Edit</button>
+      <button type="button" data-chat-action="delete" onclick="this.getRootNode().host.requestDelete()">Delete</button>
     </menu>
+  `
+}
+
+/**
+ * @param {HTMLElement} element
+ * @param {string} kind
+ * @param {string} body
+ */
+function renderEditableMessage(element, kind, body) {
+  const editor = renderInlineMessageEditor(body)
+  if (kind === "tool") return `<section class="content" data-editing="true">${editor}</section>`
+  return `${renderMessageHeader(element, kind, false)}<section class="content" data-editing="true">${editor}</section>`
+}
+
+/** @param {string} body */
+function renderInlineMessageEditor(body) {
+  return html`
+    <section class="inline-editor" aria-label="Edit message">
+      <codemirror-editor
+        language="markdown"
+        line-wrapping
+        setup="minimal"
+        onkeydown="if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') { event.preventDefault(); this.getRootNode().host.saveEdit() } else if (event.key === 'Escape') { event.preventDefault(); this.getRootNode().host.cancelEdit() }"
+      >
+        <textarea name="message" aria-label="Message">${escapeHtml(body)}</textarea>
+      </codemirror-editor>
+      <div class="inline-editor-actions">
+        <button type="button" onclick="this.getRootNode().host.cancelEdit()">Cancel</button>
+        <button type="button" data-primary onclick="this.getRootNode().host.saveEdit()">Save</button>
+      </div>
+    </section>
   `
 }
 
@@ -1859,10 +2005,9 @@ function chatMessageChildren(element) {
 
 /** @param {HTMLElement} transcript */
 function normalizeTranscriptElement(transcript) {
-  const messages = chatMessageChildren(transcript)
-  transcript.dataset.startMessage = messages.length ? "0001" : ""
-  transcript.dataset.endMessage = messages.length ? String(messages.length).padStart(4, "0") : ""
-  transcript.dataset.messageCount = String(messages.length)
+  transcript.removeAttribute("data-start-message")
+  transcript.removeAttribute("data-end-message")
+  transcript.removeAttribute("data-message-count")
 }
 
 /**
@@ -1929,18 +2074,11 @@ export function defineChatComposer(composerName = "chat-composer") {
   }
 }
 
-/** @param {string} [editorName] */
-export function defineChatMessageEditor(editorName = "chat-message-editor") {
-  if (!customElements.get(editorName)) {
-    customElements.define(editorName, ChatMessageEditor)
-  }
-}
-
 export function defineChatTranscriptElements() {
+  defineCodeMirrorElements()
   defineTopicTranscript()
   defineChatSummary()
   defineChatMessage()
   defineChatFileReference()
   defineChatComposer()
-  defineChatMessageEditor()
 }

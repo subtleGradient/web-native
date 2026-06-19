@@ -1,4 +1,4 @@
-import { watch, type FSWatcher } from "node:fs"
+import { statSync, watch, type FSWatcher } from "node:fs"
 import path from "node:path"
 
 type StaticServerOptions = {
@@ -104,7 +104,26 @@ export function serveStatic({ root, port, defaultPath = "/test/index.html", live
 function resolvePublicPath(rootPath: string, pathname: string) {
   const filePath = path.resolve(rootPath, `.${pathname}`)
   const insideRoot = filePath === rootPath || filePath.startsWith(`${rootPath}${path.sep}`)
-  return insideRoot ? filePath : undefined
+  return insideRoot ? directoryIndexPath(filePath) ?? filePath : undefined
+}
+
+function directoryIndexPath(filePath: string) {
+  try {
+    if (!statSync(filePath).isDirectory()) return undefined
+  } catch {
+    return undefined
+  }
+
+  const indexPath = path.join(filePath, "index.html")
+  return existsFile(indexPath) ? indexPath : undefined
+}
+
+function existsFile(filePath: string) {
+  try {
+    return statSync(filePath).isFile()
+  } catch {
+    return false
+  }
 }
 
 function injectLiveReloadClient(html: string) {

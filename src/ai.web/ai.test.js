@@ -425,12 +425,13 @@ describe("openai browser client", () => {
     expect(statuses.at(-1)).to.deep.equal({ busy: false, pending: 0 })
   })
 
-  it("continues a semantic chat through ai-chat-app without page-local controller code", async () => {
+  it("continues a semantic chat through a native form action", async () => {
     const originalFetch = globalThis.fetch
+    const originalUrl = location.href
     /** @type {string[]} */
     const saves = []
-    /** @type {string[]} */
-    const responds = []
+    /** @type {Array<{ url: string, body: Record<string, unknown>, headers: Record<string, string> }>} */
+    const responses = []
     /**
      * @param {Parameters<typeof fetch>[0]} input
      * @param {Parameters<typeof fetch>[1]} init
@@ -448,9 +449,150 @@ describe("openai browser client", () => {
         saves.push(String(init?.body))
         return new Response(JSON.stringify({ ok: true }), { headers: { "content-type": "application/json" } })
       }
-      if (url.pathname === "/__ai-chat/respond") {
-        responds.push(String(init?.body))
-        return new Response("Assistant response")
+      if (url.pathname === "/v1/responses") {
+        responses.push({
+          url: url.href,
+          body: /** @type {Record<string, unknown>} */ (JSON.parse(String(init?.body))),
+          headers: headersRecord(init?.headers),
+        })
+        return new Response([
+          "event: response.created",
+          'data: {"type":"response.created","response":{"output":[]}}',
+          "",
+          "event: response.output_text.delta",
+          'data: {"type":"response.output_text.delta","delta":"Assistant "}',
+          "",
+          "event: response.output_text.delta",
+          'data: {"type":"response.output_text.delta","delta":"response"}',
+          "",
+          "data: [DONE]",
+          "",
+        ].join("\n"), { headers: { "content-type": "text/plain; charset=utf-8" } })
+      }
+      throw new Error(`Unexpected fetch: ${url.pathname}`)
+    }
+    Reflect.set(globalThis, "fetch", mockFetch)
+
+    try {
+      history.replaceState(null, "", "/src/ai-example.chat.webapp/index.html?t=test-token")
+      const root = mount(html`
+        <form action="/v1/responses" onsubmit="chat.respond(event)">
+          <ai-chat-app id="chat" transcript="thread" model="gpt-test" transport-label="test-broker">
+            <topic-transcript id="thread" editable>
+              <chat-message from="system"><pre>you're a hip dude who talks regular</pre></chat-message>
+              <chat-message><pre>Hello</pre>
+                <input type="hidden" name="ai.input:json" value='{"type":"reasoning","encrypted_content":"opaque-token"}' />
+                <a rel="enclosure" href="../../chat.web/README.md" type="text/markdown">README</a>
+              </chat-message>
+            </topic-transcript>
+            <chat-composer>
+              <textarea slot="message" name="message" placeholder="Add a message"></textarea>
+              <input slot="instructions" name="instructions" value="Use the default chat instructions" />
+              <fieldset slot="reasoning">
+                <legend>thinking</legend>
+                <label><input type="radio" name="reasoning.effort" value="medium" /> medium</label>
+                <label><input type="radio" name="reasoning.effort" value="high" checked /> high</label>
+              </fieldset>
+              <input name="temperature:number" value="0.2" />
+              <button slot="actions" name="intent" value="send">Send</button>
+            </chat-composer>
+          </ai-chat-app>
+        </form>
+      `)
+      const form = /** @type {HTMLFormElement} */ (root.querySelector("form"))
+      const composer = /** @type {import("../chat.web/chat.js").ChatComposer} */ (root.querySelector("chat-composer"))
+
+      await customElements.whenDefined("ai-chat-app")
+      await waitFor(() => root.querySelector("a[rel~='enclosure']")?.getAttribute("data-status") === "available")
+
+      const textarea = /** @type {HTMLTextAreaElement} */ (composer.querySelector("textarea"))
+      const instructions = /** @type {HTMLInputElement} */ (composer.querySelector("input[name='instructions']"))
+      textarea.value = "Next question"
+      form.dispatchEvent(new SubmitEvent("submit", { bubbles: true, cancelable: true, submitter: form.querySelector("button") }))
+
+      await waitFor(() => root.querySelectorAll("chat-message").length === 5)
+      await waitFor(() => root.querySelectorAll("chat-message")[4]?.querySelector("pre")?.textContent === "Assistant response")
+
+      expect(responses).to.have.length(1)
+      expect(new URL(responses[0]?.url ?? "").searchParams.get("t")).to.equal("test-token")
+      expect(responses[0]?.headers["content-type"]).to.equal("application/json")
+      expect(responses[0]?.body.model).to.equal("gpt-test")
+      expect(responses[0]?.body.instructions).to.equal("Use the default chat instructions")
+      expect(responses[0]?.body.reasoning).to.deep.equal({ effort: "high" })
+      expect(responses[0]?.body.temperature).to.equal(0.2)
+      expect(responses[0]?.body.ai).to.equal(undefined)
+      const messages = Array.from(root.querySelectorAll("chat-message"))
+      expect(messages.map((message) => message.getAttribute("from") ?? "message")).to.deep.equal(["system", "message", "user", "system", "assistant"])
+      expect(messages[3]?.querySelector("pre")?.textContent).to.equal("Use the default chat instructions")
+      const input = /** @type {unknown[]} */ (responses[0]?.body.input)
+      expect(input[0]).to.deep.equal({ type: "reasoning", encrypted_content: "opaque-token" })
+      expect(JSON.stringify(input)).to.include("Next question")
+      expect(JSON.stringify(input)).to.not.include("you're a hip dude who talks regular")
+      expect(JSON.stringify(input)).to.not.include("Use the default chat instructions")
+      expect(JSON.stringify(input)).to.not.include("Assistant response")
+      expect(JSON.stringify(input.at(-1))).to.not.include("opaque-token")
+
+      textarea.value = "Follow-up question"
+      instructions.value = ""
+      form.dispatchEvent(new SubmitEvent("submit", { bubbles: true, cancelable: true, submitter: form.querySelector("button") }))
+
+      await waitFor(() => responses.length === 2)
+      await waitFor(() => root.querySelectorAll("chat-message").length === 7)
+      await waitFor(() => root.querySelectorAll("chat-message")[6]?.querySelector("pre")?.textContent === "Assistant response")
+
+      expect(responses[1]?.body.instructions).to.equal("Use the default chat instructions")
+      const nextInput = /** @type {unknown[]} */ (responses[1]?.body.input)
+      expect(JSON.stringify(nextInput)).to.include("Follow-up question")
+      expect(JSON.stringify(nextInput)).to.not.include("you're a hip dude who talks regular")
+      expect(JSON.stringify(nextInput)).to.not.include("Use the default chat instructions")
+      expect(Array.from(root.querySelectorAll("chat-message[from='system']"))).to.have.length(2)
+
+      expect(saves.at(-1)).to.include("<pre>Assistant response</pre>")
+      expect(saves.at(-1)).to.include("<pre>Use the default chat instructions</pre>")
+      expect(saves.at(-1)).to.not.include("event: response")
+      expect(saves.at(-1)).to.not.include("response.output_text.delta")
+      expect(saves.at(-1)).to.include('model="gpt-test"')
+      expect(saves.at(-1)).to.include('thinking-effort="high"')
+      expect(saves.at(-1)).to.include('temperature="0.2"')
+      expect(saves.at(-1)).to.not.include("data-current-bytes")
+      expect(saves.at(-1)).to.not.include("data-current-sha256")
+      expect(saves.at(-1)).to.not.include("data-status")
+      expect(composer.status).to.equal("Saved")
+    } finally {
+      Reflect.set(globalThis, "fetch", originalFetch)
+      history.replaceState(null, "", originalUrl)
+    }
+  })
+
+  it("sends a trailing saved user message without appending a blank message", async () => {
+    const originalFetch = globalThis.fetch
+    /** @type {string[]} */
+    const saves = []
+    /** @type {Array<{ body: Record<string, unknown> }>} */
+    const responses = []
+    /**
+     * @param {Parameters<typeof fetch>[0]} input
+     * @param {Parameters<typeof fetch>[1]} init
+     */
+    const mockFetch = async (input, init) => {
+      const url = new URL(String(input), location.href)
+      if (url.pathname === "/__ai-chat/save-source") {
+        saves.push(String(init?.body))
+        return new Response(JSON.stringify({ ok: true }), {
+          headers: { "content-type": "application/json" },
+        })
+      }
+      if (url.pathname === "/v1/responses") {
+        responses.push({
+          body: /** @type {Record<string, unknown>} */ (JSON.parse(String(init?.body))),
+        })
+        return new Response([
+          "event: response.output_text.delta",
+          'data: {"type":"response.output_text.delta","delta":"Assistant response"}',
+          "",
+          "data: [DONE]",
+          "",
+        ].join("\n"), { headers: { "content-type": "text/plain; charset=utf-8" } })
       }
       throw new Error(`Unexpected fetch: ${url.pathname}`)
     }
@@ -458,36 +600,37 @@ describe("openai browser client", () => {
 
     try {
       const root = mount(html`
-        <ai-chat-app transcript="thread" model="gpt-test" transport-label="test-broker">
-          <topic-transcript id="thread" editable>
-            <chat-message><pre>Hello</pre>
-              <a rel="enclosure" href="../../chat.web/README.md" type="text/markdown">README</a>
-            </chat-message>
-          </topic-transcript>
-          <chat-composer></chat-composer>
-          <chat-message-editor></chat-message-editor>
-        </ai-chat-app>
+        <form action="/v1/responses" onsubmit="chat.respond(event)">
+          <ai-chat-app id="chat" transcript="thread-pending" model="gpt-test">
+            <topic-transcript id="thread-pending" editable>
+              <chat-message from="system"><pre>Keep it short.</pre></chat-message>
+              <chat-message><pre>Saved user turn</pre></chat-message>
+            </topic-transcript>
+            <chat-composer></chat-composer>
+          </ai-chat-app>
+        </form>
       `)
-      const composer = /** @type {import("../chat.web/chat.js").ChatComposer} */ (root.querySelector("chat-composer"))
+      const form = /** @type {HTMLFormElement} */ (root.querySelector("form"))
 
       await customElements.whenDefined("ai-chat-app")
-      await waitFor(() => root.querySelector("a[rel~='enclosure']")?.getAttribute("data-status") === "available")
+      await waitFor(() => Boolean(form.querySelector("button[name='intent'][value='send']")))
+      form.dispatchEvent(new SubmitEvent("submit", {
+        bubbles: true,
+        cancelable: true,
+        submitter: form.querySelector("button[name='intent'][value='send']"),
+      }))
 
-      const textarea = /** @type {HTMLTextAreaElement} */ (composer.shadowRoot?.querySelector("textarea"))
-      textarea.value = "Next question"
-      textarea.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", metaKey: true, bubbles: true }))
-
+      await waitFor(() => responses.length === 1)
       await waitFor(() => root.querySelectorAll("chat-message").length === 3)
       await waitFor(() => root.querySelectorAll("chat-message")[2]?.querySelector("pre")?.textContent === "Assistant response")
 
-      expect(responds).to.have.length(1)
-      expect(responds[0]).to.include("<pre>Next question</pre>")
-      expect(responds[0]).to.not.include("Assistant response")
+      expect(Array.from(root.querySelectorAll("chat-message")).map((message) => message.querySelector("pre")?.textContent)).to.deep.equal([
+        "Keep it short.",
+        "Saved user turn",
+        "Assistant response",
+      ])
+      expect(JSON.stringify(responses[0]?.body.input)).to.include("Saved user turn")
       expect(saves.at(-1)).to.include("<pre>Assistant response</pre>")
-      expect(saves.at(-1)).to.not.include("data-current-bytes")
-      expect(saves.at(-1)).to.not.include("data-current-sha256")
-      expect(saves.at(-1)).to.not.include("data-status")
-      expect(composer.status).to.equal("Saved")
     } finally {
       Reflect.set(globalThis, "fetch", originalFetch)
     }
@@ -528,7 +671,6 @@ describe("openai browser client", () => {
             <chat-message from="assistant"><pre>Keep me</pre></chat-message>
           </topic-transcript>
           <chat-composer></chat-composer>
-          <chat-message-editor></chat-message-editor>
         </ai-chat-app>
       `)
 
@@ -549,6 +691,60 @@ describe("openai browser client", () => {
     } finally {
       Reflect.set(globalThis, "fetch", originalFetch)
       Reflect.set(globalThis, "confirm", originalConfirm)
+    }
+  })
+
+  it("persists editor saves from an app hosted inside a native form", async () => {
+    const originalFetch = globalThis.fetch
+    let saveBody = ""
+    /**
+     * @param {Parameters<typeof fetch>[0]} input
+     * @param {Parameters<typeof fetch>[1]} init
+     */
+    const mockFetch = async (input, init) => {
+      const url = new URL(String(input), location.href)
+      if (url.pathname === "/__ai-chat/save-source") {
+        saveBody = String(init?.body)
+        return new Response(JSON.stringify({ ok: true }), {
+          headers: { "content-type": "application/json" },
+        })
+      }
+      throw new Error(`Unexpected fetch: ${url.pathname}`)
+    }
+    Reflect.set(globalThis, "fetch", mockFetch)
+
+    try {
+      const root = mount(html`
+        <form action="/v1/responses" onsubmit="chat.respond(event)">
+          <ai-chat-app id="chat" transcript="thread-edit">
+            <topic-transcript id="thread-edit" editable>
+              <chat-message id="edit-target"><pre>Original message</pre></chat-message>
+            </topic-transcript>
+            <chat-composer></chat-composer>
+          </ai-chat-app>
+        </form>
+      `)
+      const message = /** @type {HTMLElement} */ (root.querySelector("chat-message"))
+
+      await customElements.whenDefined("ai-chat-app")
+      await waitFor(() => Boolean(message.shadowRoot?.querySelector("[data-chat-action='edit']")))
+
+      message.shadowRoot?.querySelector("[data-chat-action='edit']")?.dispatchEvent(new MouseEvent("click", { bubbles: true }))
+      await waitFor(() => Boolean(message.shadowRoot?.querySelector("codemirror-editor")))
+
+      const textarea = /** @type {HTMLTextAreaElement} */ (message.shadowRoot?.querySelector("codemirror-editor textarea"))
+      textarea.value = "Edited message"
+      const saveButton = /** @type {HTMLButtonElement} */ (message.shadowRoot?.querySelector(".inline-editor-actions button[data-primary]"))
+      saveButton.click()
+
+      await waitFor(() => saveBody.includes("<pre>Edited message</pre>"))
+      await waitFor(() => message.shadowRoot?.querySelector(".content")?.textContent?.includes("Edited message") === true)
+
+      expect(message.querySelector("pre")?.textContent).to.equal("Edited message")
+      expect(message.hasAttribute("edited")).to.equal(true)
+      expect(saveBody).to.not.include("Original message")
+    } finally {
+      Reflect.set(globalThis, "fetch", originalFetch)
     }
   })
 
@@ -589,7 +785,6 @@ describe("openai browser client", () => {
             <chat-message><pre>Hello</pre></chat-message>
           </topic-transcript>
           <chat-composer></chat-composer>
-          <chat-message-editor></chat-message-editor>
         </ai-chat-app>
       `)
       const app = /** @type {import("./ai-chat.js").AIChatApp} */ (root.querySelector("ai-chat-app"))

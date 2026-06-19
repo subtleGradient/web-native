@@ -5,7 +5,7 @@ Plain custom elements for rendering lightweight archived chat transcripts.
 ```html
 <script type="module" src="https://cdn.jsdelivr.net/gh/subtleGradient/web-native@main/src/chat.web/define.js"></script>
 
-<topic-transcript data-index=001 data-topic=example editable>
+<topic-transcript editable>
   <header>
     <h1>001 Example</h1>
   </header>
@@ -24,7 +24,6 @@ Plain custom elements for rendering lightweight archived chat transcripts.
 </topic-transcript>
 
 <chat-composer placeholder="Add a message"></chat-composer>
-<chat-message-editor></chat-message-editor>
 ```
 
 `chat-message` reads its light DOM body, preferring a nested `pre`, then renders common Markdown-like structures in shadow DOM: headings, paragraphs, lists, blockquotes, fenced code blocks, inline code, links, horizontal rules, simple pipe tables, and ChatGPT-style citation tokens like `citeturn289313search1turn289313search21`.
@@ -46,6 +45,10 @@ compatibility alias.
 messages render edit/delete controls from shadow DOM and dispatch semantic
 events; no action menu markup needs to be duplicated into the transcript HTML.
 
-`chat-composer` and `chat-message-editor` provide generic controls for adding
-and editing messages. They emit `chat-composer-submit` and `chat-editor-save`
-events, leaving persistence and model calls to a wrapper component or page.
+`chat-composer` provides generic controls for adding messages. It creates
+light-DOM defaults for message text, optional instructions, reasoning effort,
+status, Save, and Send, and places them into named slots so callers can replace
+only the pieces they need. It emits `chat-composer-submit` when used outside a
+native form. Editable `chat-message` instances save inline and emit
+`chat-editor-save`, leaving persistence and model calls to a wrapper component
+or page.

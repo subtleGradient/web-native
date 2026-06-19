@@ -94,7 +94,7 @@ const ok = true
 
   it("renders chat-summary and topic-transcript shells", async () => {
     const root = mount(html`
-      <topic-transcript data-index="001">
+      <topic-transcript>
         <header><h1>Topic</h1></header>
         <chat-summary data-previous-href="001-previous.topic.htm" data-previous-title="001 Previous Topic"><p>Previous context.</p></chat-summary>
       </topic-transcript>
@@ -161,7 +161,7 @@ const ok = true
       text: "Hi",
       attrs: { model: "gpt-test", "data-streaming": "true" },
     })
-    expect(transcript.dataset.messageCount).to.equal("2")
+    expect(transcript.hasAttribute("data-message-count")).to.equal(false)
     expect(assistant.hasAttribute("data-turn")).to.equal(false)
     expect(assistant.getAttribute("from")).to.equal("assistant")
     expect(transcript.messageText(assistant)).to.equal("Hi")
@@ -170,7 +170,9 @@ const ok = true
     const source = transcript.serializeSource()
 
     expect(source).to.include("<topic-transcript")
-    expect(source).to.include('data-message-count="2"')
+    expect(source).to.not.include("data-message-count")
+    expect(source).to.not.include("data-start-message")
+    expect(source).to.not.include("data-end-message")
     expect(source).to.include("<pre>Edited</pre>")
     expect(source).to.include('rel="enclosure"')
     expect(source).to.not.include("data-source")
@@ -182,10 +184,10 @@ const ok = true
 
     const omittedSource = transcript.serializeSource({ omitMessageIndex: 0 })
     expect(omittedSource).to.not.include("src/chat.web/README.md")
-    expect(omittedSource).to.include('data-message-count="1"')
+    expect(omittedSource).to.not.include("data-message-count")
   })
 
-  it("emits message action requests from editable transcript messages", async () => {
+  it("edits transcript messages inline and still emits delete requests", async () => {
     const transcript = mount(html`
       <topic-transcript editable>
         <chat-message id="msg-editable" from="user"><pre>Hello</pre></chat-message>
@@ -197,12 +199,30 @@ const ok = true
 
     const actions = /** @type {HTMLElement} */ (message.shadowRoot?.querySelector(".message-actions"))
     expect(getComputedStyle(actions).opacity).to.equal("1")
-    const edit = once(message, "chat-message-edit-request")
     message.shadowRoot?.querySelector("[data-chat-action='edit']")?.dispatchEvent(new MouseEvent("click", { bubbles: true }))
-    const editEvent = /** @type {CustomEvent} */ (await edit)
+    await nextFrame()
 
-    expect(editEvent.detail.id).to.equal("msg-editable")
-    expect(editEvent.detail.message).to.equal(message)
+    const editor = /** @type {import("../codemirror.web/codemirror.js").CodeMirrorEditor} */ (message.shadowRoot?.querySelector("codemirror-editor"))
+    const textarea = /** @type {HTMLTextAreaElement} */ (editor?.querySelector("textarea"))
+    expect(textarea.value).to.equal("Hello")
+    textarea.value = "Changed"
+
+    const saved = once(message, "chat-editor-save")
+    message.shadowRoot?.querySelector(".inline-editor-actions button[data-primary]")?.dispatchEvent(new MouseEvent("click", { bubbles: true }))
+    const savedEvent = /** @type {CustomEvent} */ (await saved)
+
+    expect(savedEvent.detail.id).to.equal("msg-editable")
+    expect(savedEvent.detail.message).to.equal(message)
+    expect(savedEvent.detail.text).to.equal("Changed")
+
+    await nextFrame()
+
+    const deleted = once(message, "chat-message-delete-request")
+    message.shadowRoot?.querySelector("[data-chat-action='delete']")?.dispatchEvent(new MouseEvent("click", { bubbles: true }))
+    const deleteEvent = /** @type {CustomEvent} */ (await deleted)
+
+    expect(deleteEvent.detail.id).to.equal("msg-editable")
+    expect(deleteEvent.detail.message).to.equal(message)
   })
 
   it("dispatches composer submissions for send and save keyboard paths", async () => {
@@ -212,13 +232,18 @@ const ok = true
 
     await nextFrame()
 
-    const textarea = /** @type {HTMLTextAreaElement} */ (composer.shadowRoot?.querySelector("textarea"))
+    const textarea = /** @type {HTMLTextAreaElement} */ (composer.querySelector("textarea"))
+    expect(textarea.form).to.equal(null)
     textarea.value = "Send this"
     const send = once(composer, "chat-composer-submit")
     textarea.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", metaKey: true, bubbles: true }))
     const sendEvent = /** @type {CustomEvent} */ (await send)
 
-    expect(sendEvent.detail).to.deep.equal({ send: true, text: "Send this" })
+    expect(sendEvent.detail.send).to.equal(true)
+    expect(sendEvent.detail.text).to.equal("Send this")
+    expect(sendEvent.detail.formData.get("message")).to.equal("Send this")
+    expect(sendEvent.detail.formData.get("reasoning.effort")).to.equal("medium")
+    expect(sendEvent.detail.formData.get("intent")).to.equal("send")
     expect(textarea.value).to.equal("")
 
     textarea.value = "Save this"
@@ -226,29 +251,54 @@ const ok = true
     textarea.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", metaKey: true, altKey: true, bubbles: true }))
     const saveEvent = /** @type {CustomEvent} */ (await save)
 
-    expect(saveEvent.detail).to.deep.equal({ send: false, text: "Save this" })
+    expect(saveEvent.detail.send).to.equal(false)
+    expect(saveEvent.detail.text).to.equal("Save this")
+    expect(saveEvent.detail.formData.get("intent")).to.equal("save")
   })
 
-  it("dispatches editor saves for the selected message", async () => {
-    const root = mount(html`
-      <chat-message id="msg-edit" from="user"><pre>Original</pre></chat-message>
-      <chat-message-editor></chat-message-editor>
-    `)
-    const message = /** @type {HTMLElement} */ (root.querySelector("chat-message"))
-    const editor = /** @type {import("./chat.js").ChatMessageEditor} */ (root.querySelector("chat-message-editor"))
+  it("creates slotted light DOM composer defaults for native forms", async () => {
+    const form = /** @type {HTMLFormElement} */ (mount(html`
+      <form action="/v1/responses">
+        <chat-composer placeholder="Message"></chat-composer>
+      </form>
+    `).querySelector("form"))
+    const composer = /** @type {import("./chat.js").ChatComposer} */ (form.querySelector("chat-composer"))
 
     await nextFrame()
 
-    editor.edit(message, "Original")
-    const textarea = /** @type {HTMLTextAreaElement} */ (editor.shadowRoot?.querySelector("textarea"))
-    textarea.value = "Changed"
-    const saved = once(editor, "chat-editor-save")
-    editor.shadowRoot?.querySelector("form")?.dispatchEvent(new SubmitEvent("submit", { bubbles: true, cancelable: true }))
-    const savedEvent = /** @type {CustomEvent} */ (await saved)
+    const textarea = /** @type {HTMLTextAreaElement} */ (composer.querySelector("textarea[name='message']"))
+    textarea.value = "Hello"
+    const data = new FormData(form)
+    expect(data.get("message")).to.equal("Hello")
+    expect(data.get("reasoning.effort")).to.equal("medium")
+    expect(composer.querySelector("fieldset[slot='reasoning']")).to.not.equal(null)
+    expect(composer.querySelector("button[name='intent'][value='send']")?.getAttribute("slot")).to.equal("actions")
+    expect(composer.textarea?.placeholder).to.equal("Message")
+  })
 
-    expect(savedEvent.detail.id).to.equal("msg-edit")
-    expect(savedEvent.detail.message).to.equal(message)
-    expect(savedEvent.detail.text).to.equal("Changed")
+  it("uses slotted composer overrides when provided", async () => {
+    const form = /** @type {HTMLFormElement} */ (mount(html`
+      <form action="/v1/responses">
+        <chat-composer>
+          <textarea slot="message" name="message">Hello</textarea>
+          <fieldset slot="reasoning">
+            <legend>thinking</legend>
+            <label><input type="radio" name="reasoning.effort" value="minimal" /> minimal</label>
+            <label><input type="radio" name="reasoning.effort" value="high" checked /> high</label>
+          </fieldset>
+          <button slot="actions" name="intent" value="send">Send</button>
+        </chat-composer>
+      </form>
+    `).querySelector("form"))
+    const composer = /** @type {import("./chat.js").ChatComposer} */ (form.querySelector("chat-composer"))
+
+    await nextFrame()
+
+    const data = new FormData(form)
+    expect(data.get("message")).to.equal("Hello")
+    expect(data.get("reasoning.effort")).to.equal("high")
+    expect(composer.querySelectorAll("textarea[name='message']")).to.have.length(1)
+    expect(composer.querySelectorAll("fieldset")).to.have.length(1)
   })
 
   it("passes automated accessibility checks", async () => {
