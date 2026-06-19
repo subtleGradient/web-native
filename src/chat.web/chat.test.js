@@ -94,7 +94,7 @@ const ok = true
 
   it("renders chat-summary and topic-transcript shells", async () => {
     const root = mount(html`
-      <topic-transcript data-index="001">
+      <topic-transcript>
         <header><h1>Topic</h1></header>
         <chat-summary data-previous-href="001-previous.topic.htm" data-previous-title="001 Previous Topic"><p>Previous context.</p></chat-summary>
       </topic-transcript>
@@ -161,7 +161,7 @@ const ok = true
       text: "Hi",
       attrs: { model: "gpt-test", "data-streaming": "true" },
     })
-    expect(transcript.dataset.messageCount).to.equal("2")
+    expect(transcript.hasAttribute("data-message-count")).to.equal(false)
     expect(assistant.hasAttribute("data-turn")).to.equal(false)
     expect(assistant.getAttribute("from")).to.equal("assistant")
     expect(transcript.messageText(assistant)).to.equal("Hi")
@@ -170,7 +170,9 @@ const ok = true
     const source = transcript.serializeSource()
 
     expect(source).to.include("<topic-transcript")
-    expect(source).to.include('data-message-count="2"')
+    expect(source).to.not.include("data-message-count")
+    expect(source).to.not.include("data-start-message")
+    expect(source).to.not.include("data-end-message")
     expect(source).to.include("<pre>Edited</pre>")
     expect(source).to.include('rel="enclosure"')
     expect(source).to.not.include("data-source")
@@ -182,7 +184,7 @@ const ok = true
 
     const omittedSource = transcript.serializeSource({ omitMessageIndex: 0 })
     expect(omittedSource).to.not.include("src/chat.web/README.md")
-    expect(omittedSource).to.include('data-message-count="1"')
+    expect(omittedSource).to.not.include("data-message-count")
   })
 
   it("emits message action requests from editable transcript messages", async () => {
@@ -252,8 +254,10 @@ const ok = true
 
   it("dispatches editor saves for the selected message", async () => {
     const root = mount(html`
-      <chat-message id="msg-edit" from="user"><pre>Original</pre></chat-message>
-      <chat-message-editor></chat-message-editor>
+      <form>
+        <chat-message id="msg-edit" from="user"><pre>Original</pre></chat-message>
+        <chat-message-editor></chat-message-editor>
+      </form>
     `)
     const message = /** @type {HTMLElement} */ (root.querySelector("chat-message"))
     const editor = /** @type {import("./chat.js").ChatMessageEditor} */ (root.querySelector("chat-message-editor"))
@@ -261,10 +265,12 @@ const ok = true
     await nextFrame()
 
     editor.edit(message, "Original")
+    expect(editor.shadowRoot?.querySelector("form")).to.equal(null)
     const textarea = /** @type {HTMLTextAreaElement} */ (editor.shadowRoot?.querySelector("textarea"))
     textarea.value = "Changed"
     const saved = once(editor, "chat-editor-save")
-    editor.shadowRoot?.querySelector("form")?.dispatchEvent(new SubmitEvent("submit", { bubbles: true, cancelable: true }))
+    const saveButton = /** @type {HTMLButtonElement} */ (editor.shadowRoot?.querySelector("button[data-primary]"))
+    saveButton.click()
     const savedEvent = /** @type {CustomEvent} */ (await saved)
 
     expect(savedEvent.detail.id).to.equal("msg-edit")

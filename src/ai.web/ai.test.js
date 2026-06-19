@@ -620,6 +620,62 @@ describe("openai browser client", () => {
     }
   })
 
+  it("persists editor saves from an app hosted inside a native form", async () => {
+    const originalFetch = globalThis.fetch
+    let saveBody = ""
+    /**
+     * @param {Parameters<typeof fetch>[0]} input
+     * @param {Parameters<typeof fetch>[1]} init
+     */
+    const mockFetch = async (input, init) => {
+      const url = new URL(String(input), location.href)
+      if (url.pathname === "/__ai-chat/save-source") {
+        saveBody = String(init?.body)
+        return new Response(JSON.stringify({ ok: true }), {
+          headers: { "content-type": "application/json" },
+        })
+      }
+      throw new Error(`Unexpected fetch: ${url.pathname}`)
+    }
+    Reflect.set(globalThis, "fetch", mockFetch)
+
+    try {
+      const root = mount(html`
+        <form action="/v1/responses" onsubmit="chat.respond(event)">
+          <ai-chat-app id="chat" transcript="thread-edit">
+            <topic-transcript id="thread-edit" editable>
+              <chat-message id="edit-target"><pre>Original message</pre></chat-message>
+            </topic-transcript>
+            <chat-composer></chat-composer>
+            <chat-message-editor></chat-message-editor>
+          </ai-chat-app>
+        </form>
+      `)
+      const message = /** @type {HTMLElement} */ (root.querySelector("chat-message"))
+      const editor = /** @type {import("../chat.web/chat.js").ChatMessageEditor} */ (root.querySelector("chat-message-editor"))
+
+      await customElements.whenDefined("ai-chat-app")
+      await waitFor(() => Boolean(message.shadowRoot?.querySelector("[data-chat-action='edit']")))
+
+      message.shadowRoot?.querySelector("[data-chat-action='edit']")?.dispatchEvent(new MouseEvent("click", { bubbles: true }))
+      await waitFor(() => editor.shadowRoot?.querySelector("dialog")?.open === true)
+
+      const textarea = /** @type {HTMLTextAreaElement} */ (editor.shadowRoot?.querySelector("textarea"))
+      textarea.value = "Edited message"
+      const saveButton = /** @type {HTMLButtonElement} */ (editor.shadowRoot?.querySelector("button[data-primary]"))
+      saveButton.click()
+
+      await waitFor(() => saveBody.includes("<pre>Edited message</pre>"))
+      await waitFor(() => message.shadowRoot?.querySelector(".content")?.textContent?.includes("Edited message") === true)
+
+      expect(message.querySelector("pre")?.textContent).to.equal("Edited message")
+      expect(message.hasAttribute("edited")).to.equal(true)
+      expect(saveBody).to.not.include("Original message")
+    } finally {
+      Reflect.set(globalThis, "fetch", originalFetch)
+    }
+  })
+
   it("refreshes a stale runner token and retries saves", async () => {
     const originalFetch = globalThis.fetch
     const originalUrl = location.href

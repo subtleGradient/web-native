@@ -5,7 +5,7 @@ Plain custom elements for rendering lightweight archived chat transcripts.
 ```html
 <script type="module" src="https://cdn.jsdelivr.net/gh/subtleGradient/web-native@main/src/chat.web/define.js"></script>
 
-<topic-transcript data-index=001 data-topic=example editable>
+<topic-transcript editable>
   <header>
     <h1>001 Example</h1>
   </header>

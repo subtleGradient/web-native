@@ -1,5 +1,7 @@
 // @ts-check
 
+import { defineCodeMirrorElements } from "../codemirror.web/codemirror.js"
+
 const pageStyleId = "web-native-chat-page-styles"
 const renderQueued = Symbol("render-queued")
 const css = String.raw
@@ -397,6 +399,41 @@ const messageStyles = css`
     margin-block-end: 0;
   }
 
+  .inline-editor {
+    display: grid;
+    gap: 0.65rem;
+  }
+
+  .inline-editor codemirror-editor {
+    --codemirror-editor-block-size: clamp(12rem, 32vh, 22rem);
+    --codemirror-editor-min-block-size: 12rem;
+    --codemirror-editor-radius: 0.45rem;
+  }
+
+  .inline-editor-actions {
+    display: flex;
+    gap: 0.45rem;
+    justify-content: end;
+  }
+
+  .inline-editor-actions button {
+    background: color-mix(in oklch, Canvas 92%, CanvasText 8%);
+    border: 1px solid color-mix(in oklch, CanvasText 14%, transparent);
+    border-radius: 0.45rem;
+    color: CanvasText;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 700;
+    padding: 0.45rem 0.7rem;
+  }
+
+  .inline-editor-actions button[data-primary] {
+    background: LinkText;
+    border-color: LinkText;
+    color: Canvas;
+  }
+
   .attachments {
     display: grid;
     gap: 0.5rem;
@@ -632,7 +669,7 @@ const editorStyles = css`
     background: color-mix(in oklch, CanvasText 24%, transparent);
   }
 
-  form {
+  .editor-form {
     display: grid;
     gap: 0.85rem;
     padding: 1rem;
@@ -873,6 +910,8 @@ export class ChatMessage extends HTMLElement {
   /** @type {MutationObserver | undefined} */
   #observer
 
+  #editing = false
+
   connectedCallback() {
     this.#observer = new MutationObserver(this.#queueRender)
     this.#observer.observe(this, { attributes: true, childList: true, subtree: true, characterData: true })
@@ -908,28 +947,66 @@ export class ChatMessage extends HTMLElement {
     const shadow = this.shadowRoot ?? this.attachShadow({ mode: "open" })
     shadow.innerHTML = html`
       <style>${messageStyles}</style>
-      <article data-kind="${escapeAttribute(kind)}" data-role="${escapeAttribute(role)}" data-hidden="${hidden ? "true" : "false"}" data-editable="${editable ? "true" : "false"}">
-        ${kind === "tool"
-          ? renderToolEvent(this, body)
-          : `${renderMessageHeader(this, kind, editable)}<section class="content">${renderMarkdown(body)}</section>`}
+      <article data-kind="${escapeAttribute(kind)}" data-role="${escapeAttribute(role)}" data-hidden="${hidden ? "true" : "false"}" data-editable="${editable ? "true" : "false"}" data-editing="${this.#editing ? "true" : "false"}">
+        ${this.#editing
+          ? renderEditableMessage(this, kind, body)
+          : kind === "tool"
+            ? renderToolEvent(this, body)
+            : `${renderMessageHeader(this, kind, editable)}<section class="content">${renderMarkdown(body)}</section>`}
         ${attachments.length ? renderFileAttachments(attachments) : ""}
-        ${kind === "tool" && editable ? renderMessageActions() : ""}
+        ${!this.#editing && kind === "tool" && editable ? renderMessageActions() : ""}
       </article>
     `
-    shadow.querySelector("[data-chat-action='edit']")?.addEventListener("click", () => {
-      this.dispatchEvent(new CustomEvent("chat-message-edit-request", {
-        bubbles: true,
-        composed: true,
-        detail: { id: this.id || undefined, message: this },
-      }))
-    })
-    shadow.querySelector("[data-chat-action='delete']")?.addEventListener("click", () => {
-      this.dispatchEvent(new CustomEvent("chat-message-delete-request", {
-        bubbles: true,
-        composed: true,
-        detail: { id: this.id || undefined, message: this },
-      }))
-    })
+  }
+
+  edit() {
+    if (!isMessageEditable(this)) return
+    this.#editing = true
+    this.#queueRender()
+    requestAnimationFrame(() => this.#focusEditor())
+  }
+
+  cancelEdit() {
+    if (!this.#editing) return
+    this.#editing = false
+    this.#queueRender()
+  }
+
+  saveEdit() {
+    if (!this.#editing) return
+    const text = this.#inlineEditorText()
+    this.#editing = false
+    this.dispatchEvent(new CustomEvent("chat-editor-save", {
+      bubbles: true,
+      composed: true,
+      detail: { id: this.id || undefined, message: this, text },
+    }))
+    this.#queueRender()
+  }
+
+  requestDelete() {
+    this.dispatchEvent(new CustomEvent("chat-message-delete-request", {
+      bubbles: true,
+      composed: true,
+      detail: { id: this.id || undefined, message: this },
+    }))
+  }
+
+  #focusEditor() {
+    const editor = this.shadowRoot?.querySelector("codemirror-editor")
+    if (editor && "focus" in editor && typeof editor.focus === "function") {
+      editor.focus()
+      return
+    }
+    const textarea = this.shadowRoot?.querySelector("textarea")
+    if (textarea instanceof HTMLTextAreaElement) textarea.focus()
+  }
+
+  #inlineEditorText() {
+    const editor = this.shadowRoot?.querySelector("codemirror-editor")
+    if (editor && "value" in editor) return String(editor.value ?? "")
+    const textarea = this.shadowRoot?.querySelector("textarea")
+    return textarea instanceof HTMLTextAreaElement ? textarea.value : getRawMessageBody(this)
   }
 }
 
@@ -1117,21 +1194,16 @@ export class ChatMessageEditor extends HTMLElement {
       shadow.innerHTML = html`
         <style>${editorStyles}</style>
         <dialog>
-          <form method="dialog">
-            <h2>Edit message</h2>
+          <section class="editor-form" role="group" aria-labelledby="chat-message-editor-title">
+            <h2 id="chat-message-editor-title">Edit message</h2>
             <textarea name="message"></textarea>
             <div class="row">
-              <button type="button" data-cancel>Cancel</button>
-              <button type="submit" data-primary>Save</button>
+              <button type="button" data-cancel onclick="this.getRootNode().host.close()">Cancel</button>
+              <button type="button" data-primary onclick="this.getRootNode().host.save()">Save</button>
             </div>
-          </form>
+          </section>
         </dialog>
       `
-      shadow.querySelector("form")?.addEventListener("submit", (event) => {
-        event.preventDefault()
-        this.#save()
-      })
-      shadow.querySelector("[data-cancel]")?.addEventListener("click", () => this.close())
     }
   }
 
@@ -1154,6 +1226,10 @@ export class ChatMessageEditor extends HTMLElement {
   close() {
     const dialog = this.shadowRoot?.querySelector("dialog")
     if (dialog instanceof HTMLDialogElement) dialog.close()
+  }
+
+  save() {
+    this.#save()
   }
 
   #save() {
@@ -1358,9 +1434,40 @@ function isMessageEditable(element) {
 function renderMessageActions() {
   return html`
     <menu class="message-actions" aria-label="Message actions">
-      <button type="button" data-chat-action="edit">Edit</button>
-      <button type="button" data-chat-action="delete">Delete</button>
+      <button type="button" data-chat-action="edit" onclick="this.getRootNode().host.edit()">Edit</button>
+      <button type="button" data-chat-action="delete" onclick="this.getRootNode().host.requestDelete()">Delete</button>
     </menu>
+  `
+}
+
+/**
+ * @param {HTMLElement} element
+ * @param {string} kind
+ * @param {string} body
+ */
+function renderEditableMessage(element, kind, body) {
+  const editor = renderInlineMessageEditor(body)
+  if (kind === "tool") return `<section class="content" data-editing="true">${editor}</section>`
+  return `${renderMessageHeader(element, kind, false)}<section class="content" data-editing="true">${editor}</section>`
+}
+
+/** @param {string} body */
+function renderInlineMessageEditor(body) {
+  return html`
+    <section class="inline-editor" aria-label="Edit message">
+      <codemirror-editor
+        language="markdown"
+        line-wrapping
+        setup="minimal"
+        onkeydown="if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') { event.preventDefault(); this.getRootNode().host.saveEdit() } else if (event.key === 'Escape') { event.preventDefault(); this.getRootNode().host.cancelEdit() }"
+      >
+        <textarea name="message" aria-label="Message">${escapeHtml(body)}</textarea>
+      </codemirror-editor>
+      <div class="inline-editor-actions">
+        <button type="button" onclick="this.getRootNode().host.cancelEdit()">Cancel</button>
+        <button type="button" data-primary onclick="this.getRootNode().host.saveEdit()">Save</button>
+      </div>
+    </section>
   `
 }
 
@@ -1877,10 +1984,9 @@ function chatMessageChildren(element) {
 
 /** @param {HTMLElement} transcript */
 function normalizeTranscriptElement(transcript) {
-  const messages = chatMessageChildren(transcript)
-  transcript.dataset.startMessage = messages.length ? "0001" : ""
-  transcript.dataset.endMessage = messages.length ? String(messages.length).padStart(4, "0") : ""
-  transcript.dataset.messageCount = String(messages.length)
+  transcript.removeAttribute("data-start-message")
+  transcript.removeAttribute("data-end-message")
+  transcript.removeAttribute("data-message-count")
 }
 
 /**
@@ -1955,6 +2061,7 @@ export function defineChatMessageEditor(editorName = "chat-message-editor") {
 }
 
 export function defineChatTranscriptElements() {
+  defineCodeMirrorElements()
   defineTopicTranscript()
   defineChatSummary()
   defineChatMessage()

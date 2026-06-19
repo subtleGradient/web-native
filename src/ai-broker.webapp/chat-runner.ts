@@ -6,6 +6,7 @@ import { readFile, rename, stat, writeFile } from "node:fs/promises"
 import { homedir } from "node:os"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
+import { ChatSourceRewriteError, rewriteChatSourceHtml } from "./chat-source.ts"
 
 type OpenAIOAuth = {
   accessToken: string
@@ -44,8 +45,6 @@ const OPENAI_API_BASE_URL = "https://api.openai.com/v1"
 const CODEX_RESPONSES_URL = "https://chatgpt.com/backend-api/codex/responses"
 const AUTH_URL = "https://auth.openai.com/oauth/token"
 const OPENAI_OAUTH_CLIENT_ID = "app_EMoamEEZ73f0CkXaXp7hrann"
-const CHAT_SOURCE_START = "<!-- CHAT_SOURCE_START -->"
-const CHAT_SOURCE_END = "<!-- CHAT_SOURCE_END -->"
 
 const launchPath = resolveLaunchPath(process.argv[2] ?? DEFAULT_DEMO_PATH)
 const appRoot = path.dirname(launchPath)
@@ -194,20 +193,18 @@ async function handleSaveSource(request: Request) {
     })
 
   const html = await readFile(sourcePath, "utf8")
-  const startIndex = html.indexOf(CHAT_SOURCE_START)
-  const endIndex = html.indexOf(CHAT_SOURCE_END)
-  if (startIndex === -1 || endIndex === -1 || endIndex < startIndex) {
-    logError("Chat source markers were not found", {
+  let nextHtml: string
+  try {
+    nextHtml = (await rewriteChatSourceHtml(html, source)).nextHtml
+  } catch (error) {
+    if (!(error instanceof ChatSourceRewriteError)) throw error
+    logError("Chat source rewrite failed", {
+      ...error.details,
       sourcePath,
-      hasEndMarker: endIndex !== -1,
-      hasStartMarker: startIndex !== -1,
     })
-    return new Response("Chat source markers were not found.", { status: 500 })
+    return new Response(error.message, { status: error.status })
   }
 
-  const before = html.slice(0, startIndex + CHAT_SOURCE_START.length)
-  const after = html.slice(endIndex)
-  const nextHtml = `${before}\n${source}\n${after}`
   const tempPath = `${sourcePath}.${process.pid}.${Date.now()}.tmp`
   await writeFile(tempPath, nextHtml)
   await rename(tempPath, sourcePath)
