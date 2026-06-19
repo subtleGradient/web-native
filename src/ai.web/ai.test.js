@@ -561,6 +561,81 @@ describe("openai browser client", () => {
     }
   })
 
+  it("sends a trailing saved user message without appending a blank message", async () => {
+    const originalFetch = globalThis.fetch
+    /** @type {string[]} */
+    const saves = []
+    /** @type {Array<{ body: Record<string, unknown> }>} */
+    const responses = []
+    /**
+     * @param {Parameters<typeof fetch>[0]} input
+     * @param {Parameters<typeof fetch>[1]} init
+     */
+    const mockFetch = async (input, init) => {
+      const url = new URL(String(input), location.href)
+      if (url.pathname === "/__ai-chat/save-source") {
+        saves.push(String(init?.body))
+        return new Response(JSON.stringify({ ok: true }), {
+          headers: { "content-type": "application/json" },
+        })
+      }
+      if (url.pathname === "/v1/responses") {
+        responses.push({
+          body: /** @type {Record<string, unknown>} */ (JSON.parse(String(init?.body))),
+        })
+        return new Response([
+          "event: response.output_text.delta",
+          'data: {"type":"response.output_text.delta","delta":"Assistant response"}',
+          "",
+          "data: [DONE]",
+          "",
+        ].join("\n"), { headers: { "content-type": "text/plain; charset=utf-8" } })
+      }
+      throw new Error(`Unexpected fetch: ${url.pathname}`)
+    }
+    Reflect.set(globalThis, "fetch", mockFetch)
+
+    try {
+      const root = mount(html`
+        <form action="/v1/responses" onsubmit="chat.respond(event)">
+          <ai-chat-app id="chat" transcript="thread-pending" model="gpt-test">
+            <topic-transcript id="thread-pending" editable>
+              <chat-message from="system"><pre>Keep it short.</pre></chat-message>
+              <chat-message><pre>Saved user turn</pre></chat-message>
+            </topic-transcript>
+            <chat-composer>
+              <textarea name="message" placeholder="Add a message"></textarea>
+              <button name="intent" value="send" formnovalidate>Send</button>
+            </chat-composer>
+            <chat-message-editor></chat-message-editor>
+          </ai-chat-app>
+        </form>
+      `)
+      const form = /** @type {HTMLFormElement} */ (root.querySelector("form"))
+
+      await customElements.whenDefined("ai-chat-app")
+      form.dispatchEvent(new SubmitEvent("submit", {
+        bubbles: true,
+        cancelable: true,
+        submitter: form.querySelector("button"),
+      }))
+
+      await waitFor(() => responses.length === 1)
+      await waitFor(() => root.querySelectorAll("chat-message").length === 3)
+      await waitFor(() => root.querySelectorAll("chat-message")[2]?.querySelector("pre")?.textContent === "Assistant response")
+
+      expect(Array.from(root.querySelectorAll("chat-message")).map((message) => message.querySelector("pre")?.textContent)).to.deep.equal([
+        "Keep it short.",
+        "Saved user turn",
+        "Assistant response",
+      ])
+      expect(JSON.stringify(responses[0]?.body.input)).to.include("Saved user turn")
+      expect(saves.at(-1)).to.include("<pre>Assistant response</pre>")
+    } finally {
+      Reflect.set(globalThis, "fetch", originalFetch)
+    }
+  })
+
   it("persists deletions before removing the message from the live transcript", async () => {
     const originalFetch = globalThis.fetch
     const originalConfirm = globalThis.confirm

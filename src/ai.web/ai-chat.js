@@ -197,7 +197,8 @@ export class AIChatApp extends HTMLElement {
     const transcript = this.#requireTranscript()
     const data = formDataFrom(form, submitter)
     const text = messageTextFromFormData(data) ?? this.composer?.textarea?.value.trim() ?? ""
-    if (!text.trim()) return
+    const send = formIntent(data, submitter) !== "save"
+    if (!text.trim() && !(send && transcriptReadyForAssistant(transcript))) return
 
     const params = requestParamsFromFormData(data)
     if (params.model === undefined) params.model = this.model
@@ -205,8 +206,7 @@ export class AIChatApp extends HTMLElement {
     params.stream = true
 
     const attrs = messageAttrsFromParams(params)
-    transcript.appendMessage({ role: "user", text, attrs })
-    const send = formIntent(data, submitter) !== "save"
+    if (text.trim()) transcript.appendMessage({ role: "user", text, attrs })
     if (send) appendInstructionMessage(transcript, params)
     clearMessageControls(form, this.composer)
     await this.saveSource()
@@ -668,14 +668,41 @@ function transcriptPrompt(transcript) {
   return `Conversation transcript:\n\n${messages}\n\n---\n\nWrite the next assistant message.`
 }
 
+/**
+ * @param {import("../chat.web/chat.js").TopicTranscript} transcript
+ */
+function transcriptReadyForAssistant(transcript) {
+  const last = transcript.messages().at(-1)
+  return Boolean(last && messageRole(last) === "user")
+}
+
 /** @param {Element} message */
 function messageRole(message) {
-  return message.getAttribute("from") ?? message.getAttribute("data-role") ?? "message"
+  const explicit = message.getAttribute("from") ?? message.getAttribute("data-role")
+  if (explicit) return explicit
+  if (hasMessageRecipient(message)) return "tool"
+  const parent = message.parentElement
+  if (!parent || parent.localName !== "topic-transcript") return "message"
+
+  let ordinaryCount = 0
+  for (const sibling of Array.from(parent.children)) {
+    if (sibling === message) break
+    if (sibling.localName !== "chat-message") continue
+    const role = sibling.getAttribute("from") ?? sibling.getAttribute("data-role")
+    if (role === "system" || role === "tool" || hasMessageRecipient(sibling)) continue
+    ordinaryCount += 1
+  }
+  return ordinaryCount % 2 === 0 ? "user" : "assistant"
 }
 
 /** @param {Element} message */
 function messageBodyText(message) {
   return message.querySelector("pre")?.textContent?.trim() ?? ""
+}
+
+/** @param {Element} message */
+function hasMessageRecipient(message) {
+  return Boolean(message.getAttribute("recipient") ?? message.getAttribute("data-recipient"))
 }
 
 /** @param {Element} transcript */
