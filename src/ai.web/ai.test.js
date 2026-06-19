@@ -425,12 +425,13 @@ describe("openai browser client", () => {
     expect(statuses.at(-1)).to.deep.equal({ busy: false, pending: 0 })
   })
 
-  it("continues a semantic chat through ai-chat-app without page-local controller code", async () => {
+  it("continues a semantic chat through a native form action", async () => {
     const originalFetch = globalThis.fetch
+    const originalUrl = location.href
     /** @type {string[]} */
     const saves = []
-    /** @type {string[]} */
-    const responds = []
+    /** @type {Array<{ url: string, body: Record<string, unknown>, headers: Record<string, string> }>} */
+    const responses = []
     /**
      * @param {Parameters<typeof fetch>[0]} input
      * @param {Parameters<typeof fetch>[1]} init
@@ -448,48 +449,82 @@ describe("openai browser client", () => {
         saves.push(String(init?.body))
         return new Response(JSON.stringify({ ok: true }), { headers: { "content-type": "application/json" } })
       }
-      if (url.pathname === "/__ai-chat/respond") {
-        responds.push(String(init?.body))
-        return new Response("Assistant response")
+      if (url.pathname === "/v1/responses") {
+        responses.push({
+          url: url.href,
+          body: /** @type {Record<string, unknown>} */ (JSON.parse(String(init?.body))),
+          headers: headersRecord(init?.headers),
+        })
+        return new Response([
+          'data: {"type":"response.output_text.delta","delta":"Assistant "}',
+          "",
+          'data: {"type":"response.output_text.delta","delta":"response"}',
+          "",
+          "data: [DONE]",
+          "",
+        ].join("\n"), { headers: { "content-type": "text/event-stream" } })
       }
       throw new Error(`Unexpected fetch: ${url.pathname}`)
     }
     Reflect.set(globalThis, "fetch", mockFetch)
 
     try {
+      history.replaceState(null, "", "/src/ai-example.chat.webapp/index.html?t=test-token")
       const root = mount(html`
-        <ai-chat-app transcript="thread" model="gpt-test" transport-label="test-broker">
-          <topic-transcript id="thread" editable>
-            <chat-message><pre>Hello</pre>
-              <a rel="enclosure" href="../../chat.web/README.md" type="text/markdown">README</a>
-            </chat-message>
-          </topic-transcript>
-          <chat-composer></chat-composer>
-          <chat-message-editor></chat-message-editor>
-        </ai-chat-app>
+        <form action="/v1/responses" onsubmit="chat.respond(event)">
+          <ai-chat-app id="chat" transcript="thread" model="gpt-test" transport-label="test-broker">
+            <topic-transcript id="thread" editable>
+              <chat-message><pre>Hello</pre>
+                <input type="hidden" name="ai.input:json" value='{"type":"reasoning","encrypted_content":"opaque-token"}' />
+                <a rel="enclosure" href="../../chat.web/README.md" type="text/markdown">README</a>
+              </chat-message>
+            </topic-transcript>
+            <chat-composer>
+              <textarea name="message" placeholder="Add a message"></textarea>
+              <input name="reasoning.effort" value="high" />
+              <input name="temperature:number" value="0.2" />
+              <button name="intent" value="send">Send</button>
+            </chat-composer>
+            <chat-message-editor></chat-message-editor>
+          </ai-chat-app>
+        </form>
       `)
+      const form = /** @type {HTMLFormElement} */ (root.querySelector("form"))
       const composer = /** @type {import("../chat.web/chat.js").ChatComposer} */ (root.querySelector("chat-composer"))
 
       await customElements.whenDefined("ai-chat-app")
       await waitFor(() => root.querySelector("a[rel~='enclosure']")?.getAttribute("data-status") === "available")
 
-      const textarea = /** @type {HTMLTextAreaElement} */ (composer.shadowRoot?.querySelector("textarea"))
+      const textarea = /** @type {HTMLTextAreaElement} */ (composer.querySelector("textarea"))
       textarea.value = "Next question"
-      textarea.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", metaKey: true, bubbles: true }))
+      form.dispatchEvent(new SubmitEvent("submit", { bubbles: true, cancelable: true, submitter: form.querySelector("button") }))
 
       await waitFor(() => root.querySelectorAll("chat-message").length === 3)
       await waitFor(() => root.querySelectorAll("chat-message")[2]?.querySelector("pre")?.textContent === "Assistant response")
 
-      expect(responds).to.have.length(1)
-      expect(responds[0]).to.include("<pre>Next question</pre>")
-      expect(responds[0]).to.not.include("Assistant response")
+      expect(responses).to.have.length(1)
+      expect(new URL(responses[0]?.url ?? "").searchParams.get("t")).to.equal("test-token")
+      expect(responses[0]?.headers["content-type"]).to.equal("application/json")
+      expect(responses[0]?.body.model).to.equal("gpt-test")
+      expect(responses[0]?.body.reasoning).to.deep.equal({ effort: "high" })
+      expect(responses[0]?.body.temperature).to.equal(0.2)
+      expect(responses[0]?.body.ai).to.equal(undefined)
+      const input = /** @type {unknown[]} */ (responses[0]?.body.input)
+      expect(input[0]).to.deep.equal({ type: "reasoning", encrypted_content: "opaque-token" })
+      expect(JSON.stringify(input)).to.include("Next question")
+      expect(JSON.stringify(input)).to.not.include("Assistant response")
+      expect(JSON.stringify(input.at(-1))).to.not.include("opaque-token")
       expect(saves.at(-1)).to.include("<pre>Assistant response</pre>")
+      expect(saves.at(-1)).to.include('model="gpt-test"')
+      expect(saves.at(-1)).to.include('thinking-effort="high"')
+      expect(saves.at(-1)).to.include('temperature="0.2"')
       expect(saves.at(-1)).to.not.include("data-current-bytes")
       expect(saves.at(-1)).to.not.include("data-current-sha256")
       expect(saves.at(-1)).to.not.include("data-status")
       expect(composer.status).to.equal("Saved")
     } finally {
       Reflect.set(globalThis, "fetch", originalFetch)
+      history.replaceState(null, "", originalUrl)
     }
   })
 

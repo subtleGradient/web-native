@@ -27,19 +27,31 @@ OpenAI-specific prefix; it only orchestrates the local runner endpoints.
 ```html
 <script type="module" src="https://cdn.jsdelivr.net/gh/subtleGradient/web-native@main/src/ai.web/ai-chat.define.js"></script>
 
-<ai-chat-app transcript="thread" model="gpt-5.5" transport-label="codex-broker">
-  <topic-transcript id="thread" editable>
-    <chat-message><pre>Hello</pre></chat-message>
-  </topic-transcript>
-  <chat-composer></chat-composer>
-  <chat-message-editor></chat-message-editor>
-</ai-chat-app>
+<form action="/v1/responses" method="post" onsubmit="chat.respond(event)">
+  <ai-chat-app id="chat" transcript="thread" model="gpt-5.5">
+    <topic-transcript id="thread" editable>
+      <chat-message><pre>Hello</pre></chat-message>
+    </topic-transcript>
+    <chat-composer>
+      <textarea name="message" required></textarea>
+      <select name="reasoning.effort">
+        <option value="minimal">Minimal</option>
+        <option value="medium" selected>Medium</option>
+        <option value="high">High</option>
+      </select>
+      <button name="intent" value="send">Send</button>
+    </chat-composer>
+    <chat-message-editor></chat-message-editor>
+  </ai-chat-app>
+</form>
 ```
 
 `ai-chat-app` persists only serialized `<topic-transcript>` markup through
-`/__ai-chat/save-source`, streams continuations through `/__ai-chat/respond`,
-and refreshes nested `a[rel~="enclosure"]` file badges through
-`/__ai-chat/file-status`.
+`/__ai-chat/save-source`, streams continuations by posting an OpenAI Responses
+request to the form `action`, and refreshes nested `a[rel~="enclosure"]` file
+badges through `/__ai-chat/file-status`. The local chat runner exposes
+`/v1/responses` as a same-origin Codex/OpenAI Responses proxy; local Responses-
+compatible servers can be selected by changing the form `action`.
 
 ```js
 import { OpenAIClient } from "./client.js"
