@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 import type { ServerWebSocket } from "bun"
-import { existsSync } from "node:fs"
+import { existsSync, statSync } from "node:fs"
 import { mkdir, readFile, writeFile } from "node:fs/promises"
 import { homedir } from "node:os"
 import path from "node:path"
@@ -14,7 +14,7 @@ type OpenAIOAuth = {
   accountId?: string
 }
 
-const HOST = "localhost"
+const HOST = "127.0.0.1"
 const DEFAULT_PORT = 4174
 const DEFAULT_DEMO_PATH = "../ai.web/examples/index.html"
 const OPENAI_API_BASE_URL = "https://api.openai.com/v1"
@@ -644,9 +644,23 @@ function resolvePublicPath(pathname: string) {
   if (decoded === "/")
     decoded = `/${path.relative(packageRoot, launchPath).split(path.sep).join("/")}`
   const filePath = path.resolve(packageRoot, `.${decoded}`)
-  return filePath === packageRoot ||
+  const publicPath = filePath === packageRoot ||
     filePath.startsWith(`${packageRoot}${path.sep}`)
     ? filePath
+    : undefined
+  return publicPath ? directoryIndexPath(publicPath) ?? publicPath : undefined
+}
+
+function directoryIndexPath(filePath: string) {
+  try {
+    if (!statSync(filePath).isDirectory()) return undefined
+  } catch {
+    return undefined
+  }
+
+  const indexPath = path.join(filePath, "index.html")
+  return existsSync(indexPath) && statSync(indexPath).isFile()
+    ? indexPath
     : undefined
 }
 

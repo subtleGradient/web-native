@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 import { createHash } from "node:crypto"
-import { existsSync } from "node:fs"
+import { existsSync, statSync } from "node:fs"
 import { readFile, rename, stat, writeFile } from "node:fs/promises"
 import { homedir } from "node:os"
 import path from "node:path"
@@ -35,7 +35,7 @@ type PublicPathLookup = {
   reason?: string
 }
 
-const HOST = "localhost"
+const HOST = "127.0.0.1"
 const DEFAULT_PORT = 4175
 const DEFAULT_DEMO_PATH = "index.html"
 const DEFAULT_MODEL = "gpt-5.5"
@@ -659,7 +659,8 @@ function lookupPublicPath(pathname: string): PublicPathLookup {
     const filePath = resolvePublicRootPath(root, decoded)
     if (!filePath) continue
     attempts.push(filePath)
-    if (existsSync(filePath)) return { attempts, decoded, filePath }
+    const publicFilePath = existingPublicFilePath(filePath)
+    if (publicFilePath) return { attempts, decoded, filePath: publicFilePath }
   }
   return { attempts, decoded, reason: "no candidate file exists" }
 }
@@ -675,6 +676,17 @@ function publicRootsForPath(decodedPathname: string) {
 function resolvePublicRootPath(root: string, decodedPathname: string) {
   const filePath = path.resolve(root, `.${decodedPathname}`)
   return containsPath(root, filePath) ? filePath : undefined
+}
+
+function existingPublicFilePath(filePath: string) {
+  if (!existsSync(filePath)) return undefined
+  const info = statSync(filePath)
+  if (!info.isDirectory()) return filePath
+
+  const indexPath = path.join(filePath, "index.html")
+  return existsSync(indexPath) && statSync(indexPath).isFile()
+    ? indexPath
+    : undefined
 }
 
 function findWorkspaceRoot(start: string) {

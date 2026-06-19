@@ -3,6 +3,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bunx --bun -p https://github.com/subtleGradient/web-native/archive/d4fcce3aac68fd34374751f1bc10fe5fa172dca8.tar.gz web-native-ai-chat index.html"
+    "dev": "bun ../ai-broker.webapp/chat-runner.ts index.html"
   }
 }
